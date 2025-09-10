@@ -1,4 +1,7 @@
 import VRSession from "../models/VRSession.js";
+import ExercisePlan from "../models/ExercisePlan.js";
+import ExerciseSession from "../models/ExerciseSession.js";
+import computerVisionService from "../services/computerVisionService.js";
 
 export const vrController = {
   // Create VR session
@@ -228,6 +231,293 @@ export const vrController = {
         error: "Failed to get VR analytics",
         message: error.message,
       });
+    }
+  },
+
+  // Get exercise plans
+  async getExercisePlans(req, res) {
+    try {
+      const { type, difficulty } = req.query;
+
+      const filter = { isActive: true };
+      if (type) filter.type = type;
+      if (difficulty) filter.difficulty = difficulty;
+
+      const exercisePlans = await ExercisePlan.find(filter).sort({
+        createdAt: -1,
+      });
+
+      res.json({
+        success: true,
+        exercisePlans,
+      });
+    } catch (error) {
+      console.error("Get exercise plans error:", error);
+      res.status(500).json({
+        error: "Failed to get exercise plans",
+        message: error.message,
+      });
+    }
+  },
+
+  // Get single exercise plan
+  async getExercisePlan(req, res) {
+    try {
+      const { id } = req.params;
+
+      const exercisePlan = await ExercisePlan.findById(id);
+
+      if (!exercisePlan) {
+        return res.status(404).json({
+          error: "Exercise plan not found",
+        });
+      }
+
+      res.json({
+        success: true,
+        exercisePlan,
+      });
+    } catch (error) {
+      console.error("Get exercise plan error:", error);
+      res.status(500).json({
+        error: "Failed to get exercise plan",
+        message: error.message,
+      });
+    }
+  },
+
+  // Start exercise session
+  async startExerciseSession(req, res) {
+    try {
+      const { uid } = req.user;
+      const { exercisePlanId } = req.body;
+
+      const exercisePlan = await ExercisePlan.findById(exercisePlanId);
+      if (!exercisePlan) {
+        return res.status(404).json({
+          error: "Exercise plan not found",
+        });
+      }
+
+      const newSession = new ExerciseSession({
+        userId: uid,
+        exercisePlanId,
+        sessionType: exercisePlan.type,
+        plannedDuration: exercisePlan.duration,
+        status: "active",
+      });
+
+      const savedSession = await newSession.save();
+
+      // Initialize computer vision monitoring
+      const cvResult = await computerVisionService.initializeSession(
+        savedSession._id.toString(),
+        exercisePlan,
+        (poseAnalysis) => {
+          // Handle pose detection results
+          this.handlePoseDetection(savedSession._id, poseAnalysis);
+        },
+        (breathingAnalysis) => {
+          // Handle breathing detection results
+          this.handleBreathingDetection(savedSession._id, breathingAnalysis);
+        }
+      );
+
+      res.status(201).json({
+        success: true,
+        message: "Exercise session started successfully",
+        sessionId: savedSession._id,
+        computerVision: cvResult,
+      });
+    } catch (error) {
+      console.error("Start exercise session error:", error);
+      res.status(500).json({
+        error: "Failed to start exercise session",
+        message: error.message,
+      });
+    }
+  },
+
+  // Update exercise session progress
+  async updateExerciseProgress(req, res) {
+    try {
+      const { uid } = req.user;
+      const { id } = req.params;
+      const { currentExercise, completedExercise } = req.body;
+
+      const session = await ExerciseSession.findOne({ _id: id, userId: uid });
+
+      if (!session) {
+        return res.status(404).json({
+          error: "Exercise session not found",
+        });
+      }
+
+      if (currentExercise !== undefined) {
+        session.progress.currentExercise = currentExercise;
+      }
+
+      if (completedExercise) {
+        session.progress.completedExercises.push({
+          exerciseIndex: completedExercise.exerciseIndex,
+          completedAt: new Date(),
+          duration: completedExercise.duration,
+          accuracy: completedExercise.accuracy,
+          breathingAccuracy: completedExercise.breathingAccuracy,
+        });
+      }
+
+      await session.save();
+
+      res.json({
+        success: true,
+        message: "Exercise progress updated successfully",
+        session,
+      });
+    } catch (error) {
+      console.error("Update exercise progress error:", error);
+      res.status(500).json({
+        error: "Failed to update exercise progress",
+        message: error.message,
+      });
+    }
+  },
+
+  // Complete exercise session
+  async completeExerciseSession(req, res) {
+    try {
+      const { uid } = req.user;
+      const { id } = req.params;
+      const { actualDuration, feedback, rating } = req.body;
+
+      const session = await ExerciseSession.findOne({ _id: id, userId: uid });
+
+      if (!session) {
+        return res.status(404).json({
+          error: "Exercise session not found",
+        });
+      }
+
+      session.status = "completed";
+      session.actualDuration = actualDuration;
+      session.completedAt = new Date();
+
+      if (feedback) {
+        session.feedback = feedback;
+      }
+      if (rating) {
+        session.feedback.rating = rating;
+      }
+
+      // Calculate overall accuracy
+      const completedExercises = session.progress.completedExercises;
+      if (completedExercises.length > 0) {
+        const totalAccuracy = completedExercises.reduce(
+          (sum, exercise) => sum + (exercise.accuracy || 0),
+          0
+        );
+        session.progress.overallAccuracy =
+          totalAccuracy / completedExercises.length;
+      }
+
+      await session.save();
+
+      // Stop computer vision monitoring
+      computerVisionService.stopSession(id);
+
+      res.json({
+        success: true,
+        message: "Exercise session completed successfully",
+        session,
+      });
+    } catch (error) {
+      console.error("Complete exercise session error:", error);
+      res.status(500).json({
+        error: "Failed to complete exercise session",
+        message: error.message,
+      });
+    }
+  },
+
+  // Get exercise sessions
+  async getExerciseSessions(req, res) {
+    try {
+      const { uid } = req.user;
+      const { page = 1, limit = 10, sessionType } = req.query;
+
+      const filter = { userId: uid };
+      if (sessionType) {
+        filter.sessionType = sessionType;
+      }
+
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+
+      const sessions = await ExerciseSession.find(filter)
+        .populate("exercisePlanId", "name type difficulty")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit));
+
+      const total = await ExerciseSession.countDocuments(filter);
+
+      res.json({
+        success: true,
+        sessions,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit)),
+        },
+      });
+    } catch (error) {
+      console.error("Get exercise sessions error:", error);
+      res.status(500).json({
+        error: "Failed to get exercise sessions",
+        message: error.message,
+      });
+    }
+  },
+
+  // Handle pose detection results
+  async handlePoseDetection(sessionId, poseAnalysis) {
+    try {
+      const session = await ExerciseSession.findById(sessionId);
+      if (!session) return;
+
+      session.monitoringData.poseTracking.push({
+        timestamp: poseAnalysis.timestamp,
+        exerciseIndex: session.progress.currentExercise,
+        keyPoints: poseAnalysis.keyPoints,
+        accuracy: poseAnalysis.accuracy,
+        feedback: poseAnalysis.feedback,
+      });
+
+      await session.save();
+    } catch (error) {
+      console.error("Handle pose detection error:", error);
+    }
+  },
+
+  // Handle breathing detection results
+  async handleBreathingDetection(sessionId, breathingAnalysis) {
+    try {
+      const session = await ExerciseSession.findById(sessionId);
+      if (!session) return;
+
+      session.monitoringData.breathingTracking.push({
+        timestamp: breathingAnalysis.timestamp,
+        exerciseIndex: session.progress.currentExercise,
+        inhaleDuration: breathingAnalysis.breathingData.inhaleDuration,
+        exhaleDuration: breathingAnalysis.breathingData.exhaleDuration,
+        holdDuration: breathingAnalysis.breathingData.holdDuration,
+        accuracy: breathingAnalysis.accuracy,
+        feedback: breathingAnalysis.feedback,
+      });
+
+      await session.save();
+    } catch (error) {
+      console.error("Handle breathing detection error:", error);
     }
   },
 };

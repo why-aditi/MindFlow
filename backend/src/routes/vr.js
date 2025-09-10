@@ -50,6 +50,37 @@ const getSessionsValidation = [
     .withMessage("Invalid session type filter"),
 ];
 
+const startExerciseSessionValidation = [
+  body("exercisePlanId")
+    .isMongoId()
+    .withMessage("Valid exercise plan ID is required"),
+];
+
+const updateExerciseProgressValidation = [
+  body("currentExercise")
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage("Current exercise must be a non-negative integer"),
+  body("completedExercise")
+    .optional()
+    .isObject()
+    .withMessage("Completed exercise must be an object"),
+];
+
+const completeExerciseSessionValidation = [
+  body("actualDuration")
+    .isInt({ min: 0 })
+    .withMessage("Actual duration must be a non-negative integer"),
+  body("feedback")
+    .optional()
+    .isObject()
+    .withMessage("Feedback must be an object"),
+  body("rating")
+    .optional()
+    .isInt({ min: 1, max: 5 })
+    .withMessage("Rating must be between 1 and 5"),
+];
+
 // Routes
 router.post(
   "/sessions",
@@ -72,5 +103,30 @@ router.get(
 router.get("/sessions/:id", vrController.getSession);
 router.get("/guided-sessions", vrController.getGuidedSessions);
 router.get("/analytics", vrController.getAnalytics);
+
+// Exercise Plan Routes
+router.get("/exercise-plans", vrController.getExercisePlans);
+router.get("/exercise-plans/:id", vrController.getExercisePlan);
+
+// Exercise Session Routes
+router.post(
+  "/exercise-sessions",
+  startExerciseSessionValidation,
+  validate,
+  vrController.startExerciseSession
+);
+router.put(
+  "/exercise-sessions/:id/progress",
+  updateExerciseProgressValidation,
+  validate,
+  vrController.updateExerciseProgress
+);
+router.put(
+  "/exercise-sessions/:id/complete",
+  completeExerciseSessionValidation,
+  validate,
+  vrController.completeExerciseSession
+);
+router.get("/exercise-sessions", vrController.getExerciseSessions);
 
 export default router;
