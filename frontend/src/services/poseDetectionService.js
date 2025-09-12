@@ -24,38 +24,41 @@ class PoseDetectionService {
       this.ctx = canvasElement.getContext("2d");
       this.callbacks = callbacks;
 
-      // Import MediaPipe dynamically
-      const { Pose } = await import("@mediapipe/pose");
-      const { Camera } = await import("@mediapipe/camera_utils");
+      // Import MediaPipe Tasks Vision dynamically
+      const { PoseLandmarker, FilesetResolver } = await import(
+        "@mediapipe/tasks-vision"
+      );
 
-      // Initialize MediaPipe Pose
-      this.pose = new Pose({
-        locateFile: (file) => {
-          return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+      // Initialize MediaPipe Pose Landmarker
+      const vision = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+      );
+
+      this.pose = await PoseLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/1/pose_landmarker_heavy.task`,
+          delegate: "GPU",
         },
-      });
-
-      this.pose.setOptions({
-        modelComplexity: 1,
-        smoothLandmarks: true,
-        enableSegmentation: false,
-        smoothSegmentation: true,
-        minDetectionConfidence: 0.5,
+        runningMode: "VIDEO",
+        numPoses: 1,
+        minPoseDetectionConfidence: 0.5,
+        minPosePresenceConfidence: 0.5,
         minTrackingConfidence: 0.5,
       });
 
-      this.pose.onResults(this.onResults.bind(this));
+      // Start camera stream
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 640, height: 480 },
+        });
+        this.video.srcObject = stream;
+        this.video.play();
 
-      // Initialize camera
-      const camera = new Camera(this.video, {
-        onFrame: async () => {
-          await this.pose.send({ image: this.video });
-        },
-        width: 640,
-        height: 480,
-      });
-
-      await camera.start();
+        // Start pose detection loop
+        this.startDetectionLoop();
+      } else {
+        throw new Error("Camera access not supported");
+      }
       this.isDetecting = true;
 
       return { success: true, message: "Pose detection initialized" };
@@ -63,6 +66,33 @@ class PoseDetectionService {
       console.error("Error initializing pose detection:", error);
       return { success: false, error: error.message };
     }
+  }
+
+  /**
+   * Start the pose detection loop
+   */
+  startDetectionLoop() {
+    const detectPose = async () => {
+      if (
+        !this.isDetecting ||
+        !this.video.videoWidth ||
+        !this.video.videoHeight
+      ) {
+        requestAnimationFrame(detectPose);
+        return;
+      }
+
+      try {
+        const results = this.pose.detectForVideo(this.video, performance.now());
+        this.onResults(results);
+      } catch (error) {
+        console.error("Error during pose detection:", error);
+      }
+
+      requestAnimationFrame(detectPose);
+    };
+
+    detectPose();
   }
 
   /**
@@ -75,14 +105,15 @@ class PoseDetectionService {
     this.ctx.save();
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    if (results.poseLandmarks) {
-      this.drawPoseLandmarks(results.poseLandmarks);
+    if (results.landmarks && results.landmarks.length > 0) {
+      const landmarks = results.landmarks[0]; // Get first pose
+      this.drawPoseLandmarks(landmarks);
 
       // Extract key points
-      const keyPoints = this.extractKeyPoints(results.poseLandmarks);
+      const keyPoints = this.extractKeyPoints(landmarks);
 
       // Detect breathing pattern
-      const breathingData = this.detectBreathingPattern(results.poseLandmarks);
+      const breathingData = this.detectBreathingPattern(landmarks);
 
       // Call callbacks
       if (this.callbacks.onPoseDetected) {
@@ -138,7 +169,12 @@ class PoseDetectionService {
     connections.forEach(([start, end]) => {
       const startPoint = landmarks[start];
       const endPoint = landmarks[end];
-      if (startPoint && endPoint) {
+      if (
+        startPoint &&
+        endPoint &&
+        startPoint.visibility > 0.5 &&
+        endPoint.visibility > 0.5
+      ) {
         this.ctx.beginPath();
         this.ctx.moveTo(
           startPoint.x * this.canvas.width,
@@ -154,7 +190,7 @@ class PoseDetectionService {
 
     // Draw landmarks
     this.ctx.fillStyle = "#FF0000";
-    landmarks.forEach((landmark, index) => {
+    landmarks.forEach((landmark) => {
       if (landmark.visibility > 0.5) {
         this.ctx.beginPath();
         this.ctx.arc(
