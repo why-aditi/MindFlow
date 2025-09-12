@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useContext, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '../components/ui/Button'
 import PoseDetectionService from '../services/poseDetectionService'
+import { AuthContext } from '../contexts/AuthContext'
 import { 
   Play, 
   Pause, 
@@ -35,6 +36,7 @@ import {
 } from 'lucide-react'
 
 const VRMeditation = () => {
+  const { user } = useContext(AuthContext)
   const canvasRef = useRef(null)
   const videoRef = useRef(null)
   const poseCanvasRef = useRef(null)
@@ -202,6 +204,117 @@ const VRMeditation = () => {
     }
   ]
 
+  const fetchExercisePlans = useCallback(async () => {
+    try {
+      // Get fresh Firebase ID token
+      if (!user) {
+        console.warn('User not authenticated, using mock data')
+        // Set mock exercise plans for demo
+        setExercisePlans([
+          {
+            _id: 'mock-1',
+            name: 'Beginner Meditation',
+            description: 'Perfect for newcomers to meditation',
+            duration: 10,
+            difficulty: 'beginner',
+            type: 'breathing',
+            exercises: [
+              { name: 'Breathing Exercise', description: 'Focus on your breath' },
+              { name: 'Body Scan', description: 'Progressive relaxation' }
+            ]
+          },
+          {
+            _id: 'mock-2',
+            name: 'Advanced Breathing',
+            description: 'Deep breathing techniques for experienced users',
+            duration: 20,
+            difficulty: 'advanced',
+            type: 'breathing',
+            exercises: [
+              { name: 'Box Breathing', description: '4-4-4-4 breathing pattern' },
+              { name: 'Alternate Nostril', description: 'Nadi Shodhana technique' }
+            ]
+          }
+        ])
+        return
+      }
+
+      const idToken = await user.getIdToken()
+      const response = await fetch('http://localhost:5000/api/vr/exercise-plans', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
+      
+      // Check if response is HTML (server not running)
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        console.warn('Backend server not running, using mock data')
+        // Set mock exercise plans for demo
+        setExercisePlans([
+          {
+            _id: 'mock-1',
+            name: 'Beginner Meditation',
+            description: 'Perfect for newcomers to meditation',
+            duration: 10,
+            difficulty: 'beginner',
+            type: 'breathing',
+            exercises: [
+              { name: 'Breathing Exercise', description: 'Focus on your breath' },
+              { name: 'Body Scan', description: 'Progressive relaxation' }
+            ]
+          },
+          {
+            _id: 'mock-2',
+            name: 'Advanced Focus',
+            description: 'Challenge your concentration skills',
+            duration: 20,
+            difficulty: 'advanced',
+            type: 'focus',
+            exercises: [
+              { name: 'Mindfulness', description: 'Present moment awareness' },
+              { name: 'Visualization', description: 'Guided imagery practice' }
+            ]
+          }
+        ])
+        return
+      }
+      
+      const data = await response.json()
+      if (data.success) {
+        setExercisePlans(data.exercisePlans)
+      }
+    } catch (error) {
+      console.warn('Error fetching exercise plans, using mock data:', error.message)
+      // Set mock exercise plans for demo
+      setExercisePlans([
+        {
+          _id: 'mock-1',
+          name: 'Beginner Meditation',
+          description: 'Perfect for newcomers to meditation',
+          duration: 10,
+          difficulty: 'beginner',
+          type: 'breathing',
+          exercises: [
+            { name: 'Breathing Exercise', description: 'Focus on your breath' },
+            { name: 'Body Scan', description: 'Progressive relaxation' }
+          ]
+        },
+        {
+          _id: 'mock-2',
+          name: 'Advanced Focus',
+          description: 'Challenge your concentration skills',
+          duration: 20,
+          difficulty: 'advanced',
+          type: 'focus',
+          exercises: [
+            { name: 'Mindfulness', description: 'Present moment awareness' },
+            { name: 'Visualization', description: 'Guided imagery practice' }
+          ]
+        }
+      ])
+    }
+  }, [user])
 
   useEffect(() => {
     // Check for WebXR support
@@ -321,90 +434,23 @@ const VRMeditation = () => {
       }
       cleanup()
     }
-  }, [isPlaying, sessionDuration, breathingAccuracy, poseDetectionService, currentEnvironment, environments])
+  }, [isPlaying, sessionDuration, breathingAccuracy, poseDetectionService, currentEnvironment, environments, user, fetchExercisePlans])
 
 
-  const fetchExercisePlans = async () => {
-    try {
-      const response = await fetch('/api/vr/exercise-plans')
-      
-      // Check if response is HTML (server not running)
-      const contentType = response.headers.get('content-type')
-      if (!contentType || !contentType.includes('application/json')) {
-        console.warn('Backend server not running, using mock data')
-        // Set mock exercise plans for demo
-        setExercisePlans([
-          {
-            _id: 'mock-1',
-            name: 'Beginner Meditation',
-            description: 'Perfect for newcomers to meditation',
-            duration: 10,
-            difficulty: 'beginner',
-            type: 'breathing',
-            exercises: [
-              { name: 'Breathing Exercise', description: 'Focus on your breath' },
-              { name: 'Body Scan', description: 'Progressive relaxation' }
-            ]
-          },
-          {
-            _id: 'mock-2',
-            name: 'Advanced Focus',
-            description: 'Challenge your concentration skills',
-            duration: 20,
-            difficulty: 'advanced',
-            type: 'focus',
-            exercises: [
-              { name: 'Mindfulness', description: 'Present moment awareness' },
-              { name: 'Visualization', description: 'Guided imagery practice' }
-            ]
-          }
-        ])
-        return
-      }
-      
-      const data = await response.json()
-      if (data.success) {
-        setExercisePlans(data.exercisePlans)
-      }
-    } catch (error) {
-      console.warn('Error fetching exercise plans, using mock data:', error.message)
-      // Set mock exercise plans for demo
-      setExercisePlans([
-        {
-          _id: 'mock-1',
-          name: 'Beginner Meditation',
-          description: 'Perfect for newcomers to meditation',
-          duration: 10,
-          difficulty: 'beginner',
-          type: 'breathing',
-          exercises: [
-            { name: 'Breathing Exercise', description: 'Focus on your breath' },
-            { name: 'Body Scan', description: 'Progressive relaxation' }
-          ]
-        },
-        {
-          _id: 'mock-2',
-          name: 'Advanced Focus',
-          description: 'Challenge your concentration skills',
-          duration: 20,
-          difficulty: 'advanced',
-          type: 'focus',
-          exercises: [
-            { name: 'Mindfulness', description: 'Present moment awareness' },
-            { name: 'Visualization', description: 'Guided imagery practice' }
-          ]
-        }
-      ])
-    }
-  }
 
   const startExerciseSession = async (planId) => {
     try {
-      const response = await fetch('/api/vr/exercise-sessions', {
+      if (!user) {
+        console.warn('User not authenticated, cannot start session')
+        return
+      }
+
+      const idToken = await user.getIdToken()
+      const response = await fetch('http://localhost:5000/api/vr/exercise-sessions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${idToken}`
         },
         body: JSON.stringify({ exercisePlanId: planId })
       })
