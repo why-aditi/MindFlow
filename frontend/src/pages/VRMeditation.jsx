@@ -55,7 +55,6 @@ const VRMeditation = () => {
   const [sessionMode, setSessionMode] = useState('exercise') // Focus on exercise mode
   
   // Enhanced meditation states
-  const [heartRate, setHeartRate] = useState(72)
   const [stressLevel, setStressLevel] = useState(45)
   const [focusScore, setFocusScore] = useState(85)
   const [sessionProgress] = useState(0)
@@ -70,8 +69,13 @@ const VRMeditation = () => {
   const [isMonitoring, setIsMonitoring] = useState(false)
   const [poseAccuracy, setPoseAccuracy] = useState(0)
   const [breathingAccuracy, setBreathingAccuracy] = useState(0)
-  const [monitoringFeedback, setMonitoringFeedback] = useState('')
-  const [showMonitoring, setShowMonitoring] = useState(false)
+  
+  // Modal states
+  const [showPoseModal, setShowPoseModal] = useState(false)
+  const modalVideoRef = useRef(null)
+  const modalCanvasRef = useRef(null)
+  const [poseDetectionService, setPoseDetectionService] = useState(null)
+  const [isPoseDetectionReady, setIsPoseDetectionReady] = useState(false)
   
   // Social and gamification states
   const [userStreak, setUserStreak] = useState(0)
@@ -253,13 +257,54 @@ const VRMeditation = () => {
     }
   }, [user, lastApiCall])
 
+  // Initialize pose detection modal
+  const initializePoseDetectionModal = useCallback(async () => {
+    try {
+      const service = new PoseDetectionService()
+      await service.initialize()
+      
+      setPoseDetectionService(service)
+      setIsPoseDetectionReady(true)
+      
+      // Set up pose detection callbacks
+      service.setOnPoseDetected((poseData) => {
+        if (modalCanvasRef.current && poseData.landmarks) {
+          service.drawPoseLandmarks(modalCanvasRef.current, poseData.landmarks)
+          
+          // Calculate pose accuracy (simplified)
+          const accuracy = Math.round(poseData.confidence * 100)
+          setPoseAccuracy(accuracy)
+        }
+      })
+      
+      service.setOnError((error) => {
+        console.error('Pose detection error:', error)
+        setIsPoseDetectionReady(false)
+      })
+      
+      console.log('Pose detection modal initialized successfully')
+      
+      // Start pose detection immediately since we have the service ready
+      if (modalVideoRef.current) {
+        console.log('Starting pose detection...')
+        const detectPose = () => {
+          if (modalVideoRef.current && service) {
+            service.detectPose(modalVideoRef.current)
+            requestAnimationFrame(detectPose)
+          }
+        }
+        detectPose()
+      }
+    } catch (error) {
+      console.error('Failed to initialize pose detection modal:', error)
+      setIsPoseDetectionReady(false)
+    }
+  }, [])
+
   const simulateBiometricData = useCallback(() => {
     if (!isPlaying) return
     
     // Simulate realistic biometric changes during meditation
-    const baseHeartRate = 72
-    const variation = Math.sin(Date.now() / 10000) * 5
-    setHeartRate(Math.round(baseHeartRate + variation))
     
     // Stress level decreases over time
     const stressReduction = Math.min(sessionDuration / 60, 20)
@@ -269,6 +314,92 @@ const VRMeditation = () => {
     const focusBoost = breathingAccuracy > 80 ? 5 : 0
     setFocusScore(Math.min(100, 85 + focusBoost))
   }, [isPlaying, sessionDuration, breathingAccuracy])
+
+  // Start pose detection in modal
+  const startPoseDetection = useCallback(() => {
+    if (!poseDetectionService || !modalVideoRef.current || !isPoseDetectionReady) {
+      console.warn('Pose detection not ready')
+      return
+    }
+
+    const detectPose = () => {
+      if (modalVideoRef.current && poseDetectionService) {
+        poseDetectionService.detectPose(modalVideoRef.current)
+        requestAnimationFrame(detectPose)
+      }
+    }
+
+    detectPose()
+  }, [poseDetectionService, isPoseDetectionReady])
+
+  // Open pose detection modal
+  const openPoseModal = async () => {
+    setShowPoseModal(true)
+    
+    // Wait for modal to render, then initialize camera
+    setTimeout(async () => {
+      try {
+        console.log('Requesting camera access...')
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            width: 640, 
+            height: 480,
+            facingMode: 'user'
+          } 
+        })
+        
+        console.log('Camera stream obtained:', stream)
+        
+        if (modalVideoRef.current) {
+          console.log('Setting video source...')
+          modalVideoRef.current.srcObject = stream
+          
+          // Wait for video to load
+          modalVideoRef.current.onloadedmetadata = async () => {
+            console.log('Video metadata loaded, starting playback...')
+            try {
+              await modalVideoRef.current.play()
+              console.log('Video playback started')
+              
+              // Initialize pose detection after video starts playing
+              initializePoseDetectionModal()
+            } catch (playError) {
+              console.error('Error playing video:', playError)
+            }
+          }
+          
+          // Handle video errors
+          modalVideoRef.current.onerror = (error) => {
+            console.error('Video error:', error)
+          }
+        } else {
+          console.error('Video ref not available')
+        }
+      } catch (error) {
+        console.error('Error accessing camera for modal:', error)
+        alert('Camera access denied. Please allow camera permissions and try again.')
+      }
+    }, 100) // Small delay to ensure modal is rendered
+  }
+
+  // Close pose detection modal
+  const closePoseModal = () => {
+    setShowPoseModal(false)
+    
+    // Stop camera stream
+    if (modalVideoRef.current && modalVideoRef.current.srcObject) {
+      const tracks = modalVideoRef.current.srcObject.getTracks()
+      tracks.forEach(track => track.stop())
+      modalVideoRef.current.srcObject = null
+    }
+    
+    // Cleanup pose detection service
+    if (poseDetectionService) {
+      poseDetectionService.cleanup()
+      setPoseDetectionService(null)
+      setIsPoseDetectionReady(false)
+    }
+  }
 
   const fetchBiometricData = useCallback(async () => {
     try {
@@ -312,7 +443,6 @@ const VRMeditation = () => {
       
       const data = await response.json()
       if (data.success) {
-        setHeartRate(data.biometricData.heartRate || 72)
         setStressLevel(data.biometricData.stressLevel || 45)
         setFocusScore(data.biometricData.focusScore || 85)
         // Mark backend as available if we got successful data
@@ -402,6 +532,26 @@ const VRMeditation = () => {
     return cleanup
   }, [isPlaying, startBiometricSimulation])
 
+  // Session timer effect
+  useEffect(() => {
+    let timer
+    if (isPlaying && sessionDuration > 0) {
+      timer = setInterval(() => {
+        setSessionDuration(prev => {
+          if (prev <= 1) {
+            setIsPlaying(false)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+    }
+    
+    return () => {
+      if (timer) clearInterval(timer)
+    }
+  }, [isPlaying, sessionDuration])
+
 
 
   const startExerciseSession = async (planId) => {
@@ -426,7 +576,6 @@ const VRMeditation = () => {
       if (!contentType || !contentType.includes('application/json')) {
         console.warn('Backend server not running, starting mock exercise session')
         setIsMonitoring(true)
-        setShowMonitoring(true)
         setSelectedPlan(exercisePlans.find(plan => plan._id === planId))
         setIsPlaying(true)
         setSessionMode('exercise')
@@ -438,7 +587,6 @@ const VRMeditation = () => {
       const data = await response.json()
       if (data.success) {
         setIsMonitoring(true)
-        setShowMonitoring(true)
         setSelectedPlan(exercisePlans.find(plan => plan._id === planId))
         setIsPlaying(true)
         setSessionMode('exercise')
@@ -450,7 +598,6 @@ const VRMeditation = () => {
       console.warn('Error starting exercise session, using mock mode:', error.message)
       // Fallback to mock mode
       setIsMonitoring(true)
-      setShowMonitoring(true)
       setSelectedPlan(exercisePlans.find(plan => plan._id === planId))
       setIsPlaying(true)
       setSessionMode('exercise')
@@ -470,7 +617,7 @@ const VRMeditation = () => {
           onPoseDetected: (data) => {
             const accuracy = analyzePoseAccuracy(data.keyPoints, selectedPlan)
             setPoseAccuracy(accuracy)
-            setMonitoringFeedback(accuracy > 85 ? 'Excellent form! 🌟' : 'Adjust your posture slightly')
+            // Pose accuracy feedback removed
           },
           onBreathingDetected: (data) => {
             const accuracy = analyzeBreathingAccuracy(data.breathingData, selectedPlan)
@@ -551,40 +698,6 @@ const VRMeditation = () => {
     return Math.round(accuracy)
   }
 
-  const generateDynamicFeedback = (poseAcc, breathingAcc) => {
-    const feedbacks = {
-      excellent: [
-        'Perfect posture! ✨',
-        'Excellent form! 🎯',
-        'Outstanding technique! 🌟'
-      ],
-      good: [
-        'Great breathing rhythm 🌊',
-        'Stay focused and calm 🧘',
-        'Beautiful meditation pose 🌸'
-      ],
-      average: [
-        'Keep that steady rhythm 💫',
-        'You\'re doing well! 💪',
-        'Stay consistent! 🌱'
-      ],
-      needsImprovement: [
-        'Adjust your posture slightly',
-        'Focus on your breathing',
-        'Relax and find your center'
-      ]
-    }
-
-    if (poseAcc >= 90 && breathingAcc >= 85) {
-      return feedbacks.excellent[Math.floor(Math.random() * feedbacks.excellent.length)]
-    } else if (poseAcc >= 80 && breathingAcc >= 75) {
-      return feedbacks.good[Math.floor(Math.random() * feedbacks.good.length)]
-    } else if (poseAcc >= 70 && breathingAcc >= 65) {
-      return feedbacks.average[Math.floor(Math.random() * feedbacks.average.length)]
-    } else {
-      return feedbacks.needsImprovement[Math.floor(Math.random() * feedbacks.needsImprovement.length)]
-    }
-  }
 
   const startMonitoringSimulation = () => {
     const interval = setInterval(() => {
@@ -595,8 +708,7 @@ const VRMeditation = () => {
         const breathingAcc = Math.floor(Math.random() * 30) + 60
         setBreathingAccuracy(breathingAcc)
         
-        const dynamicFeedback = generateDynamicFeedback(poseAcc, breathingAcc)
-        setMonitoringFeedback(dynamicFeedback)
+        // Monitoring feedback removed
       } else {
         clearInterval(interval)
       }
@@ -605,33 +717,8 @@ const VRMeditation = () => {
     return () => clearInterval(interval)
   }
 
-  const startSession = async (session) => {
-    setIsPlaying(true)
-    setSessionDuration(session.duration)
-    setSessionMode('exercise') // Changed to exercise mode
-    
-    // Initialize camera when starting exercise
-    await initializeCamera()
-    
-    // Start session timer
-    const timer = setInterval(() => {
-      setSessionDuration(prev => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          completeSession()
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-  }
 
-  const completeSession = () => {
-    setIsPlaying(false)
-    setUserStreak(prev => prev + 1)
-    setTotalSessions(prev => prev + 1)
-    cleanupCamera() // Stop camera when session completes
-  }
+
 
   const stopSession = () => {
     setIsPlaying(false)
@@ -724,14 +811,6 @@ const VRMeditation = () => {
                   }}
                 />
                 
-                {/* Hidden video element for pose detection */}
-                <video
-                  ref={videoRef}
-                  className="hidden"
-                  autoPlay
-                  muted
-                  playsInline
-                />
                 
                 {/* Pose detection canvas overlay */}
                 <canvas
@@ -823,57 +902,29 @@ const VRMeditation = () => {
                   </motion.div>
                 )}
 
-                {/* Enhanced Biometric Monitoring */}
-                {showMonitoring && isMonitoring && (
+                {/* Camera Stream Display */}
+                {isPlaying && (
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="absolute bottom-8 right-8 bg-black/30 backdrop-blur-sm rounded-2xl p-6 min-w-[280px] border border-white/20"
+                    className="absolute bottom-8 right-8 bg-black/30 backdrop-blur-sm rounded-2xl p-4 border border-white/20"
                   >
-                    <div className="flex items-center space-x-2 mb-4">
+                    <div className="flex items-center space-x-2 mb-3">
                       <Camera className="w-5 h-5 text-green-400" />
-                      <span className="text-white text-sm font-medium">AI Monitoring</span>
+                      <span className="text-white text-sm font-medium">Camera Stream</span>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center">
-                        <div className="flex items-center justify-center mb-2">
-                          <Target className="w-4 h-4 text-blue-400 mr-1" />
-                          <span className="text-white text-xs">Pose</span>
-                        </div>
-                        <div className="text-white text-lg font-bold">{poseAccuracy}%</div>
-                      </div>
-                      
-                      <div className="text-center">
-                        <div className="flex items-center justify-center mb-2">
-                          <Activity className="w-4 h-4 text-green-400 mr-1" />
-                          <span className="text-white text-xs">Breathing</span>
-                        </div>
-                        <div className="text-white text-lg font-bold">{breathingAccuracy}%</div>
-                      </div>
-                      
-                      <div className="text-center">
-                        <div className="flex items-center justify-center mb-2">
-                          <Heart className="w-4 h-4 text-red-400 mr-1" />
-                          <span className="text-white text-xs">Heart Rate</span>
-                        </div>
-                        <div className="text-white text-lg font-bold">{heartRate} BPM</div>
-                      </div>
-                      
-                      <div className="text-center">
-                        <div className="flex items-center justify-center mb-2">
-                          <Brain className="w-4 h-4 text-purple-400 mr-1" />
-                          <span className="text-white text-xs">Focus</span>
-                        </div>
-                        <div className="text-white text-lg font-bold">{focusScore}%</div>
-                      </div>
+                    <div className="relative w-48 h-36 bg-black/50 rounded-lg overflow-hidden">
+                      <video
+                        ref={videoRef}
+                        className="w-full h-full object-cover"
+                        autoPlay
+                        muted
+                        playsInline
+                        style={{ transform: 'scaleX(-1)' }} // Mirror the video
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                     </div>
-                    
-                    {monitoringFeedback && (
-                      <div className="mt-4 p-3 bg-white/10 rounded-lg text-xs text-white text-center">
-                        {monitoringFeedback}
-                      </div>
-                    )}
                   </motion.div>
                 )}
 
@@ -890,7 +941,7 @@ const VRMeditation = () => {
                     </Button>
                     
                     <Button
-                      onClick={isPlaying ? stopSession : startSession}
+                      onClick={isPlaying ? stopSession : openPoseModal}
                       className={`w-16 h-16 rounded-full ${
                         isPlaying 
                           ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700' 
@@ -1051,6 +1102,218 @@ const VRMeditation = () => {
             </div>
           </div>
         </div>
+
+        {/* Pose Detection Modal */}
+        <AnimatePresence>
+          {showPoseModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50"
+              onClick={closePoseModal}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="bg-white/10 backdrop-blur-md rounded-3xl p-6 max-w-4xl w-full mx-4 border border-white/20"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-2xl font-bold text-white flex items-center">
+                    <Camera className="w-8 h-8 mr-3 text-green-400" />
+                    Exercise Tracking
+                  </h3>
+                  <Button
+                    variant="outline"
+                    onClick={closePoseModal}
+                    className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  >
+                    ✕
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Video Stream with Pose Detection */}
+                  <div className="space-y-4">
+                    <div className="relative bg-black rounded-2xl overflow-hidden">
+                      <video
+                        ref={modalVideoRef}
+                        className="w-full h-80 object-cover bg-gray-800"
+                        autoPlay
+                        muted
+                        playsInline
+                        style={{ transform: 'scaleX(-1)' }}
+                      />
+                      <canvas
+                        ref={modalCanvasRef}
+                        className="absolute inset-0 w-full h-full pointer-events-none"
+                        style={{ transform: 'scaleX(-1)' }}
+                      />
+                      
+                      {/* Fallback message if no video */}
+                      {!modalVideoRef.current?.srcObject && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+                          <div className="text-center text-white">
+                            <Camera className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                            <p className="text-lg font-medium">Initializing Camera...</p>
+                            <p className="text-sm text-gray-400 mt-2">Please allow camera access</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Pose Detection Status */}
+                      <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2">
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-2 h-2 rounded-full ${isPoseDetectionReady ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
+                          <span className="text-white text-sm font-medium">
+                            {isPoseDetectionReady ? 'Pose Detection Active' : 'Initializing...'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Pose Accuracy Display */}
+                      <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2">
+                        <div className="text-white text-sm">
+                          <div className="font-medium">Accuracy</div>
+                          <div className="text-green-400 font-bold text-lg">{poseAccuracy}%</div>
+                        </div>
+                      </div>
+                      
+                      {/* Session Timer - Only show when exercise is running */}
+                      {isPlaying && (
+                        <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2">
+                          <div className="text-white text-sm">
+                            <div className="font-medium">Session Time</div>
+                            <div className="text-blue-400 font-bold text-lg font-mono">
+                              {formatTime(sessionDuration)}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="text-center">
+                      <p className="text-white/80 text-sm">
+                        AI-powered pose detection for perfect form and technique
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Exercise Information */}
+                  <div className="space-y-6">
+                    <div className="bg-white/5 rounded-2xl p-6">
+                      <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
+                        <Target className="w-5 h-5 mr-2 text-blue-400" />
+                        Exercise Details
+                      </h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-white/70">Exercise Type</span>
+                          <span className="text-white font-medium">Pose Tracking</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-white/70">Difficulty</span>
+                          <span className="text-white font-medium">Beginner</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-white/70">Duration</span>
+                          <span className="text-white font-medium">5-10 min</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-white/70">Focus Areas</span>
+                          <span className="text-white font-medium">Posture, Balance</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {!isPlaying ? (
+                      <div className="bg-white/5 rounded-2xl p-6">
+                        <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
+                          <Activity className="w-5 h-5 mr-2 text-green-400" />
+                          Instructions
+                        </h4>
+                        <div className="space-y-2 text-white/80 text-sm">
+                          <p>• Stand in front of the camera</p>
+                          <p>• Ensure good lighting</p>
+                          <p>• Keep your full body visible</p>
+                          <p>• Follow the pose guidance</p>
+                          <p>• Maintain steady breathing</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-white/5 rounded-2xl p-6">
+                        <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
+                          <Activity className="w-5 h-5 mr-2 text-green-400" />
+                          Exercise Progress
+                        </h4>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                            <span className="text-white/70">Session Time</span>
+                            <span className="font-semibold text-white font-mono">{formatTime(sessionDuration)}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-white/70">Pose Accuracy</span>
+                            <span className="font-semibold text-green-400">{poseAccuracy}%</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-white/70">Breathing Rate</span>
+                            <span className="font-semibold text-blue-400">{breathingAccuracy}%</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-white/70">Focus Score</span>
+                            <span className="font-semibold text-purple-400">{focusScore}%</span>
+                          </div>
+                          <div className="w-full bg-white/20 rounded-full h-2 mt-4">
+                            <motion.div 
+                              className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full"
+                              initial={{ width: 0 }}
+                              animate={{ width: `${((300 - sessionDuration) / 300) * 100}%` }}
+                              transition={{ duration: 0.5 }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex space-x-3">
+                      {!isPlaying ? (
+                        <Button
+                          onClick={() => {
+                            setIsPlaying(true)
+                            setSessionMode('exercise')
+                            setSessionDuration(300) // Start with 5 minutes
+                          }}
+                          className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+                        >
+                          Start Exercise
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => {
+                            setIsPlaying(false)
+                            setSessionDuration(0)
+                          }}
+                          className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white"
+                        >
+                          Stop Exercise
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        onClick={closePoseModal}
+                        className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                      >
+                        Close
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Enhanced Settings Modal */}
         <AnimatePresence>

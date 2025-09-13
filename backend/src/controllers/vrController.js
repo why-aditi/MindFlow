@@ -521,11 +521,14 @@ export const vrController = {
         exercisePlan,
         (poseAnalysis) => {
           // Handle pose detection results
-          this.handlePoseDetection(savedSession._id, poseAnalysis);
+          vrController.handlePoseDetection(savedSession._id, poseAnalysis);
         },
         (breathingAnalysis) => {
           // Handle breathing detection results
-          this.handleBreathingDetection(savedSession._id, breathingAnalysis);
+          vrController.handleBreathingDetection(
+            savedSession._id,
+            breathingAnalysis
+          );
         }
       );
 
