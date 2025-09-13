@@ -3,6 +3,37 @@ import JournalEntry from "../models/JournalEntry.js";
 import VRSession from "../models/VRSession.js";
 import { AISession } from "../models/Conversation.js";
 
+// Helper function to format time ago
+const getTimeAgo = (date) => {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now - new Date(date)) / 1000);
+
+  if (diffInSeconds < 60) return "Just now";
+  if (diffInSeconds < 3600)
+    return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+  if (diffInSeconds < 86400)
+    return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+  if (diffInSeconds < 604800)
+    return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  return `${Math.floor(diffInSeconds / 604800)} weeks ago`;
+};
+
+// Helper function to convert mood string to number
+const moodToNumber = (mood) => {
+  const moodMap = {
+    sad: 2,
+    anxious: 3,
+    tired: 4,
+    neutral: 5,
+    confused: 5,
+    calm: 7,
+    happy: 8,
+    excited: 9,
+    angry: 3,
+  };
+  return moodMap[mood] || 5; // Default to neutral (5) if mood not found
+};
+
 export const userController = {
   // Get user profile
   async getProfile(req, res) {
@@ -25,6 +56,32 @@ export const userController = {
       console.error("Get profile error:", error);
       res.status(500).json({
         error: "Failed to get profile",
+        message: error.message,
+      });
+    }
+  },
+
+  // Get wellness goals
+  async getWellnessGoals(req, res) {
+    try {
+      const { uid } = req.user;
+
+      const user = await User.findOne({ uid });
+
+      if (!user) {
+        return res.status(404).json({
+          error: "User not found",
+        });
+      }
+
+      res.json({
+        success: true,
+        goals: user.wellnessGoals || [],
+      });
+    } catch (error) {
+      console.error("Get wellness goals error:", error);
+      res.status(500).json({
+        error: "Failed to get wellness goals",
         message: error.message,
       });
     }
@@ -55,6 +112,44 @@ export const userController = {
       console.error("Update wellness goals error:", error);
       res.status(500).json({
         error: "Failed to update wellness goals",
+        message: error.message,
+      });
+    }
+  },
+
+  // Get user preferences
+  async getPreferences(req, res) {
+    try {
+      const { uid } = req.user;
+
+      const user = await User.findOne({ uid });
+
+      if (!user) {
+        return res.status(404).json({
+          error: "User not found",
+        });
+      }
+
+      res.json({
+        success: true,
+        preferences: user.preferences || {
+          theme: "light",
+          notifications: {
+            email: true,
+            push: true,
+            reminders: true,
+          },
+          accessibility: {
+            fontSize: "medium",
+            highContrast: false,
+            screenReader: false,
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Get preferences error:", error);
+      res.status(500).json({
+        error: "Failed to get preferences",
         message: error.message,
       });
     }
@@ -237,6 +332,257 @@ export const userController = {
       console.error("Get stats error:", error);
       res.status(500).json({
         error: "Failed to get stats",
+        message: error.message,
+      });
+    }
+  },
+
+  // Get recent activity
+  async getRecentActivity(req, res) {
+    try {
+      const { uid } = req.user;
+      const { limit = 10 } = req.query;
+
+      // Get recent journal entries
+      const recentJournals = await JournalEntry.find({ userId: uid })
+        .sort({ createdAt: -1 })
+        .limit(parseInt(limit))
+        .select("mood createdAt");
+
+      console.log("Recent journals found:", recentJournals.length);
+
+      // Get recent VR sessions
+      const recentVRSessions = await VRSession.find({ userId: uid })
+        .sort({ createdAt: -1 })
+        .limit(parseInt(limit))
+        .select("sessionType duration createdAt");
+
+      console.log("Recent VR sessions found:", recentVRSessions.length);
+
+      // Get recent AI conversations
+      const recentAIConversations = await AISession.find({ userId: uid })
+        .sort({ lastActivity: -1 })
+        .limit(parseInt(limit))
+        .select("lastActivity");
+
+      console.log(
+        "Recent AI conversations found:",
+        recentAIConversations.length
+      );
+
+      // Combine and format activities
+      const activities = [];
+
+      recentJournals.forEach((journal) => {
+        activities.push({
+          id: `journal_${journal._id}`,
+          type: "journal",
+          activity: "Wrote journal entry",
+          description: `Mood: ${journal.mood}`,
+          timestamp: journal.createdAt,
+          points: 30,
+        });
+      });
+
+      recentVRSessions.forEach((session) => {
+        activities.push({
+          id: `vr_${session._id}`,
+          type: "vr",
+          activity: "Completed VR session",
+          description: `${session.sessionType} - ${session.duration} minutes`,
+          timestamp: session.createdAt,
+          points: 100,
+        });
+      });
+
+      recentAIConversations.forEach((conversation) => {
+        activities.push({
+          id: `ai_${conversation._id}`,
+          type: "ai",
+          activity: "AI conversation",
+          description: "Chat with AI companion",
+          timestamp: conversation.lastActivity,
+          points: 20,
+        });
+      });
+
+      // Sort by timestamp and limit
+      activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      const limitedActivities = activities.slice(0, parseInt(limit));
+
+      // Format for frontend
+      const formattedActivities = limitedActivities.map((activity) => ({
+        id: activity.id,
+        activity: activity.activity,
+        description: activity.description,
+        time: getTimeAgo(activity.timestamp),
+        points: `+${activity.points}`,
+        type: activity.type,
+      }));
+
+      res.json({
+        success: true,
+        activities: formattedActivities,
+      });
+    } catch (error) {
+      console.error("Get recent activity error:", error);
+      res.status(500).json({
+        error: "Failed to get recent activity",
+        message: error.message,
+      });
+    }
+  },
+
+  // Get mood trend for the past week
+  async getMoodTrend(req, res) {
+    try {
+      const { uid } = req.user;
+
+      // Get last 7 days
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - 7);
+
+      // Get journal entries for the past week
+      const journalEntries = await JournalEntry.find({
+        userId: uid,
+        createdAt: { $gte: startDate, $lte: endDate },
+      }).select("mood createdAt");
+
+      console.log("Mood trend query:", {
+        userId: uid,
+        startDate,
+        endDate,
+        journalEntriesCount: journalEntries.length,
+        journalEntries: journalEntries.map((entry) => ({
+          mood: entry.mood,
+          createdAt: entry.createdAt,
+        })),
+      });
+
+      // Group by day and calculate average mood
+      const moodByDay = {};
+      const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]; // Match frontend order
+      const dayMap = {
+        0: "Sun",
+        1: "Mon",
+        2: "Tue",
+        3: "Wed",
+        4: "Thu",
+        5: "Fri",
+        6: "Sat",
+      };
+
+      // Initialize with default values for the past 7 days
+      for (let i = 0; i < 7; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - (6 - i));
+        const dayKey = dayMap[date.getDay()];
+        moodByDay[dayKey] = { count: 0, total: 0, avg: 5 }; // Default mood of 5
+      }
+
+      // Process journal entries
+      journalEntries.forEach((entry) => {
+        const dayKey = dayMap[entry.createdAt.getDay()];
+        if (moodByDay[dayKey]) {
+          moodByDay[dayKey].count++;
+          moodByDay[dayKey].total += moodToNumber(entry.mood);
+          moodByDay[dayKey].avg = Math.round(
+            moodByDay[dayKey].total / moodByDay[dayKey].count
+          );
+        }
+      });
+
+      // Convert to array for frontend in the correct order (Mon-Sun)
+      const moodTrend = days.map((day) => moodByDay[day].avg);
+
+      console.log("Mood trend calculation:", {
+        journalEntriesCount: journalEntries.length,
+        moodByDay,
+        moodTrend,
+        days,
+      });
+
+      res.json({
+        success: true,
+        moodTrend,
+        days,
+      });
+    } catch (error) {
+      console.error("Get mood trend error:", error);
+      res.status(500).json({
+        error: "Failed to get mood trend",
+        message: error.message,
+      });
+    }
+  },
+
+  // Get activity distribution
+  async getActivityDistribution(req, res) {
+    try {
+      const { uid } = req.user;
+      const { period = "week" } = req.query;
+
+      const now = new Date();
+      let startDate;
+
+      switch (period) {
+        case "week":
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case "month":
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      }
+
+      // Get counts for different activities
+      const journalCount = await JournalEntry.countDocuments({
+        userId: uid,
+        createdAt: { $gte: startDate },
+      });
+
+      console.log("Journal count for period:", journalCount);
+
+      const vrCount = await VRSession.countDocuments({
+        userId: uid,
+        createdAt: { $gte: startDate },
+      });
+
+      console.log("VR count for period:", vrCount);
+
+      const aiCount = await AISession.countDocuments({
+        userId: uid,
+        lastActivity: { $gte: startDate },
+      });
+
+      console.log("AI count for period:", aiCount);
+
+      const total = journalCount + vrCount + aiCount;
+
+      // Calculate percentages
+      const distribution = {
+        meditation: total > 0 ? Math.round((vrCount / total) * 100) : 0,
+        journaling: total > 0 ? Math.round((journalCount / total) * 100) : 0,
+        vrSessions: total > 0 ? Math.round((vrCount / total) * 100) : 0,
+        aiConversations: total > 0 ? Math.round((aiCount / total) * 100) : 0,
+      };
+
+      res.json({
+        success: true,
+        distribution,
+        counts: {
+          journal: journalCount,
+          vr: vrCount,
+          ai: aiCount,
+          total,
+        },
+      });
+    } catch (error) {
+      console.error("Get activity distribution error:", error);
+      res.status(500).json({
+        error: "Failed to get activity distribution",
         message: error.message,
       });
     }

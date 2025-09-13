@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
+import { motion } from 'framer-motion'
 import { User, Settings, Target, Award, Calendar, BarChart3, Globe, Bell } from 'lucide-react'
 
 const Profile = () => {
@@ -13,27 +13,21 @@ const Profile = () => {
     theme: 'light',
     privacy: 'friends'
   })
-  const [wellnessGoals, setWellnessGoals] = useState([
-    { id: 1, title: 'Daily Meditation', target: 10, current: 7, unit: 'minutes', icon: '🧘‍♀️' },
-    { id: 2, title: 'Journal Entries', target: 5, current: 3, unit: 'per week', icon: '📝' },
-    { id: 3, title: 'VR Sessions', target: 3, current: 2, unit: 'per week', icon: '🥽' },
-    { id: 4, title: 'Sleep Hours', target: 8, current: 6.5, unit: 'hours', icon: '😴' }
-  ])
-
-  const achievements = [
-    { id: 1, title: 'First Steps', description: 'Completed your first meditation session', icon: '🌟', earned: true },
-    { id: 2, title: 'Week Warrior', description: '7-day meditation streak', icon: '🔥', earned: true },
-    { id: 3, title: 'Journal Keeper', description: 'Wrote 10 journal entries', icon: '📚', earned: true },
-    { id: 4, title: 'VR Explorer', description: 'Completed 5 VR sessions', icon: '🚀', earned: false },
-    { id: 5, title: 'Mood Master', description: 'Maintained positive mood for 30 days', icon: '😊', earned: false }
-  ]
-
-  const stats = [
-    { label: 'Total Points', value: '2,450', icon: '⭐', color: 'from-yellow-400 to-yellow-500' },
-    { label: 'Current Streak', value: '12 days', icon: '🔥', color: 'from-red-400 to-red-500' },
-    { label: 'Sessions Completed', value: '47', icon: '✅', color: 'from-green-400 to-green-500' },
-    { label: 'Mood Average', value: '8.2/10', icon: '😊', color: 'from-blue-400 to-blue-500' }
-  ]
+  const [wellnessGoals, setWellnessGoals] = useState([])
+  const [achievements, setAchievements] = useState([])
+  const [stats, setStats] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [showAddGoalModal, setShowAddGoalModal] = useState(false)
+  const [newGoal, setNewGoal] = useState({
+    title: '',
+    description: '',
+    target: '',
+    unit: 'times',
+    priority: 'medium'
+  })
+  const [recentActivity, setRecentActivity] = useState([])
+  const [moodTrend, setMoodTrend] = useState([])
+  const [activityDistribution, setActivityDistribution] = useState({})
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: User },
@@ -42,14 +36,304 @@ const Profile = () => {
     { id: 'settings', label: 'Settings', icon: Settings }
   ]
 
-  const updateGoal = (goalId, newValue) => {
-    setWellnessGoals(prev => 
-      prev.map(goal => 
-        goal.id === goalId 
-          ? { ...goal, current: Math.min(newValue, goal.target) }
-          : goal
-      )
-    )
+  const fetchProfileData = useCallback(async () => {
+    try {
+      if (!user) {
+        console.warn('User not authenticated, cannot fetch profile data')
+        setWellnessGoals([])
+        setAchievements([])
+        setStats([])
+        setIsLoading(false)
+        return
+      }
+
+      const idToken = await user.getIdToken()
+      
+      // Fetch wellness goals
+      const goalsResponse = await fetch('http://localhost:5000/api/profile/wellness-goals', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
+      
+      // Fetch achievements
+      const achievementsResponse = await fetch('http://localhost:5000/api/profile/achievements', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
+      
+      // Fetch user stats
+      const statsResponse = await fetch('http://localhost:5000/api/profile/stats', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
+      
+      // Fetch user preferences
+      const preferencesResponse = await fetch('http://localhost:5000/api/profile/preferences', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
+      
+      // Fetch recent activity
+      console.log('Fetching recent activity...')
+      const activityResponse = await fetch('http://localhost:5000/api/profile/recent-activity', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
+      console.log('Activity response status:', activityResponse.status)
+      
+      // Fetch mood trend
+      console.log('Fetching mood trend...')
+      const moodTrendResponse = await fetch('http://localhost:5000/api/profile/mood-trend', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
+      console.log('Mood trend response status:', moodTrendResponse.status)
+      
+      // Fetch activity distribution
+      console.log('Fetching activity distribution...')
+      const activityDistResponse = await fetch('http://localhost:5000/api/profile/activity-distribution', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
+      console.log('Activity distribution response status:', activityDistResponse.status)
+      
+      // Check if any response failed
+      if (!goalsResponse.ok || !achievementsResponse.ok || !statsResponse.ok || !preferencesResponse.ok || 
+          !activityResponse.ok || !moodTrendResponse.ok || !activityDistResponse.ok) {
+        console.warn('Backend server not running')
+        setWellnessGoals([])
+        setAchievements([])
+        setStats([])
+        setRecentActivity([])
+        setMoodTrend([])
+        setActivityDistribution({})
+        setIsLoading(false)
+        return
+      }
+      
+      const contentType = goalsResponse.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        console.warn('Backend server not running')
+        setWellnessGoals([])
+        setAchievements([])
+        setStats([])
+        setRecentActivity([])
+        setMoodTrend([])
+        setActivityDistribution({})
+        setIsLoading(false)
+        return
+      }
+      
+      const goalsData = await goalsResponse.json()
+      const achievementsData = await achievementsResponse.json()
+      const statsData = await statsResponse.json()
+      const preferencesData = await preferencesResponse.json()
+      const activityData = await activityResponse.json()
+      console.log('Activity data:', activityData)
+      const moodTrendData = await moodTrendResponse.json()
+      console.log('Mood trend data:', moodTrendData)
+      const activityDistData = await activityDistResponse.json()
+      console.log('Activity distribution data:', activityDistData)
+      
+      if (goalsData.success) {
+        setWellnessGoals(goalsData.goals || [])
+      } else {
+        console.error('Failed to fetch wellness goals:', goalsData.error)
+        setWellnessGoals([])
+      }
+      
+      if (achievementsData.success) {
+        setAchievements(achievementsData.achievements || [])
+      } else {
+        console.error('Failed to fetch achievements:', achievementsData.error)
+        setAchievements([])
+      }
+      
+      if (statsData.success) {
+        // Transform backend stats object into frontend format
+        const backendStats = statsData.stats || {}
+        const transformedStats = [
+          {
+            label: 'Journal Entries',
+            value: backendStats.journalEntries || 0,
+            icon: <Calendar className="w-6 h-6 text-white" />,
+            color: 'from-blue-500 to-blue-600'
+          },
+          {
+            label: 'VR Sessions',
+            value: backendStats.vrSessions || 0,
+            icon: <BarChart3 className="w-6 h-6 text-white" />,
+            color: 'from-purple-500 to-purple-600'
+          },
+          {
+            label: 'AI Conversations',
+            value: backendStats.aiConversations || 0,
+            icon: <User className="w-6 h-6 text-white" />,
+            color: 'from-green-500 to-green-600'
+          }
+        ]
+        setStats(transformedStats)
+      } else {
+        console.error('Failed to fetch stats:', statsData.error)
+        setStats([])
+      }
+      
+      if (preferencesData.success) {
+        setPreferences(preferencesData.preferences || {
+          language: 'en',
+          notifications: true,
+          theme: 'light',
+          privacy: 'friends'
+        })
+      } else {
+        console.error('Failed to fetch preferences:', preferencesData.error)
+      }
+      
+      if (activityData.success) {
+        setRecentActivity(activityData.activities || [])
+      } else {
+        console.error('Failed to fetch recent activity:', activityData.error)
+        setRecentActivity([])
+      }
+      
+      if (moodTrendData.success) {
+        console.log('Mood trend data received:', moodTrendData.moodTrend)
+        setMoodTrend(moodTrendData.moodTrend || [])
+      } else {
+        console.error('Failed to fetch mood trend:', moodTrendData.error)
+        setMoodTrend([])
+      }
+      
+      if (activityDistData.success) {
+        setActivityDistribution(activityDistData.distribution || {})
+      } else {
+        console.error('Failed to fetch activity distribution:', activityDistData.error)
+        setActivityDistribution({})
+      }
+    } catch (error) {
+      console.error('Error fetching profile data:', error.message)
+      setWellnessGoals([])
+      setAchievements([])
+      setStats([])
+      setRecentActivity([])
+      setMoodTrend([])
+      setActivityDistribution({})
+    } finally {
+      setIsLoading(false)
+    }
+  }, [user])
+
+  useEffect(() => {
+    fetchProfileData()
+  }, [fetchProfileData])
+
+  const updateGoal = async (goalId, newValue) => {
+    try {
+      const idToken = await user.getIdToken()
+      const response = await fetch('http://localhost:5000/api/profile/wellness-goals', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ goalId, current: newValue })
+      })
+      
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        console.warn('Backend server not running')
+        return
+      }
+      
+      const data = await response.json()
+      if (data.success) {
+        setWellnessGoals(prev => 
+          prev.map(goal => 
+            goal.id === goalId 
+              ? { ...goal, current: Math.min(newValue, goal.target) }
+              : goal
+          )
+        )
+      } else {
+        console.error('Failed to update goal:', data.error)
+      }
+    } catch (error) {
+      console.error('Error updating goal:', error.message)
+    }
+  }
+
+  const addGoal = async () => {
+    try {
+      if (!newGoal.title.trim() || !newGoal.target) {
+        alert('Please fill in all required fields')
+        return
+      }
+
+      const idToken = await user.getIdToken()
+      const response = await fetch('http://localhost:5000/api/profile/wellness-goals', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({
+          goals: [
+            ...wellnessGoals,
+            {
+              id: Date.now().toString(),
+              title: newGoal.title,
+              description: newGoal.description,
+              target: parseInt(newGoal.target),
+              current: 0,
+              unit: newGoal.unit,
+              priority: newGoal.priority,
+              icon: '🎯'
+            }
+          ]
+        })
+      })
+      
+      if (!response.ok) {
+        console.warn('Backend server not running')
+        return
+      }
+      
+      const data = await response.json()
+      if (data.success) {
+        setWellnessGoals(prev => [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            title: newGoal.title,
+            description: newGoal.description,
+            target: parseInt(newGoal.target),
+            current: 0,
+            unit: newGoal.unit,
+            priority: newGoal.priority,
+            icon: '🎯'
+          }
+        ])
+        setNewGoal({
+          title: '',
+          description: '',
+          target: '',
+          unit: 'times',
+          priority: 'medium'
+        })
+        setShowAddGoalModal(false)
+      } else {
+        console.error('Failed to add goal:', data.error)
+      }
+    } catch (error) {
+      console.error('Error adding goal:', error.message)
+    }
   }
 
   return (
@@ -122,7 +406,15 @@ const Profile = () => {
           transition={{ delay: 0.2 }}
           className="grid md:grid-cols-4 gap-6 mb-8"
         >
-          {stats.map((stat, index) => (
+          {isLoading ? (
+            <div className="col-span-full flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading stats...</p>
+              </div>
+            </div>
+          ) : (
+            stats.map((stat, index) => (
             <div key={index} className="bg-white rounded-2xl shadow-lg p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center text-2xl`}>
@@ -132,7 +424,8 @@ const Profile = () => {
               <div className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</div>
               <div className="text-sm text-gray-600">{stat.label}</div>
             </div>
-          ))}
+          ))
+          )}
         </motion.div>
 
         {/* Tabs */}
@@ -167,20 +460,25 @@ const Profile = () => {
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 mb-6">Recent Activity</h3>
                   <div className="space-y-4">
-                    {[
-                      { activity: 'Completed 10-minute meditation', time: '2 hours ago', points: '+50' },
-                      { activity: 'Wrote journal entry', time: '1 day ago', points: '+30' },
-                      { activity: 'Finished VR session', time: '2 days ago', points: '+100' },
-                      { activity: 'Achieved weekly goal', time: '3 days ago', points: '+200' }
-                    ].map((item, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                        <div>
-                          <p className="font-medium text-gray-900">{item.activity}</p>
-                          <p className="text-sm text-gray-500">{item.time}</p>
+                    {recentActivity.length > 0 ? (
+                      recentActivity.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                          <div>
+                            <p className="font-medium text-gray-900">{item.activity}</p>
+                            <p className="text-sm text-gray-500">{item.time}</p>
+                            {item.description && (
+                              <p className="text-xs text-gray-400 mt-1">{item.description}</p>
+                            )}
+                          </div>
+                          <div className="text-sm font-semibold text-green-600">{item.points}</div>
                         </div>
-                        <div className="text-sm font-semibold text-green-600">{item.points}</div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <p>No recent activity found</p>
+                        <p className="text-sm mt-2">Start journaling, meditating, or chatting with AI to see your activity here!</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
 
@@ -189,51 +487,90 @@ const Profile = () => {
                   <div className="bg-gray-50 rounded-xl p-6">
                     <div className="grid md:grid-cols-2 gap-6">
                       <div>
-                        <h4 className="font-semibold text-gray-900 mb-3">Mood Trend</h4>
-                        <div className="flex items-end space-x-2 h-20">
-                          {[7, 8, 6, 9, 8, 7, 8].map((height, index) => (
-                            <div
-                              key={index}
-                              className="bg-gradient-to-t from-purple-400 to-purple-500 rounded-t"
-                              style={{ height: `${height * 8}px`, width: '20px' }}
-                            />
-                          ))}
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-gray-900">Mood Trend</h4>
+                          <button
+                            onClick={() => fetchProfileData()}
+                            className="text-xs text-purple-600 hover:text-purple-800 underline"
+                            disabled={isLoading}
+                          >
+                            Refresh
+                          </button>
                         </div>
-                        <div className="flex justify-between text-xs text-gray-500 mt-2">
-                          <span>Mon</span>
-                          <span>Tue</span>
-                          <span>Wed</span>
-                          <span>Thu</span>
-                          <span>Fri</span>
-                          <span>Sat</span>
-                          <span>Sun</span>
-                        </div>
+                        {isLoading ? (
+                          <div className="flex items-center justify-center h-20">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-end justify-between h-20 px-1">
+                              {moodTrend.length > 0 ? (
+                                moodTrend.map((height, index) => (
+                                  <div
+                                    key={index}
+                                    className="bg-gradient-to-t from-purple-400 to-purple-500 rounded-t transition-all duration-300 flex-shrink-0"
+                                    style={{ height: `${Math.max(height * 8, 8)}px`, width: '20px' }}
+                                    title={`Day ${index + 1}: Mood ${height}/10`}
+                                  />
+                                ))
+                              ) : (
+                                // Show default bars when no data
+                                [5, 5, 5, 5, 5, 5, 5].map((height, index) => (
+                                  <div
+                                    key={index}
+                                    className="bg-gradient-to-t from-gray-300 to-gray-400 rounded-t flex-shrink-0"
+                                    style={{ height: `${height * 8}px`, width: '20px' }}
+                                    title={`No mood data for day ${index + 1}`}
+                                  />
+                                ))
+                              )}
+                            </div>
+                            <div className="flex justify-between text-xs text-gray-500 mt-2 px-1">
+                              <span className="flex-shrink-0">Mon</span>
+                              <span className="flex-shrink-0">Tue</span>
+                              <span className="flex-shrink-0">Wed</span>
+                              <span className="flex-shrink-0">Thu</span>
+                              <span className="flex-shrink-0">Fri</span>
+                              <span className="flex-shrink-0">Sat</span>
+                              <span className="flex-shrink-0">Sun</span>
+                            </div>
+                            {moodTrend.length > 0 ? (
+                              <div className="text-xs text-gray-400 mt-2 text-center">
+                                Based on {moodTrend.filter(m => m !== 5).length} days with journal entries
+                              </div>
+                            ) : (
+                              <div className="text-xs text-gray-400 mt-2 text-center">
+                                No mood data available. Write journal entries to see your mood trend!
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-3">Activity Distribution</h4>
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">Meditation</span>
-                            <span className="text-sm font-medium">40%</span>
+                            <span className="text-sm font-medium">{activityDistribution.meditation || 0}%</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div className="bg-purple-500 h-2 rounded-full" style={{ width: '40%' }}></div>
+                            <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${activityDistribution.meditation || 0}%` }}></div>
                           </div>
                           
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">Journaling</span>
-                            <span className="text-sm font-medium">30%</span>
+                            <span className="text-sm font-medium">{activityDistribution.journaling || 0}%</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div className="bg-blue-500 h-2 rounded-full" style={{ width: '30%' }}></div>
+                            <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${activityDistribution.journaling || 0}%` }}></div>
                           </div>
                           
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">VR Sessions</span>
-                            <span className="text-sm font-medium">30%</span>
+                            <span className="text-sm font-medium">{activityDistribution.vrSessions || 0}%</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div className="bg-green-500 h-2 rounded-full" style={{ width: '30%' }}></div>
+                            <div className="bg-green-500 h-2 rounded-full" style={{ width: `${activityDistribution.vrSessions || 0}%` }}></div>
                           </div>
                         </div>
                       </div>
@@ -252,13 +589,24 @@ const Profile = () => {
               >
                 <div className="flex justify-between items-center">
                   <h3 className="text-xl font-bold text-gray-900">Wellness Goals</h3>
-                  <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white">
+                  <Button 
+                    onClick={() => setShowAddGoalModal(true)}
+                    className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                  >
                     Add Goal
                   </Button>
                 </div>
                 
                 <div className="grid md:grid-cols-2 gap-6">
-                  {wellnessGoals.map((goal) => (
+                  {isLoading ? (
+                    <div className="col-span-full flex items-center justify-center py-12">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                        <p className="text-gray-600">Loading goals...</p>
+                      </div>
+                    </div>
+                  ) : (
+                    wellnessGoals.map((goal) => (
                     <div key={goal.id} className="bg-gray-50 rounded-xl p-6">
                       <div className="flex items-center space-x-3 mb-4">
                         <span className="text-2xl">{goal.icon}</span>
@@ -299,7 +647,8 @@ const Profile = () => {
                         </Button>
                       </div>
                     </div>
-                  ))}
+                  ))
+                  )}
                 </div>
               </motion.div>
             )}
@@ -314,7 +663,15 @@ const Profile = () => {
                 <h3 className="text-xl font-bold text-gray-900">Achievements</h3>
                 
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {achievements.map((achievement) => (
+                  {isLoading ? (
+                    <div className="col-span-full flex items-center justify-center py-12">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                        <p className="text-gray-600">Loading achievements...</p>
+                      </div>
+                    </div>
+                  ) : (
+                    achievements.map((achievement) => (
                     <div
                       key={achievement.id}
                       className={`p-6 rounded-xl border-2 transition-all ${
@@ -336,7 +693,8 @@ const Profile = () => {
                         )}
                       </div>
                     </div>
-                  ))}
+                  ))
+                  )}
                 </div>
               </motion.div>
             )}
@@ -431,6 +789,109 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* Add Goal Modal */}
+      {showAddGoalModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl p-6 w-full max-w-md mx-4"
+          >
+            <h3 className="text-xl font-bold text-gray-900 mb-6">Add New Goal</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Goal Title *
+                </label>
+                <input
+                  type="text"
+                  value={newGoal.title}
+                  onChange={(e) => setNewGoal(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="e.g., Daily Meditation"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={newGoal.description}
+                  onChange={(e) => setNewGoal(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  rows="3"
+                  placeholder="Describe your goal..."
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Target *
+                  </label>
+                  <input
+                    type="number"
+                    value={newGoal.target}
+                    onChange={(e) => setNewGoal(prev => ({ ...prev, target: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="10"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Unit
+                  </label>
+                  <select
+                    value={newGoal.unit}
+                    onChange={(e) => setNewGoal(prev => ({ ...prev, unit: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="times">times</option>
+                    <option value="minutes">minutes</option>
+                    <option value="hours">hours</option>
+                    <option value="days">days</option>
+                    <option value="sessions">sessions</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Priority
+                </label>
+                <select
+                  value={newGoal.priority}
+                  onChange={(e) => setNewGoal(prev => ({ ...prev, priority: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3 mt-6">
+              <Button
+                variant="outline"
+                onClick={() => setShowAddGoalModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={addGoal}
+                className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+              >
+                Add Goal
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 }

@@ -18,6 +18,8 @@ import journalRoutes from "./src/routes/journal.js";
 import aiRoutes from "./src/routes/ai.js";
 import vrRoutes from "./src/routes/vr.js";
 import userRoutes from "./src/routes/user.js";
+import profileRoutes from "./src/routes/profile.js";
+import exerciseRoutes from "./src/routes/exercises.js";
 
 // Import middleware
 import { errorHandler } from "./src/middleware/errorHandler.js";
@@ -80,6 +82,8 @@ app.use("/api/journal", authMiddleware, journalRoutes);
 app.use("/api/ai", authMiddleware, aiRoutes);
 app.use("/api/vr", authMiddleware, vrRoutes);
 app.use("/api/user", authMiddleware, userRoutes);
+app.use("/api/profile", authMiddleware, profileRoutes);
+app.use("/api/exercises", authMiddleware, exerciseRoutes);
 
 // 404 handler
 app.use("*", (req, res) => {

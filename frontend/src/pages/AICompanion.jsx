@@ -1,24 +1,68 @@
-import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import { Send, Mic, MicOff, Bot, User } from 'lucide-react';
 
 const AICompanion = () => {
   const { user } = useAuth();
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      text: "Hello! I'm your AI wellness companion. How are you feeling today?",
-      sender: 'ai',
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  const fetchInitialMessages = useCallback(async () => {
+    try {
+      if (!user) {
+        console.warn('User not authenticated, cannot fetch messages')
+        setMessages([])
+        setIsInitializing(false)
+        return
+      }
+
+      const idToken = await user.getIdToken()
+      const response = await fetch('http://localhost:5000/api/ai/messages', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
+      
+      if (!response.ok) {
+        console.warn('Backend server not running')
+        setMessages([])
+        setIsInitializing(false)
+        return
+      }
+      
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        console.warn('Backend server not running')
+        setMessages([])
+        setIsInitializing(false)
+        return
+      }
+      
+      const data = await response.json()
+      if (data.success) {
+        setMessages(data.messages || [])
+      } else {
+        console.error('Failed to fetch messages:', data.error)
+        setMessages([])
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error.message)
+      setMessages([])
+    } finally {
+      setIsInitializing(false)
+    }
+  }, [user])
+
+  useEffect(() => {
+    fetchInitialMessages()
+  }, [fetchInitialMessages])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -42,17 +86,47 @@ const AICompanion = () => {
     setInputText('');
     setIsLoading(true);
 
-    // Simulate AI response (replace with actual Dialogflow CX integration)
-    setTimeout(() => {
-      const aiResponse = {
-        id: Date.now() + 1,
-        text: "I understand how you're feeling. That's completely normal. Would you like to talk more about what's on your mind, or would you prefer to try a quick breathing exercise?",
-        sender: 'ai',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiResponse]);
-      setIsLoading(false);
-    }, 1500);
+    try {
+      const idToken = await user.getIdToken()
+      const response = await fetch('http://localhost:5000/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ message: inputText })
+      })
+      
+      if (!response.ok) {
+        console.warn('Backend server not running')
+        setIsLoading(false)
+        return
+      }
+      
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        console.warn('Backend server not running')
+        setIsLoading(false)
+        return
+      }
+      
+      const data = await response.json()
+      if (data.success) {
+        const aiResponse = {
+          id: Date.now() + 1,
+          text: data.response,
+          sender: 'ai',
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, aiResponse]);
+      } else {
+        console.error('Failed to get AI response:', data.error)
+      }
+    } catch (error) {
+      console.error('Error sending message:', error.message)
+    } finally {
+      setIsLoading(false)
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -102,8 +176,16 @@ const AICompanion = () => {
         <div className="bg-white rounded-2xl shadow-lg h-[calc(100vh-200px)] flex flex-col">
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
-            <AnimatePresence>
-              {messages.map((message) => (
+            {isInitializing ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading conversation...</p>
+                </div>
+              </div>
+            ) : (
+              <AnimatePresence>
+                {messages.map((message) => (
                 <motion.div
                   key={message.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -157,8 +239,9 @@ const AICompanion = () => {
                     </div>
                   </div>
                 </motion.div>
-              ))}
-            </AnimatePresence>
+                ))}
+              </AnimatePresence>
+            )}
 
             {/* Loading indicator */}
             {isLoading && (

@@ -234,6 +234,212 @@ export const vrController = {
     }
   },
 
+  // Get user stats for VR
+  async getUserStats(req, res) {
+    try {
+      const { uid } = req.user;
+
+      const sessions = await VRSession.find({ userId: uid });
+      const exerciseSessions = await ExerciseSession.find({ userId: uid });
+
+      // Calculate VR session stats
+      const completedVRSessions = sessions.filter(
+        (session) => session.status === "completed"
+      );
+      const totalVRTime = completedVRSessions.reduce(
+        (total, session) => total + (session.actualDuration || 0),
+        0
+      );
+      const averageVRDuration =
+        completedVRSessions.length > 0
+          ? totalVRTime / completedVRSessions.length
+          : 0;
+
+      // Calculate exercise session stats
+      const completedExerciseSessions = exerciseSessions.filter(
+        (session) => session.status === "completed"
+      );
+      const totalExerciseTime = completedExerciseSessions.reduce(
+        (total, session) => total + (session.actualDuration || 0),
+        0
+      );
+      const averageExerciseAccuracy =
+        completedExerciseSessions.length > 0
+          ? completedExerciseSessions.reduce(
+              (sum, session) => sum + (session.progress.overallAccuracy || 0),
+              0
+            ) / completedExerciseSessions.length
+          : 0;
+
+      // Calculate streak (consecutive days with at least one session)
+      const today = new Date();
+      const thirtyDaysAgo = new Date(
+        today.getTime() - 30 * 24 * 60 * 60 * 1000
+      );
+
+      const recentSessions = [...sessions, ...exerciseSessions].filter(
+        (session) => new Date(session.createdAt) >= thirtyDaysAgo
+      );
+
+      // Calculate current streak
+      let currentStreak = 0;
+      const sessionDates = [
+        ...new Set(
+          recentSessions.map((session) =>
+            new Date(session.createdAt).toDateString()
+          )
+        ),
+      ].sort((a, b) => new Date(b) - new Date(a));
+
+      for (let i = 0; i < sessionDates.length; i++) {
+        const sessionDate = new Date(sessionDates[i]);
+        const expectedDate = new Date(
+          today.getTime() - i * 24 * 60 * 60 * 1000
+        );
+
+        if (sessionDate.toDateString() === expectedDate.toDateString()) {
+          currentStreak++;
+        } else {
+          break;
+        }
+      }
+
+      res.json({
+        success: true,
+        stats: {
+          vrSessions: {
+            total: sessions.length,
+            completed: completedVRSessions.length,
+            totalTime: totalVRTime,
+            averageDuration: Math.round(averageVRDuration * 10) / 10,
+          },
+          exerciseSessions: {
+            total: exerciseSessions.length,
+            completed: completedExerciseSessions.length,
+            totalTime: totalExerciseTime,
+            averageAccuracy: Math.round(averageExerciseAccuracy),
+          },
+          streaks: {
+            current: currentStreak,
+            longest: Math.max(currentStreak, 0), // Simplified for now
+          },
+          wellness: {
+            totalSessions: sessions.length + exerciseSessions.length,
+            totalTime: totalVRTime + totalExerciseTime,
+            lastActivity:
+              recentSessions.length > 0 ? recentSessions[0].createdAt : null,
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Get user stats error:", error);
+      res.status(500).json({
+        error: "Failed to get user stats",
+        message: error.message,
+      });
+    }
+  },
+
+  // Get user preferences for VR
+  async getUserPreferences(req, res) {
+    try {
+      const { uid } = req.user;
+
+      // Get user's recent sessions to determine preferences
+      const recentSessions = await VRSession.find({ userId: uid })
+        .sort({ createdAt: -1 })
+        .limit(20);
+
+      // Analyze preferences based on recent activity
+      const sessionTypes = {};
+      const environments = {};
+      const durations = [];
+
+      recentSessions.forEach((session) => {
+        sessionTypes[session.sessionType] =
+          (sessionTypes[session.sessionType] || 0) + 1;
+        environments[session.environment] =
+          (environments[session.environment] || 0) + 1;
+        durations.push(session.plannedDuration);
+      });
+
+      // Calculate most preferred options
+      const preferredSessionType = Object.keys(sessionTypes).reduce(
+        (a, b) => (sessionTypes[a] > sessionTypes[b] ? a : b),
+        "meditation"
+      );
+
+      const preferredEnvironment = Object.keys(environments).reduce(
+        (a, b) => (environments[a] > environments[b] ? a : b),
+        "ocean"
+      );
+
+      const averageDuration =
+        durations.length > 0
+          ? Math.round(
+              durations.reduce((sum, dur) => sum + dur, 0) / durations.length
+            )
+          : 10;
+
+      res.json({
+        success: true,
+        preferences: {
+          sessionType: preferredSessionType,
+          environment: preferredEnvironment,
+          duration: averageDuration,
+          notifications: {
+            reminders: true,
+            achievements: true,
+            weeklyReports: true,
+          },
+          accessibility: {
+            audioGuidance: true,
+            visualCues: true,
+            difficultyLevel: "beginner",
+          },
+          privacy: {
+            dataSharing: false,
+            analytics: true,
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Get user preferences error:", error);
+      res.status(500).json({
+        error: "Failed to get user preferences",
+        message: error.message,
+      });
+    }
+  },
+
+  // Get biometric data for VR sessions
+  async getBiometricData(req, res) {
+    try {
+      const { uid } = req.user;
+
+      // For now, return simulated biometric data
+      // In a real implementation, this would integrate with actual biometric sensors
+      const biometricData = {
+        heartRate: Math.floor(Math.random() * 20) + 60, // 60-80 BPM
+        stressLevel: Math.floor(Math.random() * 30) + 20, // 20-50%
+        focusScore: Math.floor(Math.random() * 25) + 75, // 75-100%
+        breathingRate: Math.floor(Math.random() * 8) + 12, // 12-20 breaths/min
+        timestamp: new Date().toISOString(),
+      };
+
+      res.json({
+        success: true,
+        biometricData,
+      });
+    } catch (error) {
+      console.error("Get biometric data error:", error);
+      res.status(500).json({
+        error: "Failed to get biometric data",
+        message: error.message,
+      });
+    }
+  },
+
   // Get exercise plans
   async getExercisePlans(req, res) {
     try {

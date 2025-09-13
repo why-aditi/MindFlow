@@ -103,6 +103,9 @@ router.get(
 router.get("/sessions/:id", vrController.getSession);
 router.get("/guided-sessions", vrController.getGuidedSessions);
 router.get("/analytics", vrController.getAnalytics);
+router.get("/user-stats", vrController.getUserStats);
+router.get("/user-preferences", vrController.getUserPreferences);
+router.get("/biometric-data", vrController.getBiometricData);
 
 // Exercise Plan Routes
 router.get("/exercise-plans", vrController.getExercisePlans);

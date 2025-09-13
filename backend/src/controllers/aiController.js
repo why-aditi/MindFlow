@@ -210,4 +210,39 @@ export const aiController = {
       });
     }
   },
+
+  // Get all messages for AI companion
+  async getMessages(req, res) {
+    try {
+      const { uid } = req.user;
+      const { limit = 50 } = req.query;
+
+      // Get recent messages across all conversations for this user
+      const messages = await Message.find({ userId: uid })
+        .sort({ timestamp: -1 })
+        .limit(parseInt(limit))
+        .populate("sessionId", "language");
+
+      // Format messages for the frontend
+      const formattedMessages = messages.map((msg) => ({
+        id: msg._id,
+        message: msg.message,
+        sender: msg.sender,
+        timestamp: msg.timestamp,
+        sessionId: msg.sessionId?._id,
+        language: msg.language || "en",
+      }));
+
+      res.json({
+        success: true,
+        messages: formattedMessages.reverse(), // Reverse to show oldest first
+      });
+    } catch (error) {
+      console.error("Get messages error:", error);
+      res.status(500).json({
+        error: "Failed to get messages",
+        message: error.message,
+      });
+    }
+  },
 };

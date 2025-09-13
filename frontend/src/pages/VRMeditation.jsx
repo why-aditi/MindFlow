@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect, useMemo, useContext, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useRef, useEffect, useContext, useCallback } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Button } from '../components/ui/Button'
-import PoseDetectionService from '../services/poseDetectionService'
+import PoseDetectionService from './vr/services/poseDetectionService'
 import { AuthContext } from '../contexts/AuthContext'
 import { 
   Play, 
@@ -40,21 +40,21 @@ const VRMeditation = () => {
   const canvasRef = useRef(null)
   const videoRef = useRef(null)
   const poseCanvasRef = useRef(null)
-  const audioContextRef = useRef(null)
-  const animationFrameRef = useRef(null)
+  const cameraStreamRef = useRef(null)
   
   // Core states
   const [isPlaying, setIsPlaying] = useState(false)
-  const [isMuted, setIsMuted] = useState(false)
-  const [currentEnvironment, setCurrentEnvironment] = useState('ocean')
   const [sessionDuration, setSessionDuration] = useState(0)
   const [isVRSupported, setIsVRSupported] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [sessionMode, setSessionMode] = useState('guided') // guided, free, exercise
+  const [userPreferences, setUserPreferences] = useState({
+    visualQuality: 'High',
+    hapticFeedback: true,
+    biometricMonitoring: true
+  })
+  const [sessionMode, setSessionMode] = useState('exercise') // Focus on exercise mode
   
   // Enhanced meditation states
-  const [breathingPhase, setBreathingPhase] = useState('inhale')
-  const [breathingCycle, setBreathingCycle] = useState(0)
   const [heartRate, setHeartRate] = useState(72)
   const [stressLevel, setStressLevel] = useState(45)
   const [focusScore, setFocusScore] = useState(85)
@@ -72,170 +72,150 @@ const VRMeditation = () => {
   const [breathingAccuracy, setBreathingAccuracy] = useState(0)
   const [monitoringFeedback, setMonitoringFeedback] = useState('')
   const [showMonitoring, setShowMonitoring] = useState(false)
-  const [poseDetectionService, setPoseDetectionService] = useState(null)
   
   // Social and gamification states
-  const [userStreak, setUserStreak] = useState(7)
-  const [totalSessions, setTotalSessions] = useState(24)
+  const [userStreak, setUserStreak] = useState(0)
+  const [totalSessions, setTotalSessions] = useState(0)
+  const [backendAvailable, setBackendAvailable] = useState(true)
+  const [lastApiCall, setLastApiCall] = useState({})
 
-  const environments = useMemo(() => [
-    {
-      id: 'ocean',
-      name: 'Ocean Waves',
-      description: 'Calming ocean sounds with gentle waves',
-      icon: '🌊',
-      color: 'from-blue-400 to-blue-600',
-      gradient: 'from-blue-500/20 to-cyan-500/20',
-      particles: 'bubbles',
-      soundscape: 'ocean-waves'
-    },
-    {
-      id: 'forest',
-      name: 'Forest Sanctuary',
-      description: 'Peaceful forest with birds and wind',
-      icon: '🌲',
-      color: 'from-green-400 to-green-600',
-      gradient: 'from-green-500/20 to-emerald-500/20',
-      particles: 'leaves',
-      soundscape: 'forest-ambient'
-    },
-    {
-      id: 'rain',
-      name: 'Rain Meditation',
-      description: 'Gentle rain and thunder sounds',
-      icon: '🌧️',
-      color: 'from-gray-400 to-gray-600',
-      gradient: 'from-gray-500/20 to-slate-500/20',
-      particles: 'raindrops',
-      soundscape: 'rain-thunder'
-    },
-    {
-      id: 'space',
-      name: 'Cosmic Silence',
-      description: 'Ambient space sounds and silence',
-      icon: '🌌',
-      color: 'from-purple-400 to-purple-600',
-      gradient: 'from-purple-500/20 to-indigo-500/20',
-      particles: 'stars',
-      soundscape: 'space-ambient'
-    },
-    {
-      id: 'mountain',
-      name: 'Mountain Peak',
-      description: 'Serene mountain views and wind',
-      icon: '🏔️',
-      color: 'from-orange-400 to-red-600',
-      gradient: 'from-orange-500/20 to-red-500/20',
-      particles: 'snowflakes',
-      soundscape: 'mountain-wind'
-    },
-    {
-      id: 'zen',
-      name: 'Zen Garden',
-      description: 'Minimalist zen garden with flowing water',
-      icon: '🎋',
-      color: 'from-teal-400 to-green-600',
-      gradient: 'from-teal-500/20 to-green-500/20',
-      particles: 'sand',
-      soundscape: 'zen-water'
-    }
-  ], [])
+  const fetchUserStats = useCallback(async () => {
+    try {
+      if (!user) {
+        console.warn('User not authenticated, using default stats')
+        setUserStreak(0)
+        setTotalSessions(0)
+        return
+      }
 
-  const guidedSessions = [
-    {
-      id: 1,
-      title: '5-Minute Breathing',
-      duration: 300,
-      description: 'Quick breathing exercise for stress relief',
-      difficulty: 'Beginner',
-      category: 'Breathing',
-      benefits: ['Stress Relief', 'Focus', 'Calm'],
-      icon: Wind
-    },
-    {
-      id: 2,
-      title: 'Body Scan Meditation',
-      duration: 900,
-      description: 'Progressive relaxation technique',
-      difficulty: 'Intermediate',
-      category: 'Relaxation',
-      benefits: ['Deep Relaxation', 'Body Awareness', 'Sleep'],
-      icon: Activity
-    },
-    {
-      id: 3,
-      title: 'Mindfulness Walk',
-      duration: 1200,
-      description: 'Guided walking meditation',
-      difficulty: 'Beginner',
-      category: 'Movement',
-      benefits: ['Mindfulness', 'Grounding', 'Energy'],
-      icon: Mountain
-    },
-    {
-      id: 4,
-      title: 'Sleep Preparation',
-      duration: 1800,
-      description: 'Calming session before bedtime',
-      difficulty: 'Beginner',
-      category: 'Sleep',
-      benefits: ['Better Sleep', 'Relaxation', 'Dreams'],
-      icon: Moon
-    },
-    {
-      id: 5,
-      title: 'Focus Enhancement',
-      duration: 600,
-      description: 'Boost concentration and mental clarity',
-      difficulty: 'Advanced',
-      category: 'Focus',
-      benefits: ['Concentration', 'Mental Clarity', 'Productivity'],
-      icon: Brain
-    },
-    {
-      id: 6,
-      title: 'Energy Boost',
-      duration: 480,
-      description: 'Energizing morning meditation',
-      difficulty: 'Intermediate',
-      category: 'Energy',
-      benefits: ['Energy', 'Motivation', 'Vitality'],
-      icon: Sun
+      // Rate limiting - only call API once per minute
+      const now = Date.now()
+      const lastCall = lastApiCall.userStats || 0
+      if (now - lastCall < 60000) { // 60 seconds
+        return
+      }
+
+      const idToken = await user.getIdToken()
+      const response = await fetch('http://localhost:5000/api/vr/user-stats', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
+      
+      if (!response.ok) {
+        console.warn('Backend server not running, using default stats')
+        setUserStreak(0)
+        setTotalSessions(0)
+        return
+      }
+      
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        console.warn('Backend server not running, using default stats')
+        setUserStreak(0)
+        setTotalSessions(0)
+        return
+      }
+      
+      const data = await response.json()
+      if (data.success) {
+        setUserStreak(data.stats.streak || 0)
+        setTotalSessions(data.stats.totalSessions || 0)
+        setLastApiCall(prev => ({ ...prev, userStats: now }))
+      }
+    } catch (error) {
+      console.warn('Error fetching user stats, using defaults:', error.message)
+      setUserStreak(0)
+      setTotalSessions(0)
     }
-  ]
+  }, [user, lastApiCall])
+
+  const fetchUserPreferences = useCallback(async () => {
+    try {
+      if (!user) {
+        console.warn('User not authenticated, using default preferences')
+        return
+      }
+
+      // Rate limiting - only call API once per 5 minutes
+      const now = Date.now()
+      const lastCall = lastApiCall.userPreferences || 0
+      if (now - lastCall < 300000) { // 5 minutes
+        return
+      }
+
+      const idToken = await user.getIdToken()
+      const response = await fetch('http://localhost:5000/api/vr/user-preferences', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
+      
+      if (!response.ok) {
+        console.warn('Backend server not running, using default preferences')
+        return
+      }
+      
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        console.warn('Backend server not running, using default preferences')
+        return
+      }
+      
+      const data = await response.json()
+      if (data.success) {
+        setUserPreferences(data.preferences)
+        setLastApiCall(prev => ({ ...prev, userPreferences: now }))
+      }
+    } catch (error) {
+      console.warn('Error fetching user preferences, using defaults:', error.message)
+    }
+  }, [user, lastApiCall])
+
+  const saveUserPreferences = async (preferences) => {
+    try {
+      if (!user) {
+        console.warn('User not authenticated, cannot save preferences')
+        return
+      }
+
+      const idToken = await user.getIdToken()
+      const response = await fetch('http://localhost:5000/api/vr/user-preferences', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify(preferences)
+      })
+      
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        console.warn('Backend server not running, preferences not saved')
+        return
+      }
+      
+      const data = await response.json()
+      if (data.success) {
+        setUserPreferences(preferences)
+      }
+    } catch (error) {
+      console.warn('Error saving user preferences:', error.message)
+    }
+  }
 
   const fetchExercisePlans = useCallback(async () => {
     try {
-      // Get fresh Firebase ID token
       if (!user) {
-        console.warn('User not authenticated, using mock data')
-        // Set mock exercise plans for demo
-        setExercisePlans([
-          {
-            _id: 'mock-1',
-            name: 'Beginner Meditation',
-            description: 'Perfect for newcomers to meditation',
-            duration: 10,
-            difficulty: 'beginner',
-            type: 'breathing',
-            exercises: [
-              { name: 'Breathing Exercise', description: 'Focus on your breath' },
-              { name: 'Body Scan', description: 'Progressive relaxation' }
-            ]
-          },
-          {
-            _id: 'mock-2',
-            name: 'Advanced Breathing',
-            description: 'Deep breathing techniques for experienced users',
-            duration: 20,
-            difficulty: 'advanced',
-            type: 'breathing',
-            exercises: [
-              { name: 'Box Breathing', description: '4-4-4-4 breathing pattern' },
-              { name: 'Alternate Nostril', description: 'Nadi Shodhana technique' }
-            ]
-          }
-        ])
+        console.warn('User not authenticated, cannot fetch exercise plans')
+        setExercisePlans([])
+        return
+      }
+
+      // Rate limiting - only call API once per 10 minutes
+      const now = Date.now()
+      const lastCall = lastApiCall.exercisePlans || 0
+      if (now - lastCall < 600000) { // 10 minutes
         return
       }
 
@@ -246,76 +226,158 @@ const VRMeditation = () => {
         }
       })
       
-      // Check if response is HTML (server not running)
+      if (!response.ok) {
+        console.warn('Backend server not running')
+        setExercisePlans([])
+        return
+      }
+      
       const contentType = response.headers.get('content-type')
       if (!contentType || !contentType.includes('application/json')) {
-        console.warn('Backend server not running, using mock data')
-        // Set mock exercise plans for demo
-        setExercisePlans([
-          {
-            _id: 'mock-1',
-            name: 'Beginner Meditation',
-            description: 'Perfect for newcomers to meditation',
-            duration: 10,
-            difficulty: 'beginner',
-            type: 'breathing',
-            exercises: [
-              { name: 'Breathing Exercise', description: 'Focus on your breath' },
-              { name: 'Body Scan', description: 'Progressive relaxation' }
-            ]
-          },
-          {
-            _id: 'mock-2',
-            name: 'Advanced Focus',
-            description: 'Challenge your concentration skills',
-            duration: 20,
-            difficulty: 'advanced',
-            type: 'focus',
-            exercises: [
-              { name: 'Mindfulness', description: 'Present moment awareness' },
-              { name: 'Visualization', description: 'Guided imagery practice' }
-            ]
-          }
-        ])
+        console.warn('Backend server not running')
+        setExercisePlans([])
         return
       }
       
       const data = await response.json()
       if (data.success) {
         setExercisePlans(data.exercisePlans)
+        setLastApiCall(prev => ({ ...prev, exercisePlans: now }))
+      } else {
+        console.error('Failed to fetch exercise plans:', data.error)
+        setExercisePlans([])
       }
     } catch (error) {
-      console.warn('Error fetching exercise plans, using mock data:', error.message)
-      // Set mock exercise plans for demo
-      setExercisePlans([
-        {
-          _id: 'mock-1',
-          name: 'Beginner Meditation',
-          description: 'Perfect for newcomers to meditation',
-          duration: 10,
-          difficulty: 'beginner',
-          type: 'breathing',
-          exercises: [
-            { name: 'Breathing Exercise', description: 'Focus on your breath' },
-            { name: 'Body Scan', description: 'Progressive relaxation' }
-          ]
-        },
-        {
-          _id: 'mock-2',
-          name: 'Advanced Focus',
-          description: 'Challenge your concentration skills',
-          duration: 20,
-          difficulty: 'advanced',
-          type: 'focus',
-          exercises: [
-            { name: 'Mindfulness', description: 'Present moment awareness' },
-            { name: 'Visualization', description: 'Guided imagery practice' }
-          ]
-        }
-      ])
+      console.error('Error fetching exercise plans:', error.message)
+      setExercisePlans([])
     }
-  }, [user])
+  }, [user, lastApiCall])
 
+  const simulateBiometricData = useCallback(() => {
+    if (!isPlaying) return
+    
+    // Simulate realistic biometric changes during meditation
+    const baseHeartRate = 72
+    const variation = Math.sin(Date.now() / 10000) * 5
+    setHeartRate(Math.round(baseHeartRate + variation))
+    
+    // Stress level decreases over time
+    const stressReduction = Math.min(sessionDuration / 60, 20)
+    setStressLevel(Math.max(20, 45 - stressReduction))
+    
+    // Focus score increases with good breathing
+    const focusBoost = breathingAccuracy > 80 ? 5 : 0
+    setFocusScore(Math.min(100, 85 + focusBoost))
+  }, [isPlaying, sessionDuration, breathingAccuracy])
+
+  const fetchBiometricData = useCallback(async () => {
+    try {
+      if (!user || !isPlaying) return
+
+      // If backend is not available, just use simulation
+      if (!backendAvailable) {
+        simulateBiometricData()
+        return
+      }
+
+      // Rate limiting - only call API once per 5 seconds
+      const now = Date.now()
+      const lastCall = lastApiCall.biometricData || 0
+      if (now - lastCall < 5000) { // 5 seconds
+        simulateBiometricData()
+        return
+      }
+
+      const idToken = await user.getIdToken()
+      const response = await fetch('http://localhost:5000/api/vr/biometric-data', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
+      
+      if (!response.ok) {
+        // If response is not ok (404, 500, etc.), mark backend as unavailable
+        setBackendAvailable(false)
+        simulateBiometricData()
+        return
+      }
+      
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        // Fallback to simulation if API not available
+        setBackendAvailable(false)
+        simulateBiometricData()
+        return
+      }
+      
+      const data = await response.json()
+      if (data.success) {
+        setHeartRate(data.biometricData.heartRate || 72)
+        setStressLevel(data.biometricData.stressLevel || 45)
+        setFocusScore(data.biometricData.focusScore || 85)
+        // Mark backend as available if we got successful data
+        setBackendAvailable(true)
+        setLastApiCall(prev => ({ ...prev, biometricData: now }))
+      } else {
+        simulateBiometricData()
+      }
+    } catch {
+      // Mark backend as unavailable on network errors
+      setBackendAvailable(false)
+      simulateBiometricData()
+    }
+  }, [isPlaying, user, simulateBiometricData, backendAvailable, lastApiCall])
+
+  const startBiometricSimulation = useCallback(() => {
+    const interval = setInterval(() => {
+      if (isPlaying) {
+        fetchBiometricData()
+      }
+    }, 1000)
+    
+    return () => clearInterval(interval)
+  }, [isPlaying, fetchBiometricData])
+
+  // Initialize camera for pose detection
+  const initializeCamera = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          width: 640, 
+          height: 480,
+          facingMode: 'user'
+        } 
+      })
+      
+      // Store stream reference for cleanup
+      cameraStreamRef.current = stream
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        videoRef.current.play()
+      }
+      
+      console.log('Camera initialized successfully')
+    } catch (error) {
+      console.error('Error accessing camera:', error)
+    }
+  }, [])
+
+  // Cleanup camera stream
+  const cleanupCamera = useCallback(() => {
+    if (cameraStreamRef.current) {
+      const tracks = cameraStreamRef.current.getTracks()
+      tracks.forEach(track => track.stop())
+      cameraStreamRef.current = null
+      console.log('Camera stream stopped')
+    }
+    
+    if (videoRef.current) {
+      videoRef.current.srcObject = null
+    }
+  }, [])
+
+  // Initialize component once
   useEffect(() => {
     // Check for WebXR support
     if ('xr' in navigator) {
@@ -324,117 +386,21 @@ const VRMeditation = () => {
       })
     }
 
-    // Initialize Web Audio API
-    audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)()
-
-    // Initialize Three.js scene
-    const initializeVRScene = () => {
-      if (!canvasRef.current) return
-
-      // Create immersive 3D environment
-      const canvas = canvasRef.current
-      const ctx = canvas.getContext('2d')
-      
-      // Set canvas size
-      canvas.width = canvas.offsetWidth
-      canvas.height = canvas.offsetHeight
-
-      // Create particle system
-      const createParticleSystem = (ctx) => {
-        const particles = []
-        const currentEnv = environments.find(env => env.id === currentEnvironment)
-        
-        // Create particles based on environment
-        for (let i = 0; i < 50; i++) {
-          particles.push({
-            x: Math.random() * canvasRef.current.width,
-            y: Math.random() * canvasRef.current.height,
-            vx: (Math.random() - 0.5) * 0.5,
-            vy: (Math.random() - 0.5) * 0.5,
-            size: Math.random() * 3 + 1,
-            opacity: Math.random() * 0.5 + 0.3,
-            color: getParticleColor(currentEnv.particles)
-          })
-        }
-
-        const animate = () => {
-          ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
-          
-          particles.forEach(particle => {
-            particle.x += particle.vx
-            particle.y += particle.vy
-            
-            // Wrap around screen
-            if (particle.x < 0) particle.x = canvasRef.current.width
-            if (particle.x > canvasRef.current.width) particle.x = 0
-            if (particle.y < 0) particle.y = canvasRef.current.height
-            if (particle.y > canvasRef.current.height) particle.y = 0
-            
-            // Draw particle
-            ctx.beginPath()
-            ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
-            ctx.fillStyle = particle.color
-            ctx.globalAlpha = particle.opacity
-            ctx.fill()
-          })
-          
-          animationFrameRef.current = requestAnimationFrame(animate)
-        }
-        
-        animate()
-      }
-
-      const getParticleColor = (type) => {
-        const colors = {
-          bubbles: '#87CEEB',
-          leaves: '#90EE90',
-          raindrops: '#B0C4DE',
-          stars: '#FFD700',
-          snowflakes: '#FFFFFF',
-          sand: '#F4A460'
-        }
-        return colors[type] || '#FFFFFF'
-      }
-
-      createParticleSystem(ctx)
-    }
-
-    // Start biometric simulation
-    const startBiometricSimulation = () => {
-      const interval = setInterval(() => {
-        if (isPlaying) {
-          // Simulate realistic biometric changes during meditation
-          const baseHeartRate = 72
-          const variation = Math.sin(Date.now() / 10000) * 5
-          setHeartRate(Math.round(baseHeartRate + variation))
-          
-          // Stress level decreases over time
-          const stressReduction = Math.min(sessionDuration / 60, 20)
-          setStressLevel(Math.max(20, 45 - stressReduction))
-          
-          // Focus score increases with good breathing
-          const focusBoost = breathingAccuracy > 80 ? 5 : 0
-          setFocusScore(Math.min(100, 85 + focusBoost))
-        }
-      }, 1000)
-      
-      return () => clearInterval(interval)
-    }
-
-    initializeVRScene()
+    fetchUserStats()
+    fetchUserPreferences()
     fetchExercisePlans()
-    const cleanup = startBiometricSimulation()
 
+    // Cleanup on unmount only
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current)
-      }
-      if (poseDetectionService) {
-        poseDetectionService.stop()
-      }
-      cleanup()
+      cleanupCamera()
     }
-  }, [isPlaying, sessionDuration, breathingAccuracy, poseDetectionService, currentEnvironment, environments, user, fetchExercisePlans])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle biometric simulation separately
+  useEffect(() => {
+    const cleanup = startBiometricSimulation()
+    return cleanup
+  }, [isPlaying, startBiometricSimulation])
 
 
 
@@ -464,6 +430,7 @@ const VRMeditation = () => {
         setSelectedPlan(exercisePlans.find(plan => plan._id === planId))
         setIsPlaying(true)
         setSessionMode('exercise')
+        await initializeCamera() // Initialize camera for mock mode
         startMonitoringSimulation()
         return
       }
@@ -476,6 +443,7 @@ const VRMeditation = () => {
         setIsPlaying(true)
         setSessionMode('exercise')
         
+        await initializeCamera() // Initialize camera for real mode
         await initializePoseDetection()
       }
     } catch (error) {
@@ -486,6 +454,7 @@ const VRMeditation = () => {
       setSelectedPlan(exercisePlans.find(plan => plan._id === planId))
       setIsPlaying(true)
       setSessionMode('exercise')
+      await initializeCamera() // Initialize camera for fallback mode
       startMonitoringSimulation()
     }
   }
@@ -512,7 +481,7 @@ const VRMeditation = () => {
       )
       
       if (result.success) {
-        setPoseDetectionService(service)
+        // Pose detection service initialized successfully
       }
     } catch (error) {
       console.error('Error initializing pose detection:', error)
@@ -520,13 +489,8 @@ const VRMeditation = () => {
     }
   }
 
-  const updateBreathingPhase = (breathingData) => {
-    const { phase } = breathingData
-    setBreathingPhase(phase)
-    
-    if (phase === 'inhale') {
-      setBreathingCycle(prev => prev + 1)
-    }
+  const updateBreathingPhase = () => {
+    // Breathing phase tracking removed for exercise focus
   }
 
   const analyzePoseAccuracy = (keyPoints, exercisePlan) => {
@@ -587,6 +551,41 @@ const VRMeditation = () => {
     return Math.round(accuracy)
   }
 
+  const generateDynamicFeedback = (poseAcc, breathingAcc) => {
+    const feedbacks = {
+      excellent: [
+        'Perfect posture! ✨',
+        'Excellent form! 🎯',
+        'Outstanding technique! 🌟'
+      ],
+      good: [
+        'Great breathing rhythm 🌊',
+        'Stay focused and calm 🧘',
+        'Beautiful meditation pose 🌸'
+      ],
+      average: [
+        'Keep that steady rhythm 💫',
+        'You\'re doing well! 💪',
+        'Stay consistent! 🌱'
+      ],
+      needsImprovement: [
+        'Adjust your posture slightly',
+        'Focus on your breathing',
+        'Relax and find your center'
+      ]
+    }
+
+    if (poseAcc >= 90 && breathingAcc >= 85) {
+      return feedbacks.excellent[Math.floor(Math.random() * feedbacks.excellent.length)]
+    } else if (poseAcc >= 80 && breathingAcc >= 75) {
+      return feedbacks.good[Math.floor(Math.random() * feedbacks.good.length)]
+    } else if (poseAcc >= 70 && breathingAcc >= 65) {
+      return feedbacks.average[Math.floor(Math.random() * feedbacks.average.length)]
+    } else {
+      return feedbacks.needsImprovement[Math.floor(Math.random() * feedbacks.needsImprovement.length)]
+    }
+  }
+
   const startMonitoringSimulation = () => {
     const interval = setInterval(() => {
       if (isMonitoring) {
@@ -596,16 +595,8 @@ const VRMeditation = () => {
         const breathingAcc = Math.floor(Math.random() * 30) + 60
         setBreathingAccuracy(breathingAcc)
         
-        const feedbacks = [
-          'Perfect posture! ✨',
-          'Great breathing rhythm 🌊',
-          'Excellent form! 🎯',
-          'Stay focused and calm 🧘',
-          'Beautiful meditation pose 🌸',
-          'Keep that steady rhythm 💫'
-        ]
-        const randomFeedback = feedbacks[Math.floor(Math.random() * feedbacks.length)]
-        setMonitoringFeedback(randomFeedback)
+        const dynamicFeedback = generateDynamicFeedback(poseAcc, breathingAcc)
+        setMonitoringFeedback(dynamicFeedback)
       } else {
         clearInterval(interval)
       }
@@ -614,10 +605,13 @@ const VRMeditation = () => {
     return () => clearInterval(interval)
   }
 
-  const startSession = (session) => {
+  const startSession = async (session) => {
     setIsPlaying(true)
     setSessionDuration(session.duration)
-    setSessionMode('guided')
+    setSessionMode('exercise') // Changed to exercise mode
+    
+    // Initialize camera when starting exercise
+    await initializeCamera()
     
     // Start session timer
     const timer = setInterval(() => {
@@ -636,32 +630,25 @@ const VRMeditation = () => {
     setIsPlaying(false)
     setUserStreak(prev => prev + 1)
     setTotalSessions(prev => prev + 1)
+    cleanupCamera() // Stop camera when session completes
   }
 
   const stopSession = () => {
     setIsPlaying(false)
     setSessionDuration(0)
+    cleanupCamera() // Stop camera when stopping exercise
   }
 
   const resetSession = () => {
     setSessionDuration(0)
     setIsPlaying(false)
+    cleanupCamera() // Stop camera when resetting session
   }
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-  }
-
-  const getBreathingInstruction = () => {
-    const instructions = {
-      inhale: 'Breathe in slowly...',
-      exhale: 'Breathe out gently...',
-      hold: 'Hold your breath...',
-      pause: 'Rest and prepare...'
-    }
-    return instructions[breathingPhase] || 'Follow your breath...'
   }
 
   return (
@@ -733,7 +720,7 @@ const VRMeditation = () => {
                   ref={canvasRef}
                   className="w-full h-full"
                   style={{ 
-                    background: `linear-gradient(135deg, ${environments.find(env => env.id === currentEnvironment)?.gradient})`
+                    background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%)'
                   }}
                 />
                 
@@ -753,7 +740,7 @@ const VRMeditation = () => {
                   style={{ zIndex: 10 }}
                 />
                 
-                {/* Enhanced VR Scene Overlay */}
+                {/* Exercise Tracking Overlay */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <motion.div
                     className="text-center text-white"
@@ -769,19 +756,19 @@ const VRMeditation = () => {
                       }}
                       transition={{ duration: 4, repeat: isPlaying ? Infinity : 0 }}
                     >
-                      {environments.find(env => env.id === currentEnvironment)?.icon}
+                      💪
                     </motion.div>
                     <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">
-                      {environments.find(env => env.id === currentEnvironment)?.name}
+                      Exercise Tracking
                     </h2>
                     <p className="text-white/80 text-lg max-w-md mx-auto">
-                      {environments.find(env => env.id === currentEnvironment)?.description}
+                      AI-powered pose detection for perfect form and technique
                     </p>
                   </motion.div>
                 </div>
 
-                {/* Breathing Visualization */}
-                {isPlaying && sessionMode === 'guided' && (
+                {/* Exercise Tracking Visualization */}
+                {isPlaying && (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -790,20 +777,20 @@ const VRMeditation = () => {
                     <div className="text-center text-white">
                       <div className="flex items-center justify-center mb-4">
                         <motion.div
-                          className="w-20 h-20 border-4 border-white/30 rounded-full flex items-center justify-center"
+                          className="w-20 h-20 border-4 border-green-400/30 rounded-full flex items-center justify-center"
                           animate={{
-                            scale: breathingPhase === 'inhale' ? [1, 1.3, 1] : 1,
-                            opacity: breathingPhase === 'hold' ? [0.7, 1, 0.7] : 1
+                            scale: [1, 1.2, 1],
+                            borderColor: ['rgba(34, 197, 94, 0.3)', 'rgba(34, 197, 94, 0.8)', 'rgba(34, 197, 94, 0.3)']
                           }}
-                          transition={{ duration: 4, repeat: Infinity }}
+                          transition={{ duration: 2, repeat: Infinity }}
                         >
-                          <Wind className="w-8 h-8 text-white" />
+                          <Target className="w-8 h-8 text-green-400" />
                         </motion.div>
                       </div>
-                      <h3 className="text-lg font-semibold mb-2">Breathing Guide</h3>
-                      <p className="text-white/80 text-sm mb-2">{getBreathingInstruction()}</p>
+                      <h3 className="text-lg font-semibold mb-2">Exercise Tracking</h3>
+                      <p className="text-white/80 text-sm mb-2">AI monitoring your form</p>
                       <div className="text-xs text-white/60">
-                        Cycle {breathingCycle} • {breathingPhase}
+                        Pose Accuracy: {poseAccuracy}%
                       </div>
                     </div>
                   </motion.div>
@@ -896,10 +883,10 @@ const VRMeditation = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => setIsMuted(!isMuted)}
+                      onClick={() => {/* Exercise controls */}}
                       className="text-white hover:bg-white/20 w-12 h-12"
                     >
-                      {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                      <Target className="w-5 h-5" />
                     </Button>
                     
                     <Button
@@ -929,74 +916,37 @@ const VRMeditation = () => {
 
           {/* Enhanced Controls Panel */}
           <div className="space-y-6">
-            {/* Environment Selection - Enhanced */}
+            {/* Exercise Tracking - Camera Setup */}
             <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-lg p-6 border border-white/20">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-                <Sparkles className="w-5 h-5 mr-2 text-purple-400" />
-                Environments
+                <Camera className="w-5 h-5 mr-2 text-green-400" />
+                Exercise Tracking
               </h3>
-              <div className="grid grid-cols-2 gap-3">
-                {environments.map((env) => (
-                  <button
-                    key={env.id}
-                    onClick={() => setCurrentEnvironment(env.id)}
-                    className={`p-4 rounded-xl text-left transition-all ${
-                      currentEnvironment === env.id
-                        ? `bg-gradient-to-r ${env.color} text-white shadow-lg transform scale-105`
-                        : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
-                    }`}
-                  >
-                    <div className="text-center">
-                      <div className="text-2xl mb-2">{env.icon}</div>
-                      <div className="text-sm font-medium">{env.name}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Guided Sessions - Enhanced */}
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-lg p-6 border border-white/20">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-                <Star className="w-5 h-5 mr-2 text-yellow-400" />
-                Guided Sessions
-              </h3>
-              <div className="space-y-3">
-                {guidedSessions.map((session) => {
-                  const IconComponent = session.icon
-                  return (
-                    <button
-                      key={session.id}
-                      onClick={() => startSession(session)}
-                      className="w-full p-4 bg-gradient-to-r from-purple-500/20 to-blue-500/20 hover:from-purple-500/30 hover:to-blue-500/30 rounded-xl text-left transition-all border border-white/20 hover:border-white/40"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                            <IconComponent className="w-5 h-5 text-white" />
-                          </div>
-                          <div>
-                            <div className="font-medium text-white">{session.title}</div>
-                            <div className="text-sm text-white/70">{session.description}</div>
-                            <div className="flex items-center space-x-2 mt-1">
-                              <span className="text-xs px-2 py-1 bg-white/20 rounded-full text-white/80">
-                                {session.difficulty}
-                              </span>
-                              <span className="text-xs px-2 py-1 bg-white/20 rounded-full text-white/80">
-                                {session.category}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-purple-300">
-                            {formatTime(session.duration)}
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  )
-                })}
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Camera className="w-8 h-8 text-white" />
+                  </div>
+                  <h4 className="text-white font-medium mb-2">Pose Detection Ready</h4>
+                  <p className="text-white/70 text-sm mb-4">
+                    Your camera is active and ready to track your exercise poses
+                  </p>
+                  <div className="flex items-center justify-center space-x-2 text-green-400">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-sm">Camera Active</span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white/10 rounded-xl p-3 text-center">
+                    <div className="text-white font-medium text-sm">Pose Accuracy</div>
+                    <div className="text-green-400 font-bold text-lg">{poseAccuracy}%</div>
+                  </div>
+                  <div className="bg-white/10 rounded-xl p-3 text-center">
+                    <div className="text-white font-medium text-sm">Breathing</div>
+                    <div className="text-blue-400 font-bold text-lg">{breathingAccuracy}%</div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1133,7 +1083,8 @@ const VRMeditation = () => {
                       type="range"
                       min="0"
                       max="100"
-                      defaultValue="70"
+                      value={userPreferences.audioVolume}
+                      onChange={(e) => setUserPreferences(prev => ({ ...prev, audioVolume: parseInt(e.target.value) }))}
                       className="w-full accent-purple-500"
                     />
                   </div>
@@ -1142,7 +1093,11 @@ const VRMeditation = () => {
                     <label className="block text-sm font-medium text-white/80 mb-3">
                       Visual Quality
                     </label>
-                    <select className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white">
+                    <select 
+                      value={userPreferences.visualQuality}
+                      onChange={(e) => setUserPreferences(prev => ({ ...prev, visualQuality: e.target.value }))}
+                      className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white"
+                    >
                       <option className="bg-slate-800">High</option>
                       <option className="bg-slate-800">Medium</option>
                       <option className="bg-slate-800">Low</option>
@@ -1150,14 +1105,26 @@ const VRMeditation = () => {
                   </div>
                   
                   <div className="flex items-center space-x-3">
-                    <input type="checkbox" id="haptic" defaultChecked className="accent-purple-500" />
+                    <input 
+                      type="checkbox" 
+                      id="haptic" 
+                      checked={userPreferences.hapticFeedback}
+                      onChange={(e) => setUserPreferences(prev => ({ ...prev, hapticFeedback: e.target.checked }))}
+                      className="accent-purple-500" 
+                    />
                     <label htmlFor="haptic" className="text-sm text-white/80">
                       Enable Haptic Feedback
                     </label>
                   </div>
                   
                   <div className="flex items-center space-x-3">
-                    <input type="checkbox" id="biometric" defaultChecked className="accent-purple-500" />
+                    <input 
+                      type="checkbox" 
+                      id="biometric" 
+                      checked={userPreferences.biometricMonitoring}
+                      onChange={(e) => setUserPreferences(prev => ({ ...prev, biometricMonitoring: e.target.checked }))}
+                      className="accent-purple-500" 
+                    />
                     <label htmlFor="biometric" className="text-sm text-white/80">
                       Enable Biometric Monitoring
                     </label>
@@ -1173,7 +1140,10 @@ const VRMeditation = () => {
                     Cancel
                   </Button>
                   <Button 
-                    onClick={() => setShowSettings(false)}
+                    onClick={() => {
+                      saveUserPreferences(userPreferences)
+                      setShowSettings(false)
+                    }}
                     className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
                   >
                     Save Settings

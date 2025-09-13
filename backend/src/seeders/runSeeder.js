@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import { seedExercisePlans } from "./exercisePlanSeeder.js";
+import { seedExercises } from "./exerciseSeeder.js";
+import { seedJournalEntries } from "./journalSeeder.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -14,6 +16,8 @@ const runSeeder = async () => {
 
     // Run seeders
     await seedExercisePlans();
+    await seedExercises();
+    await seedJournalEntries();
 
     console.log("✅ All seeders completed successfully");
   } catch (error) {

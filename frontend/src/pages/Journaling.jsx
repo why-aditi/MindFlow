@@ -1,61 +1,105 @@
-import { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import React, { useState, useEffect, useCallback } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
 import { Mic, MicOff, Save, Calendar, BarChart3, PenTool, Volume2 } from 'lucide-react'
 
 const Journaling = () => {
   const { user } = useAuth()
-  const [entries, setEntries] = useState([
-    {
-      id: 1,
-      date: new Date(),
-      text: "Today was a good day. I felt more energetic and focused on my goals.",
-      mood: 8,
-      tags: ['productive', 'energetic'],
-      type: 'text'
-    },
-    {
-      id: 2,
-      date: new Date(Date.now() - 86400000),
-      text: "Feeling a bit overwhelmed with school work, but I'm managing.",
-      mood: 6,
-      tags: ['overwhelmed', 'school'],
-      type: 'text'
-    }
-  ])
+  const [entries, setEntries] = useState([])
   const [currentEntry, setCurrentEntry] = useState('')
   const [selectedMood, setSelectedMood] = useState(5)
   const [selectedTags, setSelectedTags] = useState([])
   const [isRecording, setIsRecording] = useState(false)
   const [view, setView] = useState('write') // 'write', 'calendar', 'analytics'
   const [isSaving, setIsSaving] = useState(false)
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [journalEntries] = useState({})
 
   const moodEmojis = ['😢', '😔', '😐', '🙂', '😊', '😄', '🤩', '😍', '🥰', '🤗']
   const availableTags = ['happy', 'sad', 'anxious', 'excited', 'tired', 'energetic', 'productive', 'overwhelmed', 'grateful', 'frustrated', 'peaceful', 'motivated']
+
+  const fetchEntries = useCallback(async () => {
+    try {
+      if (!user) {
+        console.warn('User not authenticated, cannot fetch entries')
+        setEntries([])
+        return
+      }
+
+      const idToken = await user.getIdToken()
+      const response = await fetch('http://localhost:5000/api/journal/entries', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
+      
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        console.warn('Backend server not running')
+        setEntries([])
+        return
+      }
+      
+      const data = await response.json()
+      if (data.success) {
+        setEntries(data.entries || [])
+      } else {
+        console.error('Failed to fetch entries:', data.error)
+        setEntries([])
+      }
+    } catch (error) {
+      console.error('Error fetching entries:', error.message)
+      setEntries([])
+    }
+  }, [user])
+
+  useEffect(() => {
+    fetchEntries()
+  }, [fetchEntries])
 
   const handleSaveEntry = async () => {
     if (!currentEntry.trim()) return
 
     setIsSaving(true)
     
-    // Simulate save delay
-    setTimeout(() => {
-      const newEntry = {
-        id: Date.now(),
-        date: new Date(),
-        text: currentEntry,
-        mood: selectedMood,
-        tags: selectedTags,
-        type: 'text'
+    try {
+      const idToken = await user.getIdToken()
+      const response = await fetch('http://localhost:5000/api/journal/entries', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({
+          text: currentEntry,
+          mood: selectedMood,
+          tags: selectedTags,
+          type: 'text'
+        })
+      })
+      
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        console.warn('Backend server not running')
+        setIsSaving(false)
+        return
       }
       
-      setEntries(prev => [newEntry, ...prev])
-      setCurrentEntry('')
-      setSelectedMood(5)
-      setSelectedTags([])
+      const data = await response.json()
+      if (data.success) {
+        setEntries(prev => [data.entry, ...prev])
+        setCurrentEntry('')
+        setSelectedMood(5)
+        setSelectedTags([])
+      } else {
+        console.error('Failed to save entry:', data.error)
+      }
+    } catch (error) {
+      console.error('Error saving entry:', error.message)
+    } finally {
       setIsSaving(false)
-    }, 1000)
+    }
   }
 
   const toggleTag = (tag) => {
@@ -71,11 +115,54 @@ const Journaling = () => {
     // TODO: Implement speech-to-text functionality
   }
 
-  const getMoodColor = (mood) => {
-    if (mood <= 3) return 'from-red-400 to-red-500'
-    if (mood <= 6) return 'from-yellow-400 to-yellow-500'
-    return 'from-green-400 to-green-500'
+
+  // Calendar functions
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear()
+    const month = date.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    const daysInMonth = lastDay.getDate()
+    const startingDayOfWeek = firstDay.getDay()
+    
+    const days = []
+    
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(null)
+    }
+    
+    // Add days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push(new Date(year, month, day))
+    }
+    
+    return days
   }
+
+  const formatDateKey = (date) => {
+    return date.toISOString().split('T')[0]
+  }
+
+  const hasJournalEntry = (date) => {
+    const dateKey = formatDateKey(date)
+    return journalEntries[dateKey] || false
+  }
+
+  const navigateMonth = (direction) => {
+    setCurrentDate(prevDate => {
+      const newDate = new Date(prevDate)
+      newDate.setMonth(prevDate.getMonth() + direction)
+      return newDate
+    })
+  }
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ]
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -108,7 +195,7 @@ const Journaling = () => {
                 { id: 'write', label: 'Write', icon: PenTool },
                 { id: 'calendar', label: 'Calendar', icon: Calendar },
                 { id: 'analytics', label: 'Analytics', icon: BarChart3 }
-              ].map(({ id, label, icon: Icon }) => (
+              ].map(({ id, label, icon }) => (
                 <button
                   key={id}
                   onClick={() => setView(id)}
@@ -118,7 +205,7 @@ const Journaling = () => {
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
+                  {React.createElement(icon, { className: "w-4 h-4" })}
                   <span>{label}</span>
                 </button>
               ))}
@@ -253,47 +340,90 @@ const Journaling = () => {
               transition={{ duration: 0.3 }}
               className="bg-white rounded-2xl shadow-lg p-8"
             >
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Journal Entries</h2>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Your Journal Entries</h2>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setView('write')}
+                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                >
+                  Write Entry
+                </Button>
+              </div>
               
-              <div className="space-y-4">
-                {entries.map((entry) => (
-                  <motion.div
-                    key={entry.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow"
+              <div className="bg-gray-50 rounded-xl p-6">
+                {/* Calendar Header */}
+                <div className="flex justify-between items-center mb-6">
+                  <button
+                    onClick={() => navigateMonth(-1)}
+                    className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
                   >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${getMoodColor(entry.mood)} flex items-center justify-center text-white text-sm font-bold`}>
-                          {entry.mood}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {entry.date.toLocaleDateString()}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {entry.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-2xl">{moodEmojis[entry.mood - 1]}</div>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+                  </h3>
+                  
+                  <button
+                    onClick={() => navigateMonth(1)}
+                    className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+                
+                {/* Calendar Grid */}
+                <div className="grid grid-cols-7 gap-2 mb-4">
+                  {dayNames.map(day => (
+                    <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
+                      {day}
                     </div>
-                    
-                    <p className="text-gray-700 mb-4">{entry.text}</p>
-                    
-                    <div className="flex flex-wrap gap-2">
-                      {entry.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full"
-                        >
-                          {tag}
-                        </span>
-                      ))}
+                  ))}
+                </div>
+                
+                <div className="grid grid-cols-7 gap-2">
+                  {getDaysInMonth(currentDate).map((day, index) => (
+                    <div
+                      key={index}
+                      className={`
+                        aspect-square flex items-center justify-center text-sm rounded-lg transition-colors cursor-pointer relative
+                        ${day 
+                          ? hasJournalEntry(day)
+                            ? 'bg-blue-100 text-blue-800 font-semibold hover:bg-blue-200'
+                            : 'text-gray-600 hover:bg-gray-100'
+                          : ''
+                        }
+                        ${day && day.toDateString() === new Date().toDateString() 
+                          ? 'ring-2 ring-blue-500 bg-blue-50' 
+                          : ''
+                        }
+                      `}
+                      onClick={() => day && setView('write')}
+                    >
+                      {day ? day.getDate() : ''}
+                      {day && hasJournalEntry(day) && (
+                        <div className="absolute w-2 h-2 bg-blue-500 rounded-full -bottom-1"></div>
+                      )}
                     </div>
-                  </motion.div>
-                ))}
+                  ))}
+                </div>
+                
+                {/* Legend */}
+                <div className="flex items-center justify-center mt-6 space-x-6 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-blue-100 rounded"></div>
+                    <span className="text-gray-600">Journal Entry</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-blue-50 ring-2 ring-blue-500 rounded"></div>
+                    <span className="text-gray-600">Today</span>
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}

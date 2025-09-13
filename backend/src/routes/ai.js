@@ -56,5 +56,6 @@ router.post(
   aiController.submitFeedback
 );
 router.get("/sessions", aiController.getSessions);
+router.get("/messages", aiController.getMessages);
 
 export default router;
