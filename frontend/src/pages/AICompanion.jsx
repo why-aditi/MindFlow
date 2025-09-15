@@ -142,9 +142,10 @@ const AICompanion = () => {
     }
   }, [currentSessionId, user])
 
+  // Start with fresh chat - don't load previous messages
   useEffect(() => {
-    fetchInitialMessages()
-  }, [fetchInitialMessages])
+    setIsInitializing(false)
+  }, [])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
