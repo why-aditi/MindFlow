@@ -20,58 +20,6 @@ const AICompanion = () => {
   const inputRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
-  const fetchInitialMessages = useCallback(async () => {
-    try {
-      if (!user) {
-        console.warn('User not authenticated, cannot fetch messages')
-        setMessages([])
-        setIsInitializing(false)
-        return
-      }
-
-      const idToken = await user.getIdToken()
-      const response = await fetch('http://localhost:5000/api/ai/messages', {
-        headers: {
-          'Authorization': `Bearer ${idToken}`
-        }
-      })
-      
-      if (!response.ok) {
-        console.warn('Backend server not running')
-        setMessages([])
-        setIsInitializing(false)
-        return
-      }
-      
-      const contentType = response.headers.get('content-type')
-      if (!contentType || !contentType.includes('application/json')) {
-        console.warn('Backend server not running')
-        setMessages([])
-        setIsInitializing(false)
-        return
-      }
-      
-      const data = await response.json()
-      if (data.success) {
-        setMessages(data.messages || [])
-        // Set current session ID if there are messages
-        if (data.messages && data.messages.length > 0) {
-          const lastMessage = data.messages[data.messages.length - 1]
-          if (lastMessage.sessionId) {
-            setCurrentSessionId(lastMessage.sessionId)
-          }
-        }
-      } else {
-        console.error('Failed to fetch messages:', data.error)
-        setMessages([])
-      }
-    } catch (error) {
-      console.error('Error fetching messages:', error.message)
-      setMessages([])
-    } finally {
-      setIsInitializing(false)
-    }
-  }, [user])
 
   // Load specific conversation
   const loadConversation = useCallback(async (sessionId) => {
@@ -335,35 +283,36 @@ const AICompanion = () => {
 
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md shadow-wellness border-b border-emerald-100/50 relative z-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 lg:px-8">
+          <div className="flex justify-between items-center h-16 sm:h-20">
+            <div className="flex items-center min-w-0 flex-1">
               <Button
                 variant="ghost"
                 onClick={() => window.history.back()}
-                className="mr-6 hover:bg-emerald-50 text-slate-600 hover:text-emerald-600"
+                className="mr-2 sm:mr-6 hover:bg-emerald-50 text-slate-600 hover:text-emerald-600 flex-shrink-0"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
-              <div className="flex items-center">
-                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
-                  <Heart className="w-6 h-6 text-white" />
+              <div className="flex items-center min-w-0">
+                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl sm:rounded-2xl flex items-center justify-center mr-2 sm:mr-4 shadow-lg flex-shrink-0">
+                  <Heart className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <div>
-                  <h1 className="text-2xl font-light text-slate-700">
+                <div className="min-w-0">
+                  <h1 className="text-lg sm:text-2xl font-light text-slate-700 truncate">
                     AI Wellness Coach
                   </h1>
-                  <p className="text-sm text-slate-500">Your mindful companion</p>
+                  <p className="text-xs sm:text-sm text-slate-500 hidden sm:block">Your mindful companion</p>
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
               <Button
                 variant="ghost"
                 onClick={startNewChat}
-                className="hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700"
+                className="hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2"
               >
-                New Chat
+                <span className="hidden sm:inline">New Chat</span>
+                <span className="sm:hidden">New</span>
               </Button>
             </div>
           </div>
@@ -371,14 +320,14 @@ const AICompanion = () => {
       </header>
 
       {/* Chat Container */}
-      <div className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 transition-all duration-300 ${
+      <div className={`max-w-4xl mx-auto px-2 sm:px-4 lg:px-8 py-3 sm:py-6 transition-all duration-300 ${
         isSidebarOpen ? 'lg:ml-80' : ''
       }`}>
-        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-wellness h-[calc(100vh-200px)] flex flex-col border border-emerald-100">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-wellness h-[calc(100vh-140px)] sm:h-[calc(100vh-200px)] flex flex-col border border-emerald-100">
           {/* Messages */}
           <div 
             ref={messagesContainerRef}
-            className="messages-container flex-1 overflow-y-auto p-6 space-y-4 scroll-smooth relative"
+            className="messages-container flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4 scroll-smooth relative"
           >
             {/* Scroll to top button */}
             {showScrollToTop && (
@@ -418,33 +367,33 @@ const AICompanion = () => {
                   }`}
                 >
                   <div
-                    className={`flex items-start space-x-3 max-w-xs lg:max-w-md ${
+                    className={`flex items-start space-x-2 sm:space-x-3 max-w-[85%] sm:max-w-xs lg:max-w-md ${
                       message.sender === 'user'
                         ? 'flex-row-reverse space-x-reverse'
                         : ''
                     }`}
                   >
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                         message.sender === 'user'
                           ? 'bg-gradient-to-br from-emerald-500 to-teal-500'
                           : 'bg-gradient-to-br from-violet-500 to-purple-500'
                       }`}
                     >
                       {message.sender === 'user' ? (
-                        <User className="w-4 h-4 text-white" />
+                        <User className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                       ) : (
-                        <Bot className="w-4 h-4 text-white" />
+                        <Bot className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                       )}
                     </div>
                     <div
-                      className={`px-4 py-3 rounded-2xl ${
+                      className={`px-3 py-2 sm:px-4 sm:py-3 rounded-xl sm:rounded-2xl ${
                         message.sender === 'user'
                           ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white'
                           : 'bg-gradient-to-br from-emerald-50 to-teal-50 text-slate-900 border border-emerald-100'
                       }`}
                     >
-                      <p className="text-sm">{message.text}</p>
+                      <p className="text-xs sm:text-sm break-words">{message.text}</p>
                       <p
                         className={`text-xs mt-1 ${
                           message.sender === 'user'
@@ -500,21 +449,21 @@ const AICompanion = () => {
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className="fixed bottom-32 right-8 z-20"
+                className="fixed bottom-24 sm:bottom-32 right-4 sm:right-8 z-20"
               >
                 <Button
                   onClick={scrollToBottom}
-                  className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-full shadow-lg"
+                  className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-full shadow-lg"
                 >
-                  <Send className="w-5 h-5 rotate-90" />
+                  <Send className="w-4 h-4 sm:w-5 sm:h-5 rotate-90" />
                 </Button>
               </motion.div>
             )}
           </div>
 
           {/* Input Area */}
-          <div className="border-t border-emerald-100 p-6">
-            <div className="flex items-end space-x-3">
+          <div className="border-t border-emerald-100 p-3 sm:p-6">
+            <div className="flex items-end space-x-2 sm:space-x-3">
               <div className="flex-1">
                 <textarea
                   ref={inputRef}
@@ -522,9 +471,9 @@ const AICompanion = () => {
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type your message..."
-                  className="w-full px-4 py-3 border border-emerald-200 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-white/50"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-emerald-200 rounded-xl sm:rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-white/50 text-sm sm:text-base"
                   rows={1}
-                  style={{ minHeight: '48px', maxHeight: '120px' }}
+                  style={{ minHeight: '40px', maxHeight: '120px' }}
                 />
               </div>
 
@@ -532,25 +481,25 @@ const AICompanion = () => {
                 variant="ghost"
                 size="icon"
                 onClick={toggleRecording}
-                className={`w-12 h-12 rounded-full ${
+                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full ${
                   isRecording
                     ? 'bg-red-500 hover:bg-red-600 text-white'
                     : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
                 }`}
               >
                 {isRecording ? (
-                  <MicOff className="w-5 h-5" />
+                  <MicOff className="w-4 h-4 sm:w-5 sm:h-5" />
                 ) : (
-                  <Mic className="w-5 h-5" />
+                  <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
                 )}
               </Button>
 
               <Button
                 onClick={handleSendMessage}
                 disabled={!inputText.trim() || isLoading}
-                className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-full"
+                className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-full"
               >
-                <Send className="w-5 h-5" />
+                <Send className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
             </div>
           </div>
