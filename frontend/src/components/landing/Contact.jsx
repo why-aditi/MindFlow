@@ -92,16 +92,6 @@ const Contact = () => {
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
         >
-          <motion.div
-            className="inline-flex items-center px-4 py-2 bg-emerald-100/50 rounded-full border border-emerald-200/50 mb-6"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            viewport={{ once: true }}
-          >
-            <span className="text-emerald-600 text-sm font-medium">🤝 We're Here to Help</span>
-          </motion.div>
-
           <h2 className="text-4xl lg:text-6xl font-light text-slate-800 mb-6 leading-tight">
             Get Support on Your{' '}
             <span className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 bg-clip-text text-transparent font-normal">

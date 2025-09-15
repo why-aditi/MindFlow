@@ -20,13 +20,22 @@ const Journaling = () => {
   const [isSaving, setIsSaving] = useState(false)
   const [currentDate, setCurrentDate] = useState(new Date())
   const [journalEntries] = useState({})
-  
+
   // Theme and UI state
   const [selectedFramework, setSelectedFramework] = useState(null)
   
   // AI features state
   const [aiInsights, setAiInsights] = useState(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  
+  // Analytics state - used in JSX conditional rendering
+  const [analyticsData, setAnalyticsData] = useState({
+    moodTrends: [],
+    writingPatterns: {},
+    personalGrowth: {},
+    insights: []
+  })
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false)
   
   // Visual highlights state
   const [showVisualHighlights] = useState(true)
@@ -190,6 +199,267 @@ const Journaling = () => {
     } finally {
       setIsAnalyzing(false)
     }
+  }
+
+  // Analytics calculation functions
+  const calculateAnalytics = useCallback(() => {
+    if (entries.length === 0) return
+    
+    setIsLoadingAnalytics(true)
+    
+    // Calculate mood trends (if entries have mood data)
+    const moodTrends = entries
+      .filter(entry => entry.mood)
+      .map(entry => ({
+        date: new Date(entry.createdAt),
+        mood: entry.mood,
+        day: new Date(entry.createdAt).toLocaleDateString('en-US', { weekday: 'short' })
+      }))
+      .sort((a, b) => a.date - b.date)
+    
+    // Calculate writing patterns
+    const writingPatterns = {
+      totalEntries: entries.length,
+      totalWords: entries.reduce((sum, entry) => sum + (entry.text?.split(' ').length || 0), 0),
+      averageWordsPerEntry: entries.length > 0 ? 
+        Math.round(entries.reduce((sum, entry) => sum + (entry.text?.split(' ').length || 0), 0) / entries.length) : 0,
+      longestEntry: entries.reduce((longest, entry) => 
+        (entry.text?.length || 0) > (longest?.text?.length || 0) ? entry : longest, entries[0] || {}),
+      writingFrequency: calculateWritingFrequency(entries),
+      mostUsedTags: calculateMostUsedTags(entries),
+      writingStreak: calculateWritingStreak(entries)
+    }
+    
+    // Calculate personal growth metrics
+    const personalGrowth = {
+      emotionalRange: calculateEmotionalRange(entries),
+      topicDiversity: calculateTopicDiversity(entries),
+      reflectionDepth: calculateReflectionDepth(entries),
+      positiveGrowth: calculatePositiveGrowth(entries)
+    }
+    
+    // Generate insights
+    const insights = generateInsights(writingPatterns, personalGrowth)
+    
+    setAnalyticsData({
+      moodTrends,
+      writingPatterns,
+      personalGrowth,
+      insights
+    })
+    
+    setIsLoadingAnalytics(false)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries])
+  
+  // Calculate analytics whenever entries change
+  useEffect(() => {
+    calculateAnalytics()
+  }, [calculateAnalytics])
+  
+  // Helper functions for analytics
+  const calculateWritingFrequency = (entries) => {
+    const last30Days = entries.filter(entry => {
+      const entryDate = new Date(entry.createdAt)
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      return entryDate >= thirtyDaysAgo
+    })
+    
+    return {
+      last30Days: last30Days.length,
+      weeklyAverage: Math.round(last30Days.length / 4.3),
+      mostActiveDay: getMostActiveDay(entries)
+    }
+  }
+  
+  const calculateMostUsedTags = (entries) => {
+    const tagCounts = {}
+    entries.forEach(entry => {
+      if (entry.tags) {
+        entry.tags.forEach(tag => {
+          tagCounts[tag] = (tagCounts[tag] || 0) + 1
+        })
+      }
+    })
+    
+    return Object.entries(tagCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 5)
+      .map(([tag, count]) => ({ tag, count }))
+  }
+  
+  const calculateWritingStreak = (entries) => {
+    if (entries.length === 0) return 0
+    
+    const sortedEntries = entries
+      .map(entry => new Date(entry.createdAt))
+      .sort((a, b) => b - a)
+    
+    let streak = 0
+    let currentDate = new Date()
+    currentDate.setHours(0, 0, 0, 0)
+    
+    for (let i = 0; i < sortedEntries.length; i++) {
+      const entryDate = new Date(sortedEntries[i])
+      entryDate.setHours(0, 0, 0, 0)
+      
+      if (entryDate.getTime() === currentDate.getTime()) {
+        streak++
+        currentDate.setDate(currentDate.getDate() - 1)
+      } else if (entryDate.getTime() < currentDate.getTime()) {
+        break
+      }
+    }
+    
+    return streak
+  }
+  
+  const calculateEmotionalRange = (entries) => {
+    const emotions = entries
+      .filter(entry => entry.tags)
+      .flatMap(entry => entry.tags)
+      .filter(tag => ['happy', 'sad', 'anxious', 'excited', 'frustrated', 'peaceful'].includes(tag))
+    
+    const emotionCounts = emotions.reduce((acc, emotion) => {
+      acc[emotion] = (acc[emotion] || 0) + 1
+      return acc
+    }, {})
+    
+    return {
+      mostCommon: Object.entries(emotionCounts).sort(([,a], [,b]) => b - a)[0]?.[0] || 'neutral',
+      diversity: Object.keys(emotionCounts).length,
+      positiveRatio: calculatePositiveRatio(emotionCounts)
+    }
+  }
+  
+  const calculateTopicDiversity = (entries) => {
+    const allTags = entries
+      .filter(entry => entry.tags)
+      .flatMap(entry => entry.tags)
+    
+    const uniqueTags = new Set(allTags)
+    return {
+      totalTags: uniqueTags.size,
+      averageTagsPerEntry: entries.length > 0 ? 
+        Math.round(allTags.length / entries.length * 10) / 10 : 0
+    }
+  }
+  
+  const calculateReflectionDepth = (entries) => {
+    const avgLength = entries.reduce((sum, entry) => sum + (entry.text?.length || 0), 0) / entries.length
+    return {
+      averageLength: Math.round(avgLength),
+      depthLevel: avgLength > 500 ? 'Deep' : avgLength > 200 ? 'Moderate' : 'Brief',
+      longestReflection: entries.reduce((longest, entry) => 
+        (entry.text?.length || 0) > (longest?.text?.length || 0) ? entry : longest, entries[0] || {})
+    }
+  }
+  
+  const calculatePositiveGrowth = (entries) => {
+    const positiveTags = ['happy', 'excited', 'grateful', 'peaceful', 'motivated']
+    const negativeTags = ['sad', 'anxious', 'frustrated', 'overwhelmed']
+    
+    let positiveCount = 0
+    let negativeCount = 0
+    
+    entries.forEach(entry => {
+      if (entry.tags) {
+        entry.tags.forEach(tag => {
+          if (positiveTags.includes(tag)) positiveCount++
+          if (negativeTags.includes(tag)) negativeCount++
+        })
+      }
+    })
+    
+    return {
+      positiveRatio: positiveCount + negativeCount > 0 ? 
+        Math.round((positiveCount / (positiveCount + negativeCount)) * 100) : 50,
+      trend: calculateTrend(entries, positiveTags)
+    }
+  }
+  
+  const calculatePositiveRatio = (emotionCounts) => {
+    const positiveEmotions = ['happy', 'excited', 'grateful', 'peaceful', 'motivated']
+    const negativeEmotions = ['sad', 'anxious', 'frustrated', 'overwhelmed']
+    
+    const positiveCount = positiveEmotions.reduce((sum, emotion) => sum + (emotionCounts[emotion] || 0), 0)
+    const negativeCount = negativeEmotions.reduce((sum, emotion) => sum + (emotionCounts[emotion] || 0), 0)
+    
+    return positiveCount + negativeCount > 0 ? 
+      Math.round((positiveCount / (positiveCount + negativeCount)) * 100) : 50
+  }
+  
+  const calculateTrend = (entries, positiveTags) => {
+    if (entries.length < 2) return 'stable'
+    
+    const recentEntries = entries.slice(0, Math.min(7, entries.length))
+    const olderEntries = entries.slice(Math.min(7, entries.length), Math.min(14, entries.length))
+    
+    const recentPositive = recentEntries.reduce((count, entry) => 
+      count + (entry.tags?.filter(tag => positiveTags.includes(tag)).length || 0), 0)
+    const olderPositive = olderEntries.reduce((count, entry) => 
+      count + (entry.tags?.filter(tag => positiveTags.includes(tag)).length || 0), 0)
+    
+    if (recentPositive > olderPositive) return 'improving'
+    if (recentPositive < olderPositive) return 'declining'
+    return 'stable'
+  }
+  
+  const getMostActiveDay = (entries) => {
+    const dayCounts = {}
+    entries.forEach(entry => {
+      const day = new Date(entry.createdAt).toLocaleDateString('en-US', { weekday: 'long' })
+      dayCounts[day] = (dayCounts[day] || 0) + 1
+    })
+    
+    return Object.entries(dayCounts).sort(([,a], [,b]) => b - a)[0]?.[0] || 'Monday'
+  }
+  
+  const generateInsights = (writingPatterns, personalGrowth) => {
+    const insights = []
+    
+    // Writing frequency insights
+    if (writingPatterns.writingStreak > 0) {
+      insights.push({
+        type: 'achievement',
+        title: 'Writing Streak',
+        description: `You've been journaling for ${writingPatterns.writingStreak} days in a row!`,
+        icon: '🔥'
+      })
+    }
+    
+    // Emotional insights
+    if (personalGrowth.emotionalRange.diversity > 3) {
+      insights.push({
+        type: 'growth',
+        title: 'Emotional Awareness',
+        description: `You express ${personalGrowth.emotionalRange.diversity} different emotions regularly`,
+        icon: '💭'
+      })
+    }
+    
+    // Writing depth insights
+    if (personalGrowth.reflectionDepth.depthLevel === 'Deep') {
+      insights.push({
+        type: 'depth',
+        title: 'Deep Reflection',
+        description: 'Your entries show thoughtful self-reflection',
+        icon: '🔍'
+      })
+    }
+    
+    // Positive growth insights
+    if (personalGrowth.positiveGrowth.trend === 'improving') {
+      insights.push({
+        type: 'positive',
+        title: 'Positive Trend',
+        description: 'Your emotional well-being is trending upward',
+        icon: '📈'
+      })
+    }
+    
+    return insights
   }
 
   // Calendar functions
@@ -367,7 +637,7 @@ const Journaling = () => {
                       <label className="block text-lg font-semibold text-slate-800 mb-4">Framework Templates</label>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {Object.entries(frameworks).map(([key, framework]) => (
-                          <button
+                    <button
                             key={key}
                             onClick={() => setSelectedFramework(selectedFramework === key ? null : key)}
                             className={`group relative p-6 rounded-2xl border-2 transition-all duration-200 text-left ${
@@ -386,10 +656,10 @@ const Journaling = () => {
                             {selectedFramework === key && (
                               <ChevronRight className="w-5 h-5 text-emerald-600 absolute top-4 right-4" />
                             )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
                     {/* Selected Framework Prompts */}
                     {selectedFramework && (
@@ -413,34 +683,34 @@ const Journaling = () => {
                       </motion.div>
                     )}
 
-                    {/* Tags */}
+              {/* Tags */}
                     <div>
                       <label className="block text-lg font-semibold text-slate-800 mb-4">Tags</label>
-                      <div className="flex flex-wrap gap-3">
-                        {availableTags.map((tag) => (
-                          <button
-                            key={tag}
-                            onClick={() => toggleTag(tag)}
+                <div className="flex flex-wrap gap-3">
+                  {availableTags.map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
                             className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                              selectedTags.includes(tag)
+                        selectedTags.includes(tag)
                                 ? 'bg-emerald-500 text-white shadow-lg'
                                 : 'bg-slate-100 text-slate-700 hover:bg-emerald-100 hover:text-emerald-700'
-                            }`}
-                          >
-                            {tag}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
                     {/* Writing Area */}
                     <div>
                       <label className="block text-lg font-semibold text-slate-800 mb-4">Your Entry</label>
                       <div className="relative">
-                        <textarea
-                          value={currentEntry}
-                          onChange={(e) => setCurrentEntry(e.target.value)}
-                          placeholder="Write about your day, thoughts, feelings, or anything on your mind..."
+                <textarea
+                  value={currentEntry}
+                  onChange={(e) => setCurrentEntry(e.target.value)}
+                  placeholder="Write about your day, thoughts, feelings, or anything on your mind..."
                           className="w-full h-80 px-6 py-4 border-2 border-slate-200 rounded-2xl resize-none focus:outline-none focus:ring-4 focus:ring-emerald-200 focus:border-emerald-400 bg-slate-50 text-slate-900 placeholder-slate-500 text-base leading-relaxed"
                         />
                         {showVisualHighlights && (
@@ -451,33 +721,33 @@ const Journaling = () => {
                           </div>
                         )}
                       </div>
-                    </div>
+              </div>
 
-                    {/* Voice Input */}
+              {/* Voice Input */}
                     <div>
                       <label className="block text-lg font-semibold text-slate-800 mb-4">Voice Entry</label>
-                      <div className="flex items-center space-x-4">
-                        <Button
-                          variant="outline"
-                          onClick={toggleRecording}
+                <div className="flex items-center space-x-4">
+                  <Button
+                    variant="outline"
+                    onClick={toggleRecording}
                           className={`flex items-center space-x-3 px-6 py-3 rounded-xl border-2 transition-all duration-200 ${
-                            isRecording 
-                              ? 'bg-red-500 text-white border-red-500 hover:bg-red-600' 
+                      isRecording 
+                        ? 'bg-red-500 text-white border-red-500 hover:bg-red-600' 
                               : 'border-slate-300 hover:border-emerald-400 hover:bg-emerald-50 text-slate-700'
-                          }`}
-                        >
+                    }`}
+                  >
                           {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
                           <span className="font-medium">{isRecording ? 'Stop Recording' : 'Start Recording'}</span>
-                        </Button>
-                        
-                        {isRecording && (
+                  </Button>
+                  
+                  {isRecording && (
                           <div className="flex items-center space-x-3 text-red-500">
                             <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                             <span className="text-sm font-medium">Recording...</span>
-                          </div>
-                        )}
-                      </div>
                     </div>
+                  )}
+                </div>
+              </div>
 
                     {/* Action Buttons */}
                     <div className="flex justify-between items-center pt-6 border-t border-slate-200">
@@ -500,23 +770,23 @@ const Journaling = () => {
                         )}
                       </Button>
 
-                      <Button
-                        onClick={handleSaveEntry}
-                        disabled={!currentEntry.trim() || isSaving}
+                <Button
+                  onClick={handleSaveEntry}
+                  disabled={!currentEntry.trim() || isSaving}
                         className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-200"
-                      >
-                        {isSaving ? (
+                >
+                  {isSaving ? (
                           <div className="flex items-center space-x-3">
                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            <span>Saving...</span>
-                          </div>
-                        ) : (
+                      <span>Saving...</span>
+                    </div>
+                  ) : (
                           <div className="flex items-center space-x-3">
                             <Save className="w-5 h-5" />
-                            <span>Save Entry</span>
-                          </div>
-                        )}
-                      </Button>
+                      <span>Save Entry</span>
+                    </div>
+                  )}
+                </Button>
                     </div>
                   </div>
                 </div>
@@ -611,83 +881,83 @@ const Journaling = () => {
                     <h2 className="text-2xl font-bold text-white">Your Journal Entries</h2>
                     <p className="text-blue-100 mt-1">Track your daily reflections</p>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setView('write')}
+                <Button 
+                  variant="outline" 
+                  onClick={() => setView('write')}
                     className="bg-white/20 border-white/30 text-white hover:bg-white/30"
-                  >
+                >
                     <Plus className="w-4 h-4 mr-2" />
-                    Write Entry
-                  </Button>
+                  Write Entry
+                </Button>
                 </div>
               </div>
               
               <div className="p-8">
                 <div className="bg-slate-50 rounded-2xl p-6">
-                  {/* Calendar Header */}
-                  <div className="flex justify-between items-center mb-6">
-                    <button
-                      onClick={() => navigateMonth(-1)}
+                {/* Calendar Header */}
+                <div className="flex justify-between items-center mb-6">
+                  <button
+                    onClick={() => navigateMonth(-1)}
                       className="p-3 hover:bg-white rounded-xl transition-colors"
-                    >
+                  >
                       <ChevronLeft className="w-6 h-6 text-slate-600" />
-                    </button>
-                    
+                  </button>
+                  
                     <h3 className="text-2xl font-bold text-slate-800">
-                      {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-                    </h3>
-                    
-                    <button
-                      onClick={() => navigateMonth(1)}
+                    {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+                  </h3>
+                  
+                  <button
+                    onClick={() => navigateMonth(1)}
                       className="p-3 hover:bg-white rounded-xl transition-colors"
-                    >
+                  >
                       <ChevronRight className="w-6 h-6 text-slate-600" />
-                    </button>
-                  </div>
-                  
-                  {/* Calendar Grid */}
-                  <div className="grid grid-cols-7 gap-2 mb-4">
-                    {dayNames.map(day => (
+                  </button>
+                </div>
+                
+                {/* Calendar Grid */}
+                <div className="grid grid-cols-7 gap-2 mb-4">
+                  {dayNames.map(day => (
                       <div key={day} className="text-center text-sm font-bold text-slate-600 py-3">
-                        {day}
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="grid grid-cols-7 gap-2">
-                    {getDaysInMonth(currentDate).map((day, index) => (
-                      <div
-                        key={index}
-                        className={`
+                      {day}
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="grid grid-cols-7 gap-2">
+                  {getDaysInMonth(currentDate).map((day, index) => (
+                    <div
+                      key={index}
+                      className={`
                           aspect-square flex items-center justify-center text-sm rounded-xl transition-all duration-200 cursor-pointer relative
-                          ${day 
-                            ? hasJournalEntry(day)
+                        ${day 
+                          ? hasJournalEntry(day)
                               ? 'bg-emerald-100 text-emerald-800 font-bold hover:bg-emerald-200'
                               : 'text-slate-600 hover:bg-white hover:text-slate-800'
-                            : ''
-                          }
-                          ${day && day.toDateString() === new Date().toDateString() 
+                          : ''
+                        }
+                        ${day && day.toDateString() === new Date().toDateString() 
                             ? 'ring-2 ring-emerald-400 bg-emerald-50' 
-                            : ''
-                          }
-                        `}
-                        onClick={() => day && setView('write')}
-                      >
-                        {day ? day.getDate() : ''}
-                        {day && hasJournalEntry(day) && (
+                          : ''
+                        }
+                      `}
+                      onClick={() => day && setView('write')}
+                    >
+                      {day ? day.getDate() : ''}
+                      {day && hasJournalEntry(day) && (
                           <div className="absolute w-2 h-2 bg-emerald-500 rounded-full -bottom-1"></div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Legend */}
+                      )}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Legend */}
                   <div className="flex items-center justify-center mt-8 space-x-8 text-sm">
-                    <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 bg-emerald-100 rounded"></div>
                       <span className="text-slate-600 font-medium">Journal Entry</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
+                  </div>
+                  <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 bg-emerald-50 ring-2 ring-emerald-400 rounded"></div>
                       <span className="text-slate-600 font-medium">Today</span>
                     </div>
@@ -712,7 +982,19 @@ const Journaling = () => {
               </div>
               
               <div className="p-8">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {isLoadingAnalytics ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="w-8 h-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
+                    <span className="ml-3 text-slate-600">Analyzing your journal...</span>
+                  </div>
+                ) : entries.length === 0 ? (
+                  <div className="text-center py-12">
+                    <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-slate-600 mb-2">No entries yet</h3>
+                    <p className="text-slate-500">Start journaling to see your insights and patterns</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {/* Emotion Trends */}
                   <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-200">
                     <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
@@ -827,7 +1109,8 @@ const Journaling = () => {
                       </div>
                     </div>
                   </div>
-                </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
@@ -847,7 +1130,7 @@ const Journaling = () => {
               </div>
               
               <div className="p-8">
-                <div className="grid md:grid-cols-3 gap-6 mb-8">
+              <div className="grid md:grid-cols-3 gap-6 mb-8">
                   <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-200">
                     <h3 className="text-lg font-bold text-slate-800 mb-2">Average Mood</h3>
                     <div className="text-4xl font-bold text-emerald-600">
@@ -860,15 +1143,15 @@ const Journaling = () => {
                     <h3 className="text-lg font-bold text-slate-800 mb-2">Total Entries</h3>
                     <div className="text-4xl font-bold text-blue-600">{entries.length}</div>
                     <p className="text-sm text-slate-600 font-medium">journal entries</p>
-                  </div>
-                  
+                </div>
+                
                   <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-200">
                     <h3 className="text-lg font-bold text-slate-800 mb-2">Streak</h3>
-                    <div className="text-4xl font-bold text-purple-600">7</div>
+                    <div className="text-4xl font-bold text-purple-600">{analyticsData.writingPatterns?.writingStreak || 0}</div>
                     <p className="text-sm text-slate-600 font-medium">days in a row</p>
                   </div>
                 </div>
-
+                
                 {/* Mood Chart Placeholder */}
                 <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-12 text-center border border-slate-200">
                   <div className="w-20 h-20 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-2xl flex items-center justify-center mx-auto mb-6">

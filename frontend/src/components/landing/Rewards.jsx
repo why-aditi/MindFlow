@@ -77,16 +77,6 @@ const Rewards = () => {
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
         >
-          <motion.div
-            className="inline-flex items-center px-4 py-2 bg-teal-100/50 rounded-full border border-teal-200/50 mb-6"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            viewport={{ once: true }}
-          >
-            <span className="text-teal-600 text-sm font-medium">🎁 Wellness Rewards</span>
-          </motion.div>
-
           <h2 className="text-4xl lg:text-6xl font-light text-slate-800 mb-6 leading-tight">
             Nurture Yourself,{' '}
             <span className="bg-gradient-to-r from-teal-500 via-cyan-500 to-sky-500 bg-clip-text text-transparent font-normal">

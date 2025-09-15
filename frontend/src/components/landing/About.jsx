@@ -62,17 +62,7 @@ const About = () => {
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
-          >
-            <motion.div
-              className="inline-flex items-center px-4 py-2 bg-emerald-100/50 rounded-full border border-emerald-200/50"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              viewport={{ once: true }}
-            >
-              <span className="text-emerald-600 text-sm font-medium">🌱 About Our Mission</span>
-            </motion.div>
-
+          >        
             <motion.h2 
               className="text-4xl lg:text-6xl font-light text-slate-800 leading-tight"
               initial={{ opacity: 0, y: 20 }}
