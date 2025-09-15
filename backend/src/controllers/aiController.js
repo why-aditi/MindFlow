@@ -24,7 +24,7 @@ export const aiController = {
           sessionId: sessionId || null,
           isCrisis: true,
           resources: crisisCheck.resources,
-          model: "crisis-response"
+          model: "crisis-response",
         });
       }
 
@@ -64,7 +64,7 @@ export const aiController = {
         model: aiResult.model,
         timestamp: aiResult.timestamp,
         conversationLength: aiResult.conversationLength,
-        error: aiResult.error
+        error: aiResult.error,
       });
     } catch (error) {
       console.error("Send message error:", error);
@@ -272,8 +272,10 @@ export const aiController = {
       }
 
       // Get conversation history
-      const conversationHistory = await geminiService.getConversationHistory(sessionId);
-      
+      const conversationHistory = await geminiService.getConversationHistory(
+        sessionId
+      );
+
       // Analyze mood
       const moodAnalysis = await geminiService.analyzeMood(conversationHistory);
 
@@ -308,7 +310,9 @@ export const aiController = {
       }
 
       // Get current mood analysis
-      const conversationHistory = await geminiService.getConversationHistory(sessionId);
+      const conversationHistory = await geminiService.getConversationHistory(
+        sessionId
+      );
       const moodAnalysis = await geminiService.analyzeMood(conversationHistory);
 
       // Generate personalized suggestions
@@ -348,10 +352,14 @@ export const aiController = {
       }
 
       // Get conversation history
-      const conversationHistory = await geminiService.getConversationHistory(sessionId);
-      
+      const conversationHistory = await geminiService.getConversationHistory(
+        sessionId
+      );
+
       // Generate summary
-      const summary = await geminiService.generateConversationSummary(conversationHistory);
+      const summary = await geminiService.generateConversationSummary(
+        conversationHistory
+      );
 
       res.json({
         success: true,
@@ -384,11 +392,20 @@ export const aiController = {
             "Crisis detection",
             "Mood analysis",
             "Personalized suggestions",
-            "Conversation summarization"
+            "Conversation summarization",
           ],
           supportedLanguages: [
-            "en", "es", "fr", "de", "zh", "ja", "ko", "pt", "ru", "ar"
-          ]
+            "en",
+            "es",
+            "fr",
+            "de",
+            "zh",
+            "ja",
+            "ko",
+            "pt",
+            "ru",
+            "ar",
+          ],
         },
         timestamp: new Date(),
       });
@@ -430,6 +447,131 @@ export const aiController = {
       console.error("Update session context error:", error);
       res.status(500).json({
         error: "Failed to update session context",
+        message: error.message,
+      });
+    }
+  },
+
+  // Close/End session
+  async closeSession(req, res) {
+    try {
+      const { uid } = req.user;
+      const { sessionId } = req.params;
+
+      // Verify session belongs to user
+      const session = await AISession.findOne({ _id: sessionId, userId: uid });
+      if (!session) {
+        return res.status(404).json({
+          error: "Conversation not found",
+        });
+      }
+
+      // Update session status to completed
+      session.status = "completed";
+      session.lastActivity = new Date();
+      await session.save();
+
+      res.json({
+        success: true,
+        message: "Session closed successfully",
+        sessionId,
+        status: session.status,
+      });
+    } catch (error) {
+      console.error("Close session error:", error);
+      res.status(500).json({
+        error: "Failed to close session",
+        message: error.message,
+      });
+    }
+  },
+
+  // Get chat sessions for sidebar
+  async getChatSessions(req, res) {
+    try {
+      const { uid } = req.user;
+      const { limit = 20 } = req.query;
+
+      const sessions = await AISession.find({ userId: uid })
+        .sort({ lastActivity: -1 })
+        .limit(parseInt(limit));
+
+      const sessionsWithPreview = await Promise.all(
+        sessions.map(async (session) => {
+          // Get first and last message for preview
+          const firstMessage = await Message.findOne({
+            sessionId: session._id,
+            sender: "user",
+          }).sort({ timestamp: 1 });
+
+          const lastMessage = await Message.findOne({
+            sessionId: session._id,
+          }).sort({ timestamp: -1 });
+
+          // Count total messages
+          const messageCount = await Message.countDocuments({
+            sessionId: session._id,
+          });
+
+          return {
+            id: session._id,
+            title: firstMessage
+              ? firstMessage.message.substring(0, 50) + "..."
+              : "New Chat",
+            preview: lastMessage
+              ? lastMessage.message.substring(0, 100) + "..."
+              : "No messages yet",
+            messageCount,
+            createdAt: session.createdAt,
+            lastActivity: session.lastActivity,
+            status: session.status,
+            language: session.language,
+          };
+        })
+      );
+
+      res.json({
+        success: true,
+        sessions: sessionsWithPreview,
+      });
+    } catch (error) {
+      console.error("Get chat sessions error:", error);
+      res.status(500).json({
+        error: "Failed to get chat sessions",
+        message: error.message,
+      });
+    }
+  },
+
+  // Delete session and all associated messages
+  async deleteSession(req, res) {
+    try {
+      const { uid } = req.user;
+      const { sessionId } = req.params;
+
+      // Verify session belongs to user
+      const session = await AISession.findOne({ _id: sessionId, userId: uid });
+      if (!session) {
+        return res.status(404).json({
+          error: "Conversation not found",
+        });
+      }
+
+      // Delete all messages in this session
+      await Message.deleteMany({ sessionId: sessionId });
+
+      // Delete the session
+      await AISession.findByIdAndDelete(sessionId);
+
+      res.json({
+        success: true,
+        message: "Session deleted successfully",
+        sessionId,
+      });
+    } catch (error) {
+      console.error("Delete session error:", error);
+      res.status(500).json({
+        error: "Failed to delete session",
         message: error.message,
       });
     }

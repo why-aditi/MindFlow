@@ -10,8 +10,11 @@ const sendMessageValidation = [
   body("message").notEmpty().withMessage("Message is required"),
   body("sessionId")
     .optional()
-    .isString()
-    .withMessage("Session ID must be a string"),
+    .custom((value) => {
+      if (value === null || value === undefined) return true;
+      return typeof value === "string";
+    })
+    .withMessage("Session ID must be a string or null"),
   body("language")
     .optional()
     .isIn(["en", "es", "fr", "de", "it", "pt", "ru", "zh", "ja", "ko"])
@@ -48,9 +51,7 @@ const wellnessSuggestionsValidation = [
 ];
 
 const updateContextValidation = [
-  body("context")
-    .isObject()
-    .withMessage("Context must be an object"),
+  body("context").isObject().withMessage("Context must be an object"),
 ];
 
 // Routes
@@ -80,12 +81,20 @@ router.post(
   validate,
   aiController.getWellnessSuggestions
 );
-router.get("/conversations/:sessionId/summary", aiController.getConversationSummary);
+router.get(
+  "/conversations/:sessionId/summary",
+  aiController.getConversationSummary
+);
 router.put(
   "/conversations/:sessionId/context",
   updateContextValidation,
   validate,
   aiController.updateSessionContext
 );
+
+// Session management routes
+router.put("/conversations/:sessionId/close", aiController.closeSession);
+router.get("/chat-sessions", aiController.getChatSessions);
+router.delete("/conversations/:sessionId", aiController.deleteSession);
 
 export default router;

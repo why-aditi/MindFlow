@@ -2,7 +2,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
-import { Send, Mic, MicOff, Bot, User, Heart, Sparkles, Leaf, Cloud, Waves, ArrowLeft } from 'lucide-react';
+import ChatSidebar from '../components/ChatSidebar';
+import { Send, Mic, MicOff, Bot, User, Heart, Sparkles, Leaf, Cloud, Waves, ArrowLeft, Menu } from 'lucide-react';
 
 const AICompanion = () => {
   const { user } = useAuth();
@@ -11,8 +12,13 @@ const AICompanion = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [currentSessionId, setCurrentSessionId] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
   const fetchInitialMessages = useCallback(async () => {
     try {
@@ -48,6 +54,13 @@ const AICompanion = () => {
       const data = await response.json()
       if (data.success) {
         setMessages(data.messages || [])
+        // Set current session ID if there are messages
+        if (data.messages && data.messages.length > 0) {
+          const lastMessage = data.messages[data.messages.length - 1]
+          if (lastMessage.sessionId) {
+            setCurrentSessionId(lastMessage.sessionId)
+          }
+        }
       } else {
         console.error('Failed to fetch messages:', data.error)
         setMessages([])
@@ -60,6 +73,75 @@ const AICompanion = () => {
     }
   }, [user])
 
+  // Load specific conversation
+  const loadConversation = useCallback(async (sessionId) => {
+    if (!user || !sessionId) return
+
+    setIsInitializing(true)
+    try {
+      const idToken = await user.getIdToken()
+      const response = await fetch(`http://localhost:5000/api/ai/conversations/${sessionId}`, {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          const formattedMessages = data.conversation.messages.map(msg => ({
+            id: msg._id,
+            text: msg.message,
+            sender: msg.sender,
+            timestamp: msg.timestamp,
+          }))
+          setMessages(formattedMessages)
+          setCurrentSessionId(sessionId)
+          
+          // Scroll to top when loading a conversation to show the beginning
+          setTimeout(() => {
+            scrollToTop()
+          }, 100)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading conversation:', error)
+    } finally {
+      setIsInitializing(false)
+    }
+  }, [user])
+
+  // Start new chat
+  const startNewChat = useCallback(() => {
+    setMessages([])
+    setCurrentSessionId(null)
+    setIsInitializing(false)
+  }, [])
+
+  // Close current session on page refresh/unload
+  useEffect(() => {
+    const handleBeforeUnload = async () => {
+      if (currentSessionId && user) {
+        try {
+          const idToken = await user.getIdToken()
+          await fetch(`http://localhost:5000/api/ai/conversations/${currentSessionId}/close`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${idToken}`
+            }
+          })
+        } catch (error) {
+          console.error('Error closing session on unload:', error)
+        }
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [currentSessionId, user])
+
   useEffect(() => {
     fetchInitialMessages()
   }, [fetchInitialMessages])
@@ -68,9 +150,43 @@ const AICompanion = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const scrollToTop = () => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Scroll to bottom when new messages are added
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
   }, [messages]);
+
+  // Scroll to top when loading a conversation
+  useEffect(() => {
+    if (!isInitializing && messages.length > 0) {
+      scrollToTop();
+    }
+  }, [isInitializing, messages.length]);
+
+  // Handle scroll events to show/hide scroll to bottom button
+  useEffect(() => {
+    const messagesContainer = messagesContainerRef.current;
+    if (!messagesContainer) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
+      const isAtBottom = scrollHeight - scrollTop <= clientHeight + 50; // 50px threshold
+      const isAtTop = scrollTop <= 50; // 50px threshold
+      
+      setShowScrollToBottom(!isAtBottom && messages.length > 0);
+      setShowScrollToTop(!isAtTop && messages.length > 0);
+    };
+
+    messagesContainer.addEventListener('scroll', handleScroll);
+    return () => messagesContainer.removeEventListener('scroll', handleScroll);
+  }, [messages.length]);
 
   const handleSendMessage = async () => {
     if (!inputText.trim()) return;
@@ -83,6 +199,7 @@ const AICompanion = () => {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const messageText = inputText;
     setInputText('');
     setIsLoading(true);
 
@@ -94,11 +211,23 @@ const AICompanion = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${idToken}`
         },
-        body: JSON.stringify({ message: inputText })
+        body: JSON.stringify({ 
+          message: messageText,
+          ...(currentSessionId && { sessionId: currentSessionId })
+        })
       })
       
       if (!response.ok) {
-        console.warn('Backend server not running')
+        const contentType = response.headers.get('content-type')
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json()
+          console.error('API Error:', errorData)
+          if (errorData.details) {
+            console.error('Validation errors:', errorData.details)
+          }
+        } else {
+          console.warn('Backend server not running or returned non-JSON response')
+        }
         setIsLoading(false)
         return
       }
@@ -119,6 +248,11 @@ const AICompanion = () => {
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, aiResponse]);
+        
+        // Update current session ID if it's a new session
+        if (data.sessionId && !currentSessionId) {
+          setCurrentSessionId(data.sessionId);
+        }
       } else {
         console.error('Failed to get AI response:', data.error)
       }
@@ -143,6 +277,15 @@ const AICompanion = () => {
 
   return (
     <div className="min-h-screen wellness-bg relative overflow-hidden">
+      {/* Chat Sidebar */}
+      <ChatSidebar
+        isOpen={isSidebarOpen}
+        onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+        currentSessionId={currentSessionId}
+        onSessionSelect={loadConversation}
+        onNewChat={startNewChat}
+      />
+
       {/* Floating wellness elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
@@ -213,15 +356,54 @@ const AICompanion = () => {
                 </div>
               </div>
             </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                onClick={startNewChat}
+                className="hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700"
+              >
+                New Chat
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="w-10 h-10 hover:bg-emerald-50 text-slate-600 hover:text-emerald-600"
+              >
+                <Menu className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Chat Container */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 transition-all duration-300 ${
+        isSidebarOpen ? 'lg:ml-80' : ''
+      }`}>
         <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-wellness h-[calc(100vh-200px)] flex flex-col border border-emerald-100">
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div 
+            ref={messagesContainerRef}
+            className="messages-container flex-1 overflow-y-auto p-6 space-y-4 scroll-smooth relative"
+          >
+            {/* Scroll to top button */}
+            {showScrollToTop && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="absolute top-4 right-4 z-10"
+              >
+                <Button
+                  onClick={scrollToTop}
+                  className="w-10 h-10 bg-white/90 hover:bg-white text-emerald-600 rounded-full shadow-lg border border-emerald-200"
+                >
+                  <Send className="w-4 h-4 -rotate-90" />
+                </Button>
+              </motion.div>
+            )}
+            
             {isInitializing ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
@@ -318,6 +500,23 @@ const AICompanion = () => {
             )}
 
             <div ref={messagesEndRef} />
+            
+            {/* Scroll to bottom button */}
+            {showScrollToBottom && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="fixed bottom-32 right-8 z-20"
+              >
+                <Button
+                  onClick={scrollToBottom}
+                  className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-full shadow-lg"
+                >
+                  <Send className="w-5 h-5 rotate-90" />
+                </Button>
+              </motion.div>
+            )}
           </div>
 
           {/* Input Area */}
