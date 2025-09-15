@@ -1,8 +1,12 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap');
 
-/* Custom styles for MindFlow */
+/* Custom styles for MindFlow Wellness App */
 body {
   font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  background: linear-gradient(135deg, #f0fdfa 0%, #ecfdf5 50%, #f0fdf4 100%);
+  min-height: 100vh;
 }
 
 /* Smooth scrolling */
@@ -10,63 +14,260 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar with wellness colors */
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #f0fdfa;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+  background: linear-gradient(135deg, #6ee7b7, #34d399);
+  border-radius: 8px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: linear-gradient(135deg, #10b981, #059669);
 }
 
-/* Animation utilities */
+/* Wellness Animation utilities */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(2deg); }
+}
+
+@keyframes pulse-wellness {
+  0%, 100% { 
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+@keyframes breathe {
+  0%, 100% { 
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% { 
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+@keyframes gentle-float {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  25% { transform: translateY(-10px) translateX(5px); }
+  50% { transform: translateY(-5px) translateX(-3px); }
+  75% { transform: translateY(-15px) translateX(2px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
 .animate-float {
-  animation: float 3s ease-in-out infinite;
+  animation: float 6s ease-in-out infinite;
 }
 
 .animate-pulse-wellness {
-  animation: pulse-wellness 2s ease-in-out infinite;
+  animation: pulse-wellness 3s ease-in-out infinite;
 }
 
 .animate-breathe {
   animation: breathe 4s ease-in-out infinite;
 }
 
-/* Gradient text */
+.animate-gentle-float {
+  animation: gentle-float 8s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Wellness Gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+  background: linear-gradient(135deg, #10b981, #059669, #047857);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Glass morphism effect */
+.gradient-text-warm {
+  background: linear-gradient(135deg, #f59e0b, #f97316, #ef4444);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-cool {
+  background: linear-gradient(135deg, #06b6d4, #0891b2, #0e7490);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Enhanced Glass morphism effect */
 .glass {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.1);
 }
 
-/* Custom focus styles */
+.glass-strong {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 12px 40px rgba(16, 185, 129, 0.15);
+}
+
+/* Image hover effects */
+.image-hover {
+  transition: all 0.3s ease;
+}
+
+.image-hover:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+/* Subtle image borders */
+.image-border {
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+}
+
+/* Enhanced image shadows */
+.image-shadow {
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15), 0 2px 8px rgba(16, 185, 129, 0.1);
+}
+
+.image-shadow-lg {
+  box-shadow: 0 8px 40px rgba(16, 185, 129, 0.2), 0 4px 16px rgba(16, 185, 129, 0.15);
+}
+
+/* Image loading and visibility improvements */
+img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Better image contrast and visibility */
+.image-enhanced {
+  filter: contrast(1.1) saturate(1.1);
+  transition: filter 0.3s ease;
+}
+
+.image-enhanced:hover {
+  filter: contrast(1.2) saturate(1.2) brightness(1.05);
+}
+
+/* Loading placeholder for images */
+.image-loading {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Wellness-focused focus styles */
 .focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2;
+  @apply focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-emerald-50;
 }
 
-/* Button hover effects */
+.focus-ring-warm {
+  @apply focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 focus:ring-offset-teal-50;
+}
+
+/* Enhanced button hover effects */
 .btn-hover {
-  @apply transition-all duration-300 hover:scale-105 hover:shadow-lg;
+  @apply transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-emerald-200/50;
 }
 
-/* Card hover effects */
+.btn-hover-warm {
+  @apply transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-teal-200/50;
+}
+
+/* Enhanced card hover effects */
 .card-hover {
-  @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
+  @apply transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 hover:shadow-emerald-200/30;
+}
+
+.card-hover-warm {
+  @apply transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 hover:shadow-teal-200/30;
+}
+
+/* Wellness-specific utility classes */
+.wellness-bg {
+  background: linear-gradient(135deg, #f0fdfa 0%, #ecfdf5 50%, #f0fdf4 100%);
+}
+
+.wellness-bg-warm {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f0fdf4 100%);
+}
+
+.wellness-bg-cool {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0f4ff 100%);
+}
+
+/* Soft shadows for wellness feel */
+.shadow-wellness {
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.1), 0 2px 8px rgba(16, 185, 129, 0.05);
+}
+
+.shadow-wellness-lg {
+  box-shadow: 0 8px 40px rgba(16, 185, 129, 0.15), 0 4px 16px rgba(16, 185, 129, 0.1);
+}
+
+.shadow-wellness-warm {
+  box-shadow: 0 4px 20px rgba(20, 184, 166, 0.1), 0 2px 8px rgba(20, 184, 166, 0.05);
+}
+
+/* Rounded corners for soft feel */
+.rounded-wellness {
+  border-radius: 1.5rem;
+}
+
+.rounded-wellness-lg {
+  border-radius: 2rem;
+}
+
+/* Text styles for wellness */
+.text-wellness {
+  color: #0f172a;
+  font-weight: 300;
+}
+
+.text-wellness-muted {
+  color: #64748b;
+  font-weight: 300;
+}
+
+/* Custom wellness gradients */
+.bg-gradient-wellness {
+  background: linear-gradient(135deg, #10b981, #059669, #047857);
+}
+
+.bg-gradient-wellness-warm {
+  background: linear-gradient(135deg, #14b8a6, #0d9488, #0f766e);
+}
+
+.bg-gradient-wellness-soft {
+  background: linear-gradient(135deg, #6ee7b7, #34d399, #10b981);
 }

@@ -4,7 +4,7 @@ import { Button } from '../ui/Button'
 const Header = ({ onGetStarted }) => {
   return (
     <motion.header 
-      className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100"
+      className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-emerald-100/50"
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.6 }}
@@ -17,10 +17,10 @@ const Header = ({ onGetStarted }) => {
             whileHover={{ scale: 1.05 }}
             transition={{ type: "spring", stiffness: 300 }}
           >
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center mr-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center mr-3 shadow-sm">
               <span className="text-white font-bold text-sm">MF</span>
             </div>
-            <span className="text-xl font-bold text-gray-900">MindFlow</span>
+            <span className="text-xl font-light text-slate-800">MindFlow</span>
           </motion.div>
 
           {/* Navigation */}
@@ -29,7 +29,7 @@ const Header = ({ onGetStarted }) => {
               <motion.a
                 key={item}
                 href={`#${item.toLowerCase()}`}
-                className="text-gray-600 hover:text-gray-900 transition-colors duration-200"
+                className="text-slate-600 hover:text-emerald-600 transition-colors duration-200 font-light"
                 whileHover={{ y: -2 }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
@@ -45,9 +45,9 @@ const Header = ({ onGetStarted }) => {
           >
             <Button 
               onClick={onGetStarted}
-              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 py-2 rounded-full font-medium"
+              className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-6 py-2 rounded-full font-medium shadow-lg hover:shadow-xl transition-all duration-300"
             >
-              Get Started
+              Begin Journey
             </Button>
           </motion.div>
         </div>

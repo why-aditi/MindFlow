@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
-import { Send, Mic, MicOff, Bot, User } from 'lucide-react';
+import { Send, Mic, MicOff, Bot, User, Heart, Sparkles, Leaf, Cloud, Waves, ArrowLeft } from 'lucide-react';
 
 const AICompanion = () => {
   const { user } = useAuth();
@@ -142,28 +142,74 @@ const AICompanion = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen wellness-bg relative overflow-hidden">
+      {/* Floating wellness elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          animate={{ 
+            y: [0, -20, 0],
+            rotate: [0, 5, 0]
+          }}
+          transition={{ 
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute top-20 left-20 text-sky-200/30"
+        >
+          <Cloud className="w-16 h-16" />
+        </motion.div>
+        <motion.div
+          animate={{ 
+            y: [0, 15, 0],
+            x: [0, 10, 0]
+          }}
+          transition={{ 
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute top-40 right-32 text-emerald-200/25"
+        >
+          <Leaf className="w-12 h-12" />
+        </motion.div>
+        <motion.div
+          animate={{ 
+            y: [0, -10, 0],
+            rotate: [0, -3, 0]
+          }}
+          transition={{ 
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute bottom-32 left-32 text-violet-200/20"
+        >
+          <Sparkles className="w-14 h-14" />
+        </motion.div>
+      </div>
+
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-white/80 backdrop-blur-md shadow-wellness border-b border-emerald-100/50 relative z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-20">
             <div className="flex items-center">
               <Button
                 variant="ghost"
                 onClick={() => window.history.back()}
-                className="mr-4"
+                className="mr-6 hover:bg-emerald-50 text-slate-600 hover:text-emerald-600"
               >
-                ← Back
+                <ArrowLeft className="w-5 h-5" />
               </Button>
               <div className="flex items-center">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center mr-3">
-                  <Bot className="w-5 h-5 text-white" />
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
+                  <Heart className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-lg font-semibold text-gray-900">
-                    AI Companion
+                  <h1 className="text-2xl font-light text-slate-700">
+                    AI Wellness Coach
                   </h1>
-                  <p className="text-sm text-gray-500">Always here to listen</p>
+                  <p className="text-sm text-slate-500">Your mindful companion</p>
                 </div>
               </div>
             </div>
@@ -173,7 +219,7 @@ const AICompanion = () => {
 
       {/* Chat Container */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-white rounded-2xl shadow-lg h-[calc(100vh-200px)] flex flex-col">
+        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-wellness h-[calc(100vh-200px)] flex flex-col border border-emerald-100">
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
             {isInitializing ? (
@@ -206,8 +252,8 @@ const AICompanion = () => {
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center ${
                         message.sender === 'user'
-                          ? 'bg-gradient-to-br from-blue-500 to-blue-600'
-                          : 'bg-gradient-to-br from-purple-500 to-purple-600'
+                          ? 'bg-gradient-to-br from-emerald-500 to-teal-500'
+                          : 'bg-gradient-to-br from-violet-500 to-purple-500'
                       }`}
                     >
                       {message.sender === 'user' ? (
@@ -219,16 +265,16 @@ const AICompanion = () => {
                     <div
                       className={`px-4 py-3 rounded-2xl ${
                         message.sender === 'user'
-                          ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-900'
+                          ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white'
+                          : 'bg-gradient-to-br from-emerald-50 to-teal-50 text-slate-900 border border-emerald-100'
                       }`}
                     >
                       <p className="text-sm">{message.text}</p>
                       <p
                         className={`text-xs mt-1 ${
                           message.sender === 'user'
-                            ? 'text-blue-100'
-                            : 'text-gray-500'
+                            ? 'text-emerald-100'
+                            : 'text-slate-500'
                         }`}
                       >
                         {message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], {
@@ -251,10 +297,10 @@ const AICompanion = () => {
                 className="flex justify-start"
               >
                 <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-500 rounded-full flex items-center justify-center">
                     <Bot className="w-4 h-4 text-white" />
                   </div>
-                  <div className="bg-gray-100 px-4 py-3 rounded-2xl">
+                  <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 px-4 py-3 rounded-2xl">
                     <div className="flex space-x-1">
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                       <div
@@ -275,7 +321,7 @@ const AICompanion = () => {
           </div>
 
           {/* Input Area */}
-          <div className="border-t border-gray-200 p-6">
+          <div className="border-t border-emerald-100 p-6">
             <div className="flex items-end space-x-3">
               <div className="flex-1">
                 <textarea
@@ -284,7 +330,7 @@ const AICompanion = () => {
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type your message..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-emerald-200 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-white/50"
                   rows={1}
                   style={{ minHeight: '48px', maxHeight: '120px' }}
                 />
@@ -310,7 +356,7 @@ const AICompanion = () => {
               <Button
                 onClick={handleSendMessage}
                 disabled={!inputText.trim() || isLoading}
-                className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full"
+                className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-full"
               >
                 <Send className="w-5 h-5" />
               </Button>

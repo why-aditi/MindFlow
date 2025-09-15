@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
 import { motion } from 'framer-motion'
-import { User, Settings, Target, Award, Calendar, BarChart3, Globe, Bell } from 'lucide-react'
+import { User, Settings, Target, Award, Calendar, BarChart3, Globe, Bell, Cloud, Leaf, Sparkles } from 'lucide-react'
 
 const Profile = () => {
   const { user } = useAuth()
@@ -331,26 +331,72 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen wellness-bg relative overflow-hidden">
+      {/* Floating wellness elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          animate={{ 
+            y: [0, -20, 0],
+            rotate: [0, 5, 0]
+          }}
+          transition={{ 
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute top-20 left-20 text-sky-200/30"
+        >
+          <Cloud className="w-16 h-16" />
+        </motion.div>
+        <motion.div
+          animate={{ 
+            y: [0, 15, 0],
+            x: [0, 10, 0]
+          }}
+          transition={{ 
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute top-40 right-32 text-emerald-200/25"
+        >
+          <Leaf className="w-12 h-12" />
+        </motion.div>
+        <motion.div
+          animate={{ 
+            y: [0, -10, 0],
+            rotate: [0, -3, 0]
+          }}
+          transition={{ 
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute bottom-32 left-32 text-violet-200/20"
+        >
+          <Sparkles className="w-14 h-14" />
+        </motion.div>
+      </div>
+
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-white/80 backdrop-blur-md shadow-wellness border-b border-emerald-100/50 relative z-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-20">
             <div className="flex items-center">
               <Button 
                 variant="ghost" 
                 onClick={() => window.history.back()}
-                className="mr-4"
+                className="mr-6 hover:bg-emerald-50 text-slate-600 hover:text-emerald-600"
               >
                 ← Back
               </Button>
               <div className="flex items-center">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center mr-3">
-                  <User className="w-5 h-5 text-white" />
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
+                  <User className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-lg font-semibold text-gray-900">Profile</h1>
-                  <p className="text-sm text-gray-500">Manage your wellness journey</p>
+                  <h1 className="text-2xl font-light text-slate-700">Wellness Profile</h1>
+                  <p className="text-sm text-slate-500">Manage your wellness journey</p>
                 </div>
               </div>
             </div>
@@ -359,35 +405,35 @@ const Profile = () => {
       </header>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
         {/* Profile Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl shadow-lg p-8 mb-8"
+          className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-wellness p-8 mb-8 border border-emerald-100"
         >
           <div className="flex items-center space-x-6">
-            <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+            <div className="w-24 h-24 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-wellness">
               {user?.displayName?.charAt(0) || 'U'}
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              <h2 className="text-3xl font-light text-slate-700 mb-2">
                 {user?.displayName || 'User'}
               </h2>
-              <p className="text-gray-600 mb-4">
+              <p className="text-slate-600 mb-4">
                 {user?.email || 'user@example.com'}
               </p>
               <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2 text-green-600">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <div className="flex items-center space-x-2 text-emerald-600">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
                   <span className="text-sm font-medium">Active</span>
                 </div>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-slate-500">
                   Member since {new Date().getFullYear()}
                 </span>
               </div>
             </div>
-            <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white">
+            <Button className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-wellness hover:shadow-wellness-lg">
               Edit Profile
             </Button>
           </div>
@@ -403,28 +449,28 @@ const Profile = () => {
           {isLoading ? (
             <div className="col-span-full flex items-center justify-center py-12">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading stats...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+                <p className="text-slate-600">Loading stats...</p>
               </div>
             </div>
           ) : (
             stats.map((stat, index) => (
-            <div key={index} className="bg-white rounded-2xl shadow-lg p-6">
+            <div key={index} className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-wellness p-6 border border-emerald-100">
               <div className="flex items-center justify-between mb-4">
-                <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center text-2xl`}>
+                <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center text-2xl shadow-wellness`}>
                   {stat.icon}
                 </div>
               </div>
-              <div className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</div>
-              <div className="text-sm text-gray-600">{stat.label}</div>
+              <div className="text-2xl font-bold text-slate-700 mb-1">{stat.value}</div>
+              <div className="text-sm text-slate-600">{stat.label}</div>
             </div>
           ))
           )}
         </motion.div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="border-b border-gray-200">
+        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-wellness overflow-hidden border border-emerald-100">
+          <div className="border-b border-emerald-100">
             <nav className="flex">
               {tabs.map((tab) => (
                 <button
@@ -432,8 +478,8 @@ const Profile = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center space-x-2 px-6 py-4 text-sm font-medium transition-colors ${
                     activeTab === tab.id
-                      ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50'
+                      : 'text-slate-600 hover:text-emerald-600 hover:bg-emerald-50/50'
                   }`}
                 >
                   <tab.icon className="w-4 h-4" />
@@ -452,23 +498,23 @@ const Profile = () => {
                 className="space-y-8"
               >
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-6">Recent Activity</h3>
+                  <h3 className="text-xl font-light text-slate-700 mb-6">Recent Activity</h3>
                   <div className="space-y-4">
                     {recentActivity.length > 0 ? (
                       recentActivity.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                        <div key={item.id} className="flex items-center justify-between p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-100">
                           <div>
-                            <p className="font-medium text-gray-900">{item.activity}</p>
-                            <p className="text-sm text-gray-500">{item.time}</p>
+                            <p className="font-medium text-slate-700">{item.activity}</p>
+                            <p className="text-sm text-slate-500">{item.time}</p>
                             {item.description && (
-                              <p className="text-xs text-gray-400 mt-1">{item.description}</p>
+                              <p className="text-xs text-slate-400 mt-1">{item.description}</p>
                             )}
                           </div>
-                          <div className="text-sm font-semibold text-green-600">{item.points}</div>
+                          <div className="text-sm font-semibold text-emerald-600">{item.points}</div>
                         </div>
                       ))
                     ) : (
-                      <div className="text-center py-8 text-gray-500">
+                      <div className="text-center py-8 text-slate-500">
                         <p>No recent activity found</p>
                         <p className="text-sm mt-2">Start journaling, meditating, or chatting with AI to see your activity here!</p>
                       </div>
@@ -477,15 +523,15 @@ const Profile = () => {
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-6">Weekly Progress</h3>
-                  <div className="bg-gray-50 rounded-xl p-6">
+                  <h3 className="text-xl font-light text-slate-700 mb-6">Weekly Progress</h3>
+                  <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-100">
                     <div className="grid md:grid-cols-2 gap-6">
                       <div>
                         <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-semibold text-gray-900">Mood Trend</h4>
+                          <h4 className="font-semibold text-slate-700">Mood Trend</h4>
                           <button
                             onClick={() => fetchProfileData()}
-                            className="text-xs text-purple-600 hover:text-purple-800 underline"
+                            className="text-xs text-emerald-600 hover:text-emerald-800 underline"
                             disabled={isLoading}
                           >
                             Refresh
@@ -493,7 +539,7 @@ const Profile = () => {
                         </div>
                         {isLoading ? (
                           <div className="flex items-center justify-center h-20">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-600"></div>
                           </div>
                         ) : (
                           <>
@@ -502,7 +548,7 @@ const Profile = () => {
                                 moodTrend.map((height, index) => (
                                   <div
                                     key={index}
-                                    className="bg-gradient-to-t from-purple-400 to-purple-500 rounded-t transition-all duration-300 flex-shrink-0"
+                                    className="bg-gradient-to-t from-emerald-400 to-emerald-500 rounded-t transition-all duration-300 flex-shrink-0"
                                     style={{ height: `${Math.max(height * 8, 8)}px`, width: '20px' }}
                                     title={`Day ${index + 1}: Mood ${height}/10`}
                                   />
@@ -541,22 +587,22 @@ const Profile = () => {
                         )}
                       </div>
                       <div>
-                        <h4 className="font-semibold text-gray-900 mb-3">Activity Distribution</h4>
+                        <h4 className="font-semibold text-slate-700 mb-3">Activity Distribution</h4>
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Meditation</span>
+                            <span className="text-sm text-slate-600">Meditation</span>
                             <span className="text-sm font-medium">{activityDistribution.meditation || 0}%</span>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${activityDistribution.meditation || 0}%` }}></div>
+                          <div className="w-full bg-slate-200 rounded-full h-2">
+                            <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${activityDistribution.meditation || 0}%` }}></div>
                           </div>
                           
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Journaling</span>
+                            <span className="text-sm text-slate-600">Journaling</span>
                             <span className="text-sm font-medium">{activityDistribution.journaling || 0}%</span>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${activityDistribution.journaling || 0}%` }}></div>
+                          <div className="w-full bg-slate-200 rounded-full h-2">
+                            <div className="bg-teal-500 h-2 rounded-full" style={{ width: `${activityDistribution.journaling || 0}%` }}></div>
                           </div>
                           
                         </div>
@@ -575,10 +621,10 @@ const Profile = () => {
                 className="space-y-6"
               >
                 <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-bold text-gray-900">Wellness Goals</h3>
+                  <h3 className="text-xl font-light text-slate-700">Wellness Goals</h3>
                   <Button 
                     onClick={() => setShowAddGoalModal(true)}
-                    className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                    className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-wellness hover:shadow-wellness-lg"
                   >
                     Add Goal
                   </Button>
@@ -594,23 +640,23 @@ const Profile = () => {
                     </div>
                   ) : (
                     wellnessGoals.map((goal) => (
-                    <div key={goal.id} className="bg-gray-50 rounded-xl p-6">
+                    <div key={goal.id} className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-100">
                       <div className="flex items-center space-x-3 mb-4">
                         <span className="text-2xl">{goal.icon}</span>
                         <div>
-                          <h4 className="font-semibold text-gray-900">{goal.title}</h4>
-                          <p className="text-sm text-gray-600">{goal.target} {goal.unit} per week</p>
+                          <h4 className="font-semibold text-slate-700">{goal.title}</h4>
+                          <p className="text-sm text-slate-600">{goal.target} {goal.unit} per week</p>
                         </div>
                       </div>
                       
                       <div className="mb-4">
                         <div className="flex justify-between text-sm mb-2">
-                          <span className="text-gray-600">Progress</span>
+                          <span className="text-slate-600">Progress</span>
                           <span className="font-medium">{goal.current}/{goal.target}</span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div className="w-full bg-slate-200 rounded-full h-3">
                           <div
-                            className="bg-gradient-to-r from-purple-500 to-blue-500 h-3 rounded-full transition-all duration-300"
+                            className="bg-gradient-to-r from-emerald-500 to-teal-500 h-3 rounded-full transition-all duration-300"
                             style={{ width: `${(goal.current / goal.target) * 100}%` }}
                           ></div>
                         </div>
@@ -622,6 +668,7 @@ const Profile = () => {
                           size="sm"
                           onClick={() => updateGoal(goal.id, goal.current + 1)}
                           disabled={goal.current >= goal.target}
+                          className="border-emerald-200 text-emerald-600 hover:bg-emerald-50"
                         >
                           +1
                         </Button>
@@ -629,6 +676,7 @@ const Profile = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => updateGoal(goal.id, Math.max(0, goal.current - 1))}
+                          className="border-emerald-200 text-emerald-600 hover:bg-emerald-50"
                         >
                           -1
                         </Button>
@@ -647,7 +695,7 @@ const Profile = () => {
                 animate={{ opacity: 1, x: 0 }}
                 className="space-y-6"
               >
-                <h3 className="text-xl font-bold text-gray-900">Achievements</h3>
+                <h3 className="text-xl font-light text-slate-700">Achievements</h3>
                 
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {isLoading ? (
@@ -693,23 +741,23 @@ const Profile = () => {
                 animate={{ opacity: 1, x: 0 }}
                 className="space-y-6"
               >
-                <h3 className="text-xl font-bold text-gray-900">Settings</h3>
+                <h3 className="text-xl font-light text-slate-700">Settings</h3>
                 
                 <div className="space-y-6">
-                  <div className="bg-gray-50 rounded-xl p-6">
-                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                  <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-100">
+                    <h4 className="font-semibold text-slate-700 mb-4 flex items-center">
                       <Globe className="w-5 h-5 mr-2" />
                       Language & Region
                     </h4>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-slate-600 mb-2">
                           Language
                         </label>
                         <select
                           value={preferences.language}
                           onChange={(e) => setPreferences(prev => ({ ...prev, language: e.target.value }))}
-                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          className="w-full p-3 border border-emerald-200 rounded-2xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-white/50"
                         >
                           <option value="en">English</option>
                           <option value="es">Spanish</option>
@@ -720,16 +768,16 @@ const Profile = () => {
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 rounded-xl p-6">
-                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                  <div className="bg-gradient-to-br from-sky-50 to-blue-50 rounded-2xl p-6 border border-sky-100">
+                    <h4 className="font-semibold text-slate-700 mb-4 flex items-center">
                       <Bell className="w-5 h-5 mr-2" />
                       Notifications
                     </h4>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="font-medium text-gray-900">Push Notifications</div>
-                          <div className="text-sm text-gray-600">Receive reminders and updates</div>
+                          <div className="font-medium text-slate-700">Push Notifications</div>
+                          <div className="text-sm text-slate-600">Receive reminders and updates</div>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input
@@ -744,17 +792,17 @@ const Profile = () => {
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 rounded-xl p-6">
-                    <h4 className="font-semibold text-gray-900 mb-4">Privacy</h4>
+                  <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-2xl p-6 border border-violet-100">
+                    <h4 className="font-semibold text-slate-700 mb-4">Privacy</h4>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-slate-600 mb-2">
                           Profile Visibility
                         </label>
                         <select
                           value={preferences.privacy}
                           onChange={(e) => setPreferences(prev => ({ ...prev, privacy: e.target.value }))}
-                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          className="w-full p-3 border border-violet-200 rounded-2xl focus:ring-2 focus:ring-violet-400 focus:border-transparent bg-white/50"
                         >
                           <option value="public">Public</option>
                           <option value="friends">Friends Only</option>
@@ -766,8 +814,8 @@ const Profile = () => {
                 </div>
 
                 <div className="flex justify-end space-x-3">
-                  <Button variant="outline">Reset to Defaults</Button>
-                  <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white">
+                  <Button variant="outline" className="border-emerald-200 text-emerald-600 hover:bg-emerald-50">Reset to Defaults</Button>
+                  <Button className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-wellness hover:shadow-wellness-lg">
                     Save Changes
                   </Button>
                 </div>
@@ -785,18 +833,18 @@ const Profile = () => {
             animate={{ opacity: 1, scale: 1 }}
             className="bg-white rounded-2xl p-6 w-full max-w-md mx-4"
           >
-            <h3 className="text-xl font-bold text-gray-900 mb-6">Add New Goal</h3>
+            <h3 className="text-xl font-light text-slate-700 mb-6">Add New Goal</h3>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-slate-600 mb-2">
                   Goal Title *
                 </label>
                 <input
                   type="text"
                   value={newGoal.title}
                   onChange={(e) => setNewGoal(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full p-3 border border-emerald-200 rounded-2xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-white/50"
                   placeholder="e.g., Daily Meditation"
                 />
               </div>
@@ -866,12 +914,13 @@ const Profile = () => {
               <Button
                 variant="outline"
                 onClick={() => setShowAddGoalModal(false)}
+                className="border-emerald-200 text-emerald-600 hover:bg-emerald-50"
               >
                 Cancel
               </Button>
               <Button
                 onClick={addGoal}
-                className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-wellness hover:shadow-wellness-lg"
               >
                 Add Goal
               </Button>

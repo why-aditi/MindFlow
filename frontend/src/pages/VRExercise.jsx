@@ -21,7 +21,11 @@ import {
   Brain,
   Moon,
   Sun,
-  Wind
+  Wind,
+  Sparkles,
+  Leaf,
+  Waves,
+  Cloud
 } from 'lucide-react'
 
 const VRExercise = () => {
@@ -392,47 +396,164 @@ const VRExercise = () => {
 
   if (isLoading && exercises.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading exercises...</p>
+      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 flex items-center justify-center relative overflow-hidden">
+        {/* Floating nature elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <motion.div
+            animate={{ 
+              y: [0, -20, 0],
+              rotate: [0, 5, 0]
+            }}
+            transition={{ 
+              duration: 6,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="absolute top-20 left-20 text-sky-200"
+          >
+            <Cloud className="w-16 h-16" />
+          </motion.div>
+          <motion.div
+            animate={{ 
+              y: [0, 15, 0],
+              x: [0, 10, 0]
+            }}
+            transition={{ 
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="absolute top-32 right-32 text-emerald-200"
+          >
+            <Leaf className="w-12 h-12" />
+          </motion.div>
+          <motion.div
+            animate={{ 
+              y: [0, -10, 0],
+              rotate: [0, -3, 0]
+            }}
+            transition={{ 
+              duration: 7,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="absolute bottom-32 left-32 text-violet-200"
+          >
+            <Sparkles className="w-14 h-14" />
+          </motion.div>
+        </div>
+        
+        <div className="text-center relative z-10">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="w-16 h-16 bg-gradient-to-br from-sky-300 to-indigo-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg"
+          >
+            <Heart className="w-8 h-8 text-white" />
+          </motion.div>
+          <h2 className="text-2xl font-light text-slate-600 mb-2">Preparing Your Wellness Journey</h2>
+          <p className="text-slate-500">Loading exercises...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen wellness-bg relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          animate={{ 
+            y: [0, -30, 0],
+            rotate: [0, 10, 0]
+          }}
+          transition={{ 
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute top-10 left-10 text-sky-200/30"
+        >
+          <Cloud className="w-20 h-20" />
+        </motion.div>
+        <motion.div
+          animate={{ 
+            y: [0, 20, 0],
+            x: [0, 15, 0]
+          }}
+          transition={{ 
+            duration: 15,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute top-40 right-20 text-emerald-200/25"
+        >
+          <Leaf className="w-16 h-16" />
+        </motion.div>
+        <motion.div
+          animate={{ 
+            y: [0, -15, 0],
+            rotate: [0, -8, 0]
+          }}
+          transition={{ 
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute bottom-20 left-40 text-violet-200/20"
+        >
+          <Waves className="w-18 h-18" />
+        </motion.div>
+        <motion.div
+          animate={{ 
+            y: [0, 25, 0],
+            x: [0, -20, 0]
+          }}
+          transition={{ 
+            duration: 18,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute top-60 right-1/3 text-teal-200/20"
+        >
+          <Sparkles className="w-12 h-12" />
+        </motion.div>
+      </div>
+
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-white/80 backdrop-blur-md shadow-wellness border-b border-emerald-100/50 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-20">
             <div className="flex items-center">
               <Button 
                 variant="ghost" 
                 onClick={() => window.history.back()}
-                className="mr-4"
+                className="mr-6 hover:bg-emerald-50 text-slate-600 hover:text-emerald-600"
               >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div className="flex items-center">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center mr-3">
-                  <Camera className="w-4 h-4 text-white" />
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
+                  <Heart className="w-6 h-6 text-white" />
                 </div>
-                <span className="text-xl font-bold text-gray-900">VR Exercise</span>
+                <div>
+                  <h1 className="text-2xl font-light text-slate-700">Mindful Movement</h1>
+                  <p className="text-sm text-slate-500">Wellness & Exercise</p>
+                </div>
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <div className={`flex items-center space-x-2 ${vrAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                <div className={`w-2 h-2 rounded-full ${vrAvailable ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <div className="flex items-center space-x-6">
+              <div className={`flex items-center space-x-3 px-4 py-2 rounded-full ${vrAvailable ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                <div className={`w-3 h-3 rounded-full ${vrAvailable ? 'bg-emerald-400' : 'bg-rose-400'}`}></div>
                 <span className="text-sm font-medium">
-                  {vrAvailable ? 'VR Ready' : 'VR Not Available'}
+                  {vrAvailable ? 'Ready for Wellness' : 'Setup Required'}
                 </span>
               </div>
               <Button 
                 variant="outline" 
                 onClick={() => setShowSettings(!showSettings)}
+                className="hover:bg-emerald-50 border-emerald-200 text-slate-600 hover:text-emerald-600"
               >
                 <Settings className="w-4 h-4" />
               </Button>
@@ -442,7 +563,7 @@ const VRExercise = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
         {/* Status Messages */}
         <AnimatePresence>
           {error && (
@@ -450,11 +571,13 @@ const VRExercise = () => {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4"
+              className="mb-8 bg-rose-50/80 backdrop-blur-sm border border-rose-200 rounded-2xl p-6 shadow-lg"
             >
               <div className="flex items-center">
-                <AlertCircle className="w-5 h-5 text-red-600 mr-2" />
-                <p className="text-red-800">{error}</p>
+                <div className="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center mr-4">
+                  <AlertCircle className="w-5 h-5 text-rose-600" />
+                </div>
+                <p className="text-rose-800 font-medium">{error}</p>
               </div>
             </motion.div>
           )}
@@ -464,11 +587,13 @@ const VRExercise = () => {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4"
+              className="mb-8 bg-emerald-50/80 backdrop-blur-sm border border-emerald-200 rounded-2xl p-6 shadow-lg"
             >
               <div className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
-                <p className="text-green-800">{success}</p>
+                <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center mr-4">
+                  <CheckCircle className="w-5 h-5 text-emerald-600" />
+                </div>
+                <p className="text-emerald-800 font-medium">{success}</p>
               </div>
             </motion.div>
           )}
@@ -481,22 +606,28 @@ const VRExercise = () => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="mb-8 bg-white rounded-2xl shadow-lg p-6"
+              className="mb-12 bg-white/90 backdrop-blur-sm rounded-3xl shadow-wellness-lg p-8 border border-emerald-100"
             >
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Exercise Settings</h3>
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="flex items-center mb-6">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mr-4">
+                  <Settings className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-xl font-light text-slate-700">Wellness Settings</h3>
+              </div>
+              <div className="grid md:grid-cols-2 gap-8">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Custom Duration (seconds)
+                  <label className="block text-sm font-medium text-slate-600 mb-3">
+                    Session Duration (seconds)
                   </label>
                   <input
                     type="number"
                     value={customDuration}
                     onChange={(e) => setCustomDuration(parseInt(e.target.value) || 300)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full p-4 border border-emerald-200 rounded-2xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-white/50 text-slate-700 placeholder-slate-400"
                     min="60"
                     max="3600"
                     disabled={isTracking}
+                    placeholder="300"
                   />
                 </div>
                 <div className="flex items-end">
@@ -504,8 +635,10 @@ const VRExercise = () => {
                     onClick={checkVrDependencies}
                     variant="outline"
                     disabled={isLoading}
+                    className="bg-white/50 border-emerald-200 text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 px-6 py-3 rounded-2xl"
                   >
-                    Check VR Status
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Check Wellness Status
                   </Button>
                 </div>
               </div>
@@ -515,32 +648,43 @@ const VRExercise = () => {
 
         {/* Exercise Selection */}
         {!isTracking && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Choose Your Exercise</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="mb-12">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-light text-slate-700 mb-4">Choose Your Wellness Practice</h2>
+              <p className="text-lg text-slate-500 max-w-2xl mx-auto">
+                Select a mindful movement or meditation practice to begin your wellness journey
+              </p>
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {exercises.map((exercise) => (
                 <motion.div
                   key={exercise._id || exercise.name}
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={{ scale: 1.03, y: -5 }}
                   whileTap={{ scale: 0.98 }}
-                  className={`bg-white rounded-2xl p-6 shadow-lg cursor-pointer transition-all ${
+                  className={`bg-white/90 backdrop-blur-sm rounded-3xl p-8 shadow-wellness cursor-pointer transition-all duration-300 border ${
                     selectedExercise && (typeof selectedExercise === 'object' ? selectedExercise._id : selectedExercise) === (exercise._id || exercise.name)
-                      ? 'ring-2 ring-purple-500 bg-purple-50' 
-                      : 'hover:shadow-xl'
+                      ? 'ring-2 ring-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200 shadow-wellness-lg' 
+                      : 'hover:shadow-wellness-lg border-emerald-100 hover:border-emerald-200'
                   }`}
                   onClick={() => setSelectedExercise(exercise)}
                 >
-                  <div className="text-center space-y-4">
-                    <div className="text-4xl">{getExerciseIcon(exercise)}</div>
-                    <h3 className="text-lg font-semibold text-gray-900 capitalize">
+                  <div className="text-center space-y-6">
+                    <div className="text-6xl mb-2">{getExerciseIcon(exercise)}</div>
+                    <h3 className="text-xl font-light text-slate-700 capitalize">
                       {exercise.displayName || exercise.name}
                     </h3>
-                    <p className="text-sm text-gray-600">
-                      {exercise.type === 'hold' || exercise.type === 'meditation' || exercise.type === 'breathing'
-                        ? 'Hold-based exercise'
-                        : 'Rep-based exercise'
-                      }
-                    </p>
+                    <div className="flex items-center justify-center">
+                      <div className={`px-4 py-2 rounded-full text-sm font-medium ${
+                        exercise.type === 'hold' || exercise.type === 'meditation' || exercise.type === 'breathing'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-teal-100 text-teal-700'
+                      }`}>
+                        {exercise.type === 'hold' || exercise.type === 'meditation' || exercise.type === 'breathing'
+                          ? 'Mindful Practice'
+                          : 'Active Movement'
+                        }
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
               ))}
@@ -550,96 +694,113 @@ const VRExercise = () => {
 
         {/* Exercise Control Panel */}
         {selectedExercise && (
-          <div className="bg-white rounded-2xl shadow-lg p-8">
-            <div className="text-center mb-8">
-              <div className="text-6xl mb-4">{getExerciseIcon(selectedExercise)}</div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2 capitalize">
+          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-wellness-lg p-12 border border-emerald-100">
+            <div className="text-center mb-12">
+              <div className="text-8xl mb-6">{getExerciseIcon(selectedExercise)}</div>
+              <h2 className="text-4xl font-light text-slate-700 mb-4 capitalize">
                 {typeof selectedExercise === 'string' 
                   ? selectedExercise.replace('_', ' ') 
                   : (selectedExercise.displayName || selectedExercise.name)
                 }
               </h2>
-              <p className="text-gray-600">
-                {isTracking ? 'Exercise in progress...' : 'Ready to start'}
-              </p>
+              <div className="flex items-center justify-center">
+                <div className={`px-6 py-3 rounded-full text-lg font-medium ${
+                  isTracking 
+                    ? 'bg-emerald-100 text-emerald-700' 
+                    : 'bg-sky-100 text-sky-700'
+                }`}>
+                  {isTracking ? 'Wellness in Progress...' : 'Ready to Begin'}
+                </div>
+              </div>
             </div>
 
             {/* Session Stats */}
             {isTracking && (
-              <div className="grid md:grid-cols-6 gap-4 mb-8">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-purple-600 mb-2">
+              <div className="grid md:grid-cols-6 gap-6 mb-12">
+                <div className="text-center bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-100">
+                  <div className="text-3xl font-light text-emerald-600 mb-2">
                     {formatTime(sessionData.elapsedTime)}
                   </div>
-                  <div className="text-sm text-gray-600">Elapsed</div>
+                  <div className="text-sm text-slate-600 font-medium">Elapsed</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600 mb-2">
+                <div className="text-center bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl p-6 border border-teal-100">
+                  <div className="text-3xl font-light text-teal-600 mb-2">
                     {formatTime(sessionData.remainingTime)}
                   </div>
-                  <div className="text-sm text-gray-600">Remaining</div>
+                  <div className="text-sm text-slate-600 font-medium">Remaining</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600 mb-2">
+                <div className="text-center bg-gradient-to-br from-sky-50 to-blue-50 rounded-2xl p-6 border border-sky-100">
+                  <div className="text-3xl font-light text-sky-600 mb-2">
                     {sessionData.repCount}
                   </div>
-                  <div className="text-sm text-gray-600">Reps</div>
+                  <div className="text-sm text-slate-600 font-medium">Reps</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-orange-600 mb-2">
+                <div className="text-center bg-gradient-to-br from-violet-50 to-purple-50 rounded-2xl p-6 border border-violet-100">
+                  <div className="text-3xl font-light text-violet-600 mb-2">
                     {sessionData.holdTime}s
                   </div>
-                  <div className="text-sm text-gray-600">Hold Time</div>
+                  <div className="text-sm text-slate-600 font-medium">Hold Time</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-indigo-600 mb-2">
+                <div className="text-center bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl p-6 border border-rose-100">
+                  <div className="text-3xl font-light text-rose-600 mb-2">
                     {sessionData.accuracy || 0}%
                   </div>
-                  <div className="text-sm text-gray-600">Accuracy</div>
+                  <div className="text-sm text-slate-600 font-medium">Accuracy</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-pink-600 mb-2">
+                <div className="text-center bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6 border border-amber-100">
+                  <div className="text-3xl font-light text-amber-600 mb-2">
                     {sessionData.qualityScore || 0}
                   </div>
-                  <div className="text-sm text-gray-600">Quality</div>
+                  <div className="text-sm text-slate-600 font-medium">Quality</div>
                 </div>
               </div>
             )}
 
             {/* Camera Feed */}
             {isTracking && (
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">Live Camera Feed</h3>
-                <div className="text-center mb-2 text-sm text-gray-600">
-                  Stream Status: {cameraStream ? 'Active' : 'Inactive'} | 
-                  Video Ref: {videoRef.current ? 'Connected' : 'Not Connected'} |
-                  Pose Tracking: {poseTrackingActive ? 'Active' : 'Inactive'}
+              <div className="mb-12">
+                <div className="text-center mb-8">
+                  <h3 className="text-2xl font-light text-slate-700 mb-4">Live Wellness Tracking</h3>
+                  <div className="flex items-center justify-center space-x-6 text-sm text-slate-500">
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-2 h-2 rounded-full ${cameraStream ? 'bg-emerald-400' : 'bg-rose-400'}`}></div>
+                      <span>Camera: {cameraStream ? 'Active' : 'Inactive'}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-2 h-2 rounded-full ${poseTrackingActive ? 'bg-emerald-400' : 'bg-rose-400'}`}></div>
+                      <span>Tracking: {poseTrackingActive ? 'Active' : 'Inactive'}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="relative bg-gray-100 rounded-lg overflow-hidden mx-auto max-w-md">
+                <div className="relative bg-gradient-to-br from-emerald-50 to-teal-50 rounded-3xl overflow-hidden mx-auto max-w-lg border border-emerald-200 shadow-wellness">
                   {cameraStream ? (
                     <video
                       ref={setVideoRef}
                       autoPlay
                       playsInline
                       muted
-                      className="w-full h-64 object-cover"
+                      className="w-full h-80 object-cover"
                       onLoadedMetadata={() => console.log('Video metadata loaded')}
                       onCanPlay={() => console.log('Video can play')}
                       onError={(e) => console.error('Video error:', e)}
                     />
                   ) : (
-                    <div className="w-full h-64 flex items-center justify-center bg-gray-200">
+                    <div className="w-full h-80 flex items-center justify-center bg-gradient-to-br from-emerald-100 to-teal-100">
                       <div className="text-center">
-                        <Camera className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                        <p className="text-gray-500">Camera loading...</p>
+                        <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Camera className="w-8 h-8 text-white" />
+                        </div>
+                        <p className="text-slate-600 font-medium">Preparing camera...</p>
                       </div>
                     </div>
                   )}
                   {cameraError && (
-                    <div className="absolute inset-0 bg-red-100 flex items-center justify-center">
-                      <div className="text-center text-red-600">
-                        <AlertCircle className="w-8 h-8 mx-auto mb-2" />
-                        <p className="text-sm">{cameraError}</p>
+                    <div className="absolute inset-0 bg-rose-50/90 backdrop-blur-sm flex items-center justify-center">
+                      <div className="text-center text-rose-600">
+                        <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <AlertCircle className="w-6 h-6" />
+                        </div>
+                        <p className="text-sm font-medium">{cameraError}</p>
                       </div>
                     </div>
                   )}
@@ -649,22 +810,26 @@ const VRExercise = () => {
 
 
             {/* Control Buttons */}
-            <div className="flex justify-center space-x-4">
+            <div className="flex justify-center space-x-6">
               {!isTracking ? (
                 <Button
                   onClick={startExercise}
                   disabled={!vrAvailable || isLoading}
-                  className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-8 py-3 text-lg"
+                  className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-12 py-4 text-xl rounded-2xl shadow-wellness hover:shadow-wellness-lg transition-all duration-300 transform hover:scale-105"
                 >
                   {isLoading ? (
                     <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Starting...
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-6 h-6 border-2 border-white border-t-transparent rounded-full mr-3"
+                      ></motion.div>
+                      Preparing...
                     </div>
                   ) : (
                     <div className="flex items-center">
-                      <Play className="w-5 h-5 mr-2" />
-                      Start Exercise
+                      <Play className="w-6 h-6 mr-3" />
+                      Begin Wellness Journey
                     </div>
                   )}
                 </Button>
@@ -672,17 +837,21 @@ const VRExercise = () => {
                 <Button
                   onClick={stopExercise}
                   disabled={isLoading}
-                  className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white px-8 py-3 text-lg"
+                  className="bg-gradient-to-r from-rose-400 to-pink-500 hover:from-rose-500 hover:to-pink-600 text-white px-12 py-4 text-xl rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                 >
                   {isLoading ? (
                     <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Stopping...
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-6 h-6 border-2 border-white border-t-transparent rounded-full mr-3"
+                      ></motion.div>
+                      Completing...
                     </div>
                   ) : (
                     <div className="flex items-center">
-                      <Square className="w-5 h-5 mr-2" />
-                      Stop Exercise
+                      <Square className="w-6 h-6 mr-3" />
+                      Complete Session
                     </div>
                   )}
                 </Button>
@@ -690,13 +859,42 @@ const VRExercise = () => {
             </div>
 
             {/* Instructions */}
-            <div className="mt-8 p-6 bg-gray-50 rounded-xl">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Instructions</h3>
-              <div className="text-sm text-gray-600 space-y-2">
-                <p>• Make sure you have good lighting and the camera can see you clearly</p>
-                <p>• Position yourself 3-6 feet away from the camera</p>
-                <p>• Follow the on-screen guidance for proper form</p>
-                <p>• Press 'q' in the camera window to quit early if needed</p>
+            <div className="mt-12 p-8 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-3xl border border-emerald-100">
+              <div className="flex items-center mb-6">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mr-4">
+                  <Heart className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-xl font-light text-slate-700">Wellness Guidelines</h3>
+              </div>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center mt-0.5">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                    </div>
+                    <p className="text-slate-600">Ensure good lighting for optimal tracking</p>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center mt-0.5">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                    </div>
+                    <p className="text-slate-600">Position yourself 3-6 feet from camera</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center mt-0.5">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                    </div>
+                    <p className="text-slate-600">Follow mindful movement guidance</p>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center mt-0.5">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                    </div>
+                    <p className="text-slate-600">Listen to your body and rest when needed</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
