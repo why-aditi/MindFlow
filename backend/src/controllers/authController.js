@@ -6,6 +6,7 @@ export const authController = {
   async verifyUser(req, res) {
     try {
       const { uid, email, name, picture } = req.body;
+      const idToken = req.headers.authorization?.split(' ')[1];
 
       // Check if user exists
       let user = await User.findOne({ uid });
@@ -17,6 +18,17 @@ export const authController = {
         user.name = name;
         user.picture = picture;
         await user.save();
+
+        // Set secure HTTP-only cookie for authentication persistence
+        if (idToken) {
+          res.cookie('authToken', idToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            path: '/'
+          });
+        }
 
         res.json({
           success: true,
@@ -43,6 +55,17 @@ export const authController = {
 
         await newUser.save();
 
+        // Set secure HTTP-only cookie for authentication persistence
+        if (idToken) {
+          res.cookie('authToken', idToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            path: '/'
+          });
+        }
+
         res.status(201).json({
           success: true,
           message: "User profile created",
@@ -53,6 +76,29 @@ export const authController = {
       console.error("Verify user error:", error);
       res.status(500).json({
         error: "Failed to verify user",
+        message: error.message,
+      });
+    }
+  },
+
+  // Logout user and clear cookie
+  async logout(req, res) {
+    try {
+      res.clearCookie('authToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/'
+      });
+      
+      res.json({
+        success: true,
+        message: "Logged out successfully"
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+      res.status(500).json({
+        error: "Failed to logout",
         message: error.message,
       });
     }

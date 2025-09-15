@@ -2,16 +2,25 @@ import { getAuthInstance } from "../config/firebase.js";
 
 export const authMiddleware = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
+    let token = null;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    // Check for token in Authorization header first
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.split(" ")[1];
+    }
+    // If no header token, check for cookie
+    else if (req.cookies && req.cookies.authToken) {
+      token = req.cookies.authToken;
+    }
+
+    if (!token) {
       return res.status(401).json({
         error: "Unauthorized",
         message: "No valid authorization token provided",
       });
     }
 
-    const token = authHeader.split(" ")[1];
     const auth = getAuthInstance();
 
     // Verify the Firebase ID token

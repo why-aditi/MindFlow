@@ -32,6 +32,7 @@ router.post(
   validate,
   authController.verifyUser
 );
+router.post("/logout", authController.logout);
 router.get("/profile", authMiddleware, authController.getProfile);
 router.put(
   "/profile",

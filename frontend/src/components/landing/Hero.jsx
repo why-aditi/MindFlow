@@ -3,7 +3,7 @@ import { Button } from '../ui/Button'
 
 const Hero = ({ onGetStarted }) => {
   return (
-    <section className="pt-20 pb-16 bg-gradient-to-br from-sky-50 via-emerald-50 to-teal-50 min-h-screen flex items-center relative overflow-hidden">
+    <section className="pt-16 sm:pt-20 pb-12 sm:pb-16 bg-gradient-to-br from-sky-50 via-emerald-50 to-teal-50 min-h-screen flex items-center relative overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Floating clouds */}
@@ -49,15 +49,15 @@ const Hero = ({ onGetStarted }) => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           {/* Left side - Content */}
           <motion.div 
-            className="space-y-8"
+            className="space-y-6 sm:space-y-8"
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <motion.div
                 className="inline-flex items-center px-4 py-2 bg-emerald-100/50 rounded-full border border-emerald-200/50"
                 initial={{ opacity: 0, y: 20 }}
@@ -68,7 +68,7 @@ const Hero = ({ onGetStarted }) => {
               </motion.div>
 
               <motion.h1 
-                className="text-5xl lg:text-7xl font-light text-slate-800 leading-tight"
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-light text-slate-800 leading-tight"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.4 }}
@@ -80,7 +80,7 @@ const Hero = ({ onGetStarted }) => {
               </motion.h1>
               
               <motion.p 
-                className="text-xl text-slate-600 leading-relaxed font-light max-w-lg"
+                className="text-lg sm:text-xl text-slate-600 leading-relaxed font-light max-w-lg"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.6 }}
@@ -90,7 +90,7 @@ const Hero = ({ onGetStarted }) => {
             </div>
 
             <motion.div 
-              className="flex flex-col sm:flex-row gap-4"
+              className="flex flex-col sm:flex-row gap-3 sm:gap-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.8 }}
@@ -98,7 +98,7 @@ const Hero = ({ onGetStarted }) => {
               <Button 
                 onClick={onGetStarted}
                 size="lg"
-                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-8 py-4 text-lg font-medium rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-medium rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
               >
                 Begin Your Journey
               </Button>
@@ -106,7 +106,7 @@ const Hero = ({ onGetStarted }) => {
               <Button 
                 variant="outline"
                 size="lg"
-                className="px-8 py-4 text-lg font-medium rounded-full border-2 border-emerald-200 hover:border-emerald-300 hover:bg-emerald-50/50 text-emerald-700 transition-all duration-300"
+                className="px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-medium rounded-full border-2 border-emerald-200 hover:border-emerald-300 hover:bg-emerald-50/50 text-emerald-700 transition-all duration-300"
               >
                 Explore Features
               </Button>
@@ -114,7 +114,7 @@ const Hero = ({ onGetStarted }) => {
 
             {/* Trust indicators */}
             <motion.div 
-              className="grid grid-cols-3 gap-8"
+              className="grid grid-cols-3 gap-4 sm:gap-8"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 1 }}
@@ -126,12 +126,12 @@ const Hero = ({ onGetStarted }) => {
               ].map((stat, index) => (
                 <motion.div 
                   key={index}
-                  className="text-center p-4 rounded-2xl bg-white/30 backdrop-blur-sm border border-white/20"
+                  className="text-center p-3 sm:p-4 rounded-2xl bg-white/30 backdrop-blur-sm border border-white/20"
                   whileHover={{ scale: 1.05, y: -5 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >
-                  <div className="text-2xl font-light text-slate-800">{stat.number}</div>
-                  <div className="text-sm text-slate-600 font-light">{stat.label}</div>
+                  <div className="text-lg sm:text-2xl font-light text-slate-800">{stat.number}</div>
+                  <div className="text-xs sm:text-sm text-slate-600 font-light">{stat.label}</div>
                 </motion.div>
               ))}
             </motion.div>
@@ -139,14 +139,14 @@ const Hero = ({ onGetStarted }) => {
 
           {/* Right side - Image */}
           <motion.div 
-            className="relative"
+            className="relative mt-8 lg:mt-0"
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
             <div className="relative">
               {/* Main image with nature theme */}
-              <div className="aspect-[3/4] bg-gradient-to-br from-emerald-100 to-teal-100 rounded-3xl image-shadow-lg overflow-hidden border border-white/20">
+              <div className="aspect-[3/3] bg-gradient-to-br from-emerald-100 to-teal-100 rounded-2xl sm:rounded-3xl image-shadow-lg overflow-hidden border border-white/20">
                 <img 
                   src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=90"
                   alt="Peaceful meditation scene"
@@ -154,9 +154,6 @@ const Hero = ({ onGetStarted }) => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/10 to-transparent"></div>
               </div>
-              
-
-
             </div>
           </motion.div>
         </div>
