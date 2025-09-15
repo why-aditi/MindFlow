@@ -585,4 +585,33 @@ export const aiController = {
       });
     }
   },
+
+  // Analyze journal entry for emotions, themes, and insights
+  async analyzeJournal(req, res) {
+    try {
+      const { uid } = req.user;
+      const { text } = req.body;
+
+      if (!text || text.trim().length === 0) {
+        return res.status(400).json({
+          error: "Journal text cannot be empty",
+        });
+      }
+
+      // Generate AI analysis using Gemini
+      const analysis = await geminiService.analyzeJournalEntry(text, uid);
+
+      res.json({
+        success: true,
+        insights: analysis,
+        model: "journal-analysis",
+      });
+    } catch (error) {
+      console.error("Error analyzing journal entry:", error);
+      res.status(500).json({
+        error: "Failed to analyze journal entry",
+        details: error.message,
+      });
+    }
+  },
 };

@@ -54,6 +54,10 @@ const updateContextValidation = [
   body("context").isObject().withMessage("Context must be an object"),
 ];
 
+const analyzeJournalValidation = [
+  body("text").notEmpty().withMessage("Journal text is required"),
+];
+
 // Routes
 router.post("/chat", sendMessageValidation, validate, aiController.sendMessage);
 router.get(
@@ -96,5 +100,13 @@ router.put(
 router.put("/conversations/:sessionId/close", aiController.closeSession);
 router.get("/chat-sessions", aiController.getChatSessions);
 router.delete("/conversations/:sessionId", aiController.deleteSession);
+
+// Journal analysis route
+router.post(
+  "/analyze-journal",
+  analyzeJournalValidation,
+  validate,
+  aiController.analyzeJournal
+);
 
 export default router;

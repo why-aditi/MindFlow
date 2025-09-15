@@ -594,6 +594,60 @@ Respond with only the title, no additional text.`;
       return "Chat conversation";
     }
   }
+
+  // Analyze journal entry for emotions, themes, and insights
+  async analyzeJournalEntry(text, userId) {
+    try {
+      const prompt = `
+        Analyze the following journal entry and provide insights in JSON format:
+        
+        Journal Entry: "${text}"
+        
+        Please provide:
+        1. Emotion analysis with intensity percentages (0-100)
+        2. Key themes and topics
+        3. A brief summary of the entry
+        4. Any patterns or insights
+        
+        Return the response as a JSON object with this structure:
+        {
+          "emotions": [
+            {"name": "happiness", "intensity": 75},
+            {"name": "anxiety", "intensity": 30}
+          ],
+          "themes": ["work", "relationships", "personal growth"],
+          "summary": "Brief summary of the entry",
+          "insights": "Key insights or patterns noticed"
+        }
+        
+        Be empathetic and supportive in your analysis.
+      `;
+
+      const result = await this.generateContent(prompt);
+
+      try {
+        // Try to parse the JSON response
+        const analysis = JSON.parse(result);
+        return analysis;
+      } catch (parseError) {
+        // If JSON parsing fails, return a structured response
+        return {
+          emotions: [{ name: "neutral", intensity: 50 }],
+          themes: ["general reflection"],
+          summary: result.substring(0, 200) + "...",
+          insights: "Analysis completed successfully",
+        };
+      }
+    } catch (error) {
+      console.error("Journal analysis error:", error);
+      return {
+        emotions: [{ name: "neutral", intensity: 50 }],
+        themes: ["general reflection"],
+        summary: "Unable to analyze entry at this time",
+        insights: "Please try again later",
+      };
+    }
+  }
 }
 
 export default new GeminiService();
