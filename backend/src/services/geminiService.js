@@ -5,6 +5,9 @@ class GeminiService {
   constructor() {
     this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     this.model = this.genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    this.fallbackModel = this.genAI.getGenerativeModel({
+      model: "gemini-2.0-flash",
+    });
     this.conversationHistory = new Map(); // In-memory conversation history
   }
 
@@ -18,14 +21,14 @@ class GeminiService {
    */
   async generateResponse(
     userMessage,
-    sessionId,
+    session,
     userId,
     language = "en",
     context = {}
   ) {
     try {
       // Get conversation history
-      const conversationHistory = await this.getConversationHistory(sessionId);
+      const conversationHistory = await this.getConversationHistory(session);
 
       // Build the system prompt
       const systemPrompt = this.buildSystemPrompt(language, context);
@@ -33,41 +36,99 @@ class GeminiService {
       // Prepare the chat history for Gemini
       const chatHistory = this.prepareChatHistory(conversationHistory);
 
-      // Create chat session
-      const chat = this.model.startChat({
-        history: chatHistory,
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1024,
-        },
-        systemInstruction: {
-          parts: [{ text: systemPrompt }],
-        },
-      });
+      // Try primary model first (2.5-flash)
+      let chat,
+        modelUsed = "gemini-2.5-flash";
 
-      // Generate response
-      const result = await chat.sendMessage(userMessage);
-      const response = await result.response;
-      const aiResponse = response.text();
+      try {
+        chat = this.model.startChat({
+          history: chatHistory,
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1024,
+          },
+          systemInstruction: {
+            parts: [{ text: systemPrompt }],
+          },
+        });
 
-      // Store the conversation turn
-      await this.storeConversationTurn(
-        sessionId,
-        userId,
-        userMessage,
-        aiResponse,
-        language
-      );
+        // Generate response
+        const result = await chat.sendMessage(userMessage);
+        const response = await result.response;
+        const aiResponse = response.text();
 
-      return {
-        success: true,
-        response: aiResponse,
-        model: "gemini-2.5-flash",
-        timestamp: new Date(),
-        conversationLength: conversationHistory.length + 2,
-      };
+        // Store the conversation turn
+        await this.storeConversationTurn(
+          session,
+          userId,
+          userMessage,
+          aiResponse,
+          language
+        );
+
+        return {
+          success: true,
+          response: aiResponse,
+          model: modelUsed,
+          timestamp: new Date(),
+          conversationLength: conversationHistory.length + 2,
+        };
+      } catch (primaryError) {
+        // Check if it's an overloaded error (503) and try fallback model
+        if (
+          primaryError.status === 503 ||
+          primaryError.message.includes("overloaded")
+        ) {
+          console.warn(
+            "Primary model overloaded, trying fallback model:",
+            primaryError.message
+          );
+
+          try {
+            // Try fallback model (2.0-flash-exp)
+            chat = this.fallbackModel.startChat({
+              history: chatHistory,
+              generationConfig: {
+                temperature: 0.7,
+                topK: 40,
+                topP: 0.95,
+                maxOutputTokens: 1024,
+              },
+              systemInstruction: {
+                parts: [{ text: systemPrompt }],
+              },
+            });
+
+            const result = await chat.sendMessage(userMessage);
+            const response = await result.response;
+            const aiResponse = response.text();
+
+            // Store the conversation turn
+            await this.storeConversationTurn(
+              session,
+              userId,
+              userMessage,
+              aiResponse,
+              language
+            );
+
+            return {
+              success: true,
+              response: aiResponse,
+              model: "gemini-2.0-flash",
+              timestamp: new Date(),
+              conversationLength: conversationHistory.length + 2,
+            };
+          } catch (fallbackError) {
+            console.error("Fallback model also failed:", fallbackError);
+            throw fallbackError;
+          }
+        } else {
+          throw primaryError;
+        }
+      }
     } catch (error) {
       console.error("Gemini API Error:", error);
 
@@ -128,11 +189,20 @@ Remember: You are not a replacement for professional mental health care, but a s
   /**
    * Get conversation history for context
    */
-  async getConversationHistory(sessionId) {
+  async getConversationHistory(session) {
     try {
-      const messages = await Message.find({ sessionId })
+      // If session has messages array, use that
+      if (session && session.messages && session.messages.length > 0) {
+        return session.messages.slice(-20).map((msg) => ({
+          role: msg.sender === "user" ? "user" : "model",
+          parts: [{ text: msg.message }],
+        }));
+      }
+
+      // Fallback to old Message collection for backward compatibility
+      const messages = await Message.find({ sessionId: session._id })
         .sort({ timestamp: 1 })
-        .limit(20); // Last 20 messages for context
+        .limit(20);
 
       return messages.map((msg) => ({
         role: msg.sender === "user" ? "user" : "model",
@@ -155,37 +225,37 @@ Remember: You are not a replacement for professional mental health care, but a s
   }
 
   /**
-   * Store conversation turn in database
+   * Store conversation turn in session messages array
    */
   async storeConversationTurn(
-    sessionId,
+    session,
     userId,
     userMessage,
     aiResponse,
     language
   ) {
     try {
-      // Store user message
-      const userMsg = new Message({
-        sessionId,
-        userId,
+      // Add user message to session
+      session.messages.push({
         message: userMessage,
         sender: "user",
         language,
         timestamp: new Date(),
       });
-      await userMsg.save();
 
-      // Store AI response
-      const aiMsg = new Message({
-        sessionId,
-        userId,
+      // Add AI response to session
+      session.messages.push({
         message: aiResponse,
         sender: "ai",
         language,
         timestamp: new Date(),
       });
-      await aiMsg.save();
+
+      // Update message count
+      session.messageCount = session.messages.length;
+
+      // Save the session
+      await session.save();
     } catch (error) {
       console.error("Error storing conversation turn:", error);
     }
@@ -247,10 +317,34 @@ ${recentMessages}
 
 Respond in JSON format with keys: emotionalState, emotions, stressLevel, suggestions`;
 
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-
-      return JSON.parse(response.text());
+      try {
+        const result = await this.model.generateContent(prompt);
+        const response = await result.response;
+        return JSON.parse(response.text());
+      } catch (primaryError) {
+        // Try fallback model if primary is overloaded
+        if (
+          primaryError.status === 503 ||
+          primaryError.message.includes("overloaded")
+        ) {
+          console.warn(
+            "Primary model overloaded for mood analysis, trying fallback"
+          );
+          try {
+            const result = await this.fallbackModel.generateContent(prompt);
+            const response = await result.response;
+            return JSON.parse(response.text());
+          } catch (fallbackError) {
+            console.error(
+              "Fallback model also failed for mood analysis:",
+              fallbackError
+            );
+            throw fallbackError;
+          }
+        } else {
+          throw primaryError;
+        }
+      }
     } catch (error) {
       console.error("Mood analysis error:", error);
       return {
@@ -282,10 +376,34 @@ Suggest activities that are:
 
 Respond in JSON format with an array of suggestions, each containing: title, description, category, estimatedTime, difficulty.`;
 
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-
-      return JSON.parse(response.text());
+      try {
+        const result = await this.model.generateContent(prompt);
+        const response = await result.response;
+        return JSON.parse(response.text());
+      } catch (primaryError) {
+        // Try fallback model if primary is overloaded
+        if (
+          primaryError.status === 503 ||
+          primaryError.message.includes("overloaded")
+        ) {
+          console.warn(
+            "Primary model overloaded for wellness suggestions, trying fallback"
+          );
+          try {
+            const result = await this.fallbackModel.generateContent(prompt);
+            const response = await result.response;
+            return JSON.parse(response.text());
+          } catch (fallbackError) {
+            console.error(
+              "Fallback model also failed for wellness suggestions:",
+              fallbackError
+            );
+            throw fallbackError;
+          }
+        } else {
+          throw primaryError;
+        }
+      }
     } catch (error) {
       console.error("Wellness suggestions error:", error);
       return [
@@ -374,13 +492,106 @@ ${messages}
 
 Keep the summary concise and focused on mental wellness aspects.`;
 
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-
-      return response.text();
+      try {
+        const result = await this.model.generateContent(prompt);
+        const response = await result.response;
+        return response.text();
+      } catch (primaryError) {
+        // Try fallback model if primary is overloaded
+        if (
+          primaryError.status === 503 ||
+          primaryError.message.includes("overloaded")
+        ) {
+          console.warn(
+            "Primary model overloaded for conversation summary, trying fallback"
+          );
+          try {
+            const result = await this.fallbackModel.generateContent(prompt);
+            const response = await result.response;
+            return response.text();
+          } catch (fallbackError) {
+            console.error(
+              "Fallback model also failed for conversation summary:",
+              fallbackError
+            );
+            return "Conversation summary unavailable at this time.";
+          }
+        } else {
+          throw primaryError;
+        }
+      }
     } catch (error) {
       console.error("Conversation summary error:", error);
       return "Conversation summary unavailable at this time.";
+    }
+  }
+
+  /**
+   * Generate a short title/summary for chat history display
+   */
+  async generateChatTitle(session) {
+    try {
+      // Get messages from session
+      const messages = session.messages || [];
+
+      if (messages.length === 0) {
+        return "New Chat";
+      }
+
+      // Take first few messages to understand the topic
+      const conversationText = messages
+        .slice(0, 6)
+        .map((msg) => `${msg.sender}: ${msg.message}`)
+        .join("\n");
+
+      const prompt = `Based on this mental wellness conversation, generate a short, descriptive title (2-6 words) that captures what the chat was about. Focus on the main topic or concern discussed.
+
+Examples of good titles:
+- "Feeling anxious about school"
+- "Relationship advice needed"
+- "Stress management tips"
+- "Sleep problems discussion"
+- "Building self-confidence"
+- "Dealing with loneliness"
+- "Career guidance chat"
+- "Family issues support"
+
+Conversation:
+${conversationText}
+
+Respond with only the title, no additional text.`;
+
+      try {
+        const result = await this.model.generateContent(prompt);
+        const response = await result.response;
+        return response.text().trim();
+      } catch (primaryError) {
+        // Try fallback model if primary is overloaded
+        if (
+          primaryError.status === 503 ||
+          primaryError.message.includes("overloaded")
+        ) {
+          console.warn(
+            "Primary model overloaded for title generation, trying fallback"
+          );
+          try {
+            const result = await this.fallbackModel.generateContent(prompt);
+            const response = await result.response;
+            return response.text().trim();
+          } catch (fallbackError) {
+            console.error(
+              "Fallback model also failed for title generation:",
+              fallbackError
+            );
+            return "Chat conversation";
+          }
+        } else {
+          throw primaryError;
+        }
+      }
+    } catch (error) {
+      console.error("Chat title generation error:", error);
+      return "Chat conversation";
     }
   }
 }

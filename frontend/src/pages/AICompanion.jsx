@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import ChatSidebar from '../components/ChatSidebar';
-import { Send, Mic, MicOff, Bot, User, Heart, Sparkles, Leaf, Cloud, Waves, ArrowLeft, Menu } from 'lucide-react';
+import { Send, Mic, MicOff, Bot, User, Heart, Sparkles, Leaf, Cloud, Waves, ArrowLeft } from 'lucide-react';
 
 const AICompanion = () => {
   const { user } = useAuth();
@@ -364,14 +364,6 @@ const AICompanion = () => {
                 className="hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700"
               >
                 New Chat
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="w-10 h-10 hover:bg-emerald-50 text-slate-600 hover:text-emerald-600"
-              >
-                <Menu className="w-5 h-5" />
               </Button>
             </div>
           </div>

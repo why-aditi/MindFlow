@@ -46,7 +46,7 @@ export const aiController = {
       // Generate AI response using Gemini
       const aiResult = await geminiService.generateResponse(
         message,
-        session._id,
+        session,
         uid,
         language || "en",
         { ...context, ...session.context }
@@ -55,6 +55,21 @@ export const aiController = {
       // Update session
       session.lastActivity = new Date();
       session.messageCount = (session.messageCount || 0) + 1;
+
+      // Generate title/summary if this is the 3rd message exchange and no title exists
+      if (session.messageCount >= 3 && !session.summary) {
+        try {
+          if (session.messages && session.messages.length >= 4) {
+            // At least 2 exchanges
+            const title = await geminiService.generateChatTitle(session);
+            session.summary = title;
+          }
+        } catch (error) {
+          console.error("Error generating chat title:", error);
+          // Don't fail the request if title generation fails
+        }
+      }
+
       await session.save();
 
       res.json({
@@ -138,17 +153,12 @@ export const aiController = {
         });
       }
 
-      // Get all messages in this conversation
-      const messages = await Message.find({ sessionId: id }).sort({
-        timestamp: 1,
-      });
-
       res.json({
         success: true,
         conversation: {
           id: session._id,
           ...session.toObject(),
-          messages,
+          messages: session.messages || [],
         },
       });
     } catch (error) {
@@ -228,25 +238,36 @@ export const aiController = {
       const { uid } = req.user;
       const { limit = 50 } = req.query;
 
-      // Get recent messages across all conversations for this user
-      const messages = await Message.find({ userId: uid })
-        .sort({ timestamp: -1 })
-        .limit(parseInt(limit))
-        .populate("sessionId", "language");
+      // Get recent sessions with messages for this user
+      const sessions = await AISession.find({ userId: uid })
+        .sort({ lastActivity: -1 })
+        .limit(parseInt(limit));
 
-      // Format messages for the frontend
-      const formattedMessages = messages.map((msg) => ({
-        id: msg._id,
-        message: msg.message,
-        sender: msg.sender,
-        timestamp: msg.timestamp,
-        sessionId: msg.sessionId?._id,
-        language: msg.language || "en",
-      }));
+      // Flatten all messages from all sessions
+      const allMessages = [];
+      sessions.forEach((session) => {
+        if (session.messages && session.messages.length > 0) {
+          session.messages.forEach((msg) => {
+            allMessages.push({
+              id: `${session._id}_${msg.timestamp}`,
+              message: msg.message,
+              sender: msg.sender,
+              timestamp: msg.timestamp,
+              sessionId: session._id,
+              language: msg.language || session.language || "en",
+            });
+          });
+        }
+      });
+
+      // Sort by timestamp and limit
+      const sortedMessages = allMessages
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .slice(0, parseInt(limit));
 
       res.json({
         success: true,
-        messages: formattedMessages.reverse(), // Reverse to show oldest first
+        messages: sortedMessages.reverse(), // Reverse to show oldest first
       });
     } catch (error) {
       console.error("Get messages error:", error);
@@ -496,39 +517,30 @@ export const aiController = {
         .sort({ lastActivity: -1 })
         .limit(parseInt(limit));
 
-      const sessionsWithPreview = await Promise.all(
-        sessions.map(async (session) => {
-          // Get first and last message for preview
-          const firstMessage = await Message.findOne({
-            sessionId: session._id,
-            sender: "user",
-          }).sort({ timestamp: 1 });
+      const sessionsWithPreview = sessions.map((session) => {
+        // Get first and last message from session messages array
+        const userMessages =
+          session.messages?.filter((msg) => msg.sender === "user") || [];
+        const firstMessage = userMessages[0];
+        const lastMessage = session.messages?.[session.messages.length - 1];
 
-          const lastMessage = await Message.findOne({
-            sessionId: session._id,
-          }).sort({ timestamp: -1 });
-
-          // Count total messages
-          const messageCount = await Message.countDocuments({
-            sessionId: session._id,
-          });
-
-          return {
-            id: session._id,
-            title: firstMessage
+        return {
+          id: session._id,
+          title:
+            session.summary ||
+            (firstMessage
               ? firstMessage.message.substring(0, 50) + "..."
-              : "New Chat",
-            preview: lastMessage
-              ? lastMessage.message.substring(0, 100) + "..."
-              : "No messages yet",
-            messageCount,
-            createdAt: session.createdAt,
-            lastActivity: session.lastActivity,
-            status: session.status,
-            language: session.language,
-          };
-        })
-      );
+              : "New Chat"),
+          preview: lastMessage
+            ? lastMessage.message.substring(0, 100) + "..."
+            : "No messages yet",
+          messageCount: session.messageCount || 0,
+          createdAt: session.createdAt,
+          lastActivity: session.lastActivity,
+          status: session.status,
+          language: session.language,
+        };
+      });
 
       res.json({
         success: true,
@@ -557,10 +569,7 @@ export const aiController = {
         });
       }
 
-      // Delete all messages in this session
-      await Message.deleteMany({ sessionId: sessionId });
-
-      // Delete the session
+      // Delete the session (messages are stored in the session now)
       await AISession.findByIdAndDelete(sessionId);
 
       res.json({
