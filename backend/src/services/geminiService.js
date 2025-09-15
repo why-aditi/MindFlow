@@ -1,5 +1,5 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { Message } from '../models/Conversation.js';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { Message } from "../models/Conversation.js";
 
 class GeminiService {
   constructor() {
@@ -16,17 +16,23 @@ class GeminiService {
    * @param {string} language - The language preference
    * @param {Object} context - Additional context (user profile, mood, etc.)
    */
-  async generateResponse(userMessage, sessionId, userId, language = 'en', context = {}) {
+  async generateResponse(
+    userMessage,
+    sessionId,
+    userId,
+    language = "en",
+    context = {}
+  ) {
     try {
       // Get conversation history
       const conversationHistory = await this.getConversationHistory(sessionId);
-      
+
       // Build the system prompt
       const systemPrompt = this.buildSystemPrompt(language, context);
-      
+
       // Prepare the chat history for Gemini
       const chatHistory = this.prepareChatHistory(conversationHistory);
-      
+
       // Create chat session
       const chat = this.model.startChat({
         history: chatHistory,
@@ -36,7 +42,9 @@ class GeminiService {
           topP: 0.95,
           maxOutputTokens: 1024,
         },
-        systemInstruction: systemPrompt,
+        systemInstruction: {
+          parts: [{ text: systemPrompt }],
+        },
       });
 
       // Generate response
@@ -45,28 +53,33 @@ class GeminiService {
       const aiResponse = response.text();
 
       // Store the conversation turn
-      await this.storeConversationTurn(sessionId, userId, userMessage, aiResponse, language);
+      await this.storeConversationTurn(
+        sessionId,
+        userId,
+        userMessage,
+        aiResponse,
+        language
+      );
 
       return {
         success: true,
         response: aiResponse,
-        model: 'gemini-2.5-flash',
+        model: "gemini-2.5-flash",
         timestamp: new Date(),
-        conversationLength: conversationHistory.length + 2
+        conversationLength: conversationHistory.length + 2,
       };
-
     } catch (error) {
-      console.error('Gemini API Error:', error);
-      
+      console.error("Gemini API Error:", error);
+
       // Fallback response
       const fallbackResponse = this.getFallbackResponse(language, error);
-      
+
       return {
         success: false,
         response: fallbackResponse,
         error: error.message,
-        model: 'fallback',
-        timestamp: new Date()
+        model: "fallback",
+        timestamp: new Date(),
       };
     }
   }
@@ -103,8 +116,10 @@ Response style:
 Remember: You are not a replacement for professional mental health care, but a supportive companion on their wellness journey.`;
 
     // Add language-specific instructions
-    if (language !== 'en') {
-      return `${basePrompt}\n\nPlease respond in ${this.getLanguageName(language)}.`;
+    if (language !== "en") {
+      return `${basePrompt}\n\nPlease respond in ${this.getLanguageName(
+        language
+      )}.`;
     }
 
     return basePrompt;
@@ -119,12 +134,12 @@ Remember: You are not a replacement for professional mental health care, but a s
         .sort({ timestamp: 1 })
         .limit(20); // Last 20 messages for context
 
-      return messages.map(msg => ({
-        role: msg.sender === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.message }]
+      return messages.map((msg) => ({
+        role: msg.sender === "user" ? "user" : "model",
+        parts: [{ text: msg.message }],
       }));
     } catch (error) {
-      console.error('Error getting conversation history:', error);
+      console.error("Error getting conversation history:", error);
       return [];
     }
   }
@@ -133,25 +148,31 @@ Remember: You are not a replacement for professional mental health care, but a s
    * Prepare chat history for Gemini API
    */
   prepareChatHistory(conversationHistory) {
-    return conversationHistory.map(msg => ({
+    return conversationHistory.map((msg) => ({
       role: msg.role,
-      parts: msg.parts
+      parts: msg.parts,
     }));
   }
 
   /**
    * Store conversation turn in database
    */
-  async storeConversationTurn(sessionId, userId, userMessage, aiResponse, language) {
+  async storeConversationTurn(
+    sessionId,
+    userId,
+    userMessage,
+    aiResponse,
+    language
+  ) {
     try {
       // Store user message
       const userMsg = new Message({
         sessionId,
         userId,
         message: userMessage,
-        sender: 'user',
+        sender: "user",
         language,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
       await userMsg.save();
 
@@ -160,14 +181,13 @@ Remember: You are not a replacement for professional mental health care, but a s
         sessionId,
         userId,
         message: aiResponse,
-        sender: 'ai',
+        sender: "ai",
         language,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
       await aiMsg.save();
-
     } catch (error) {
-      console.error('Error storing conversation turn:', error);
+      console.error("Error storing conversation turn:", error);
     }
   }
 
@@ -180,7 +200,7 @@ Remember: You are not a replacement for professional mental health care, but a s
       es: "Estoy teniendo problemas para conectarme ahora, pero estoy aquí para ti. ¿Cómo te sientes hoy?",
       fr: "J'ai des difficultés à me connecter en ce moment, mais je suis là pour vous. Comment vous sentez-vous aujourd'hui?",
       de: "Ich habe gerade Verbindungsprobleme, aber ich bin für Sie da. Wie fühlen Sie sich heute?",
-      zh: "我现在连接有些问题，但我在这里支持你。你今天感觉怎么样？"
+      zh: "我现在连接有些问题，但我在这里支持你。你今天感觉怎么样？",
     };
 
     return fallbackResponses[language] || fallbackResponses.en;
@@ -191,19 +211,19 @@ Remember: You are not a replacement for professional mental health care, but a s
    */
   getLanguageName(languageCode) {
     const languages = {
-      en: 'English',
-      es: 'Spanish',
-      fr: 'French',
-      de: 'German',
-      zh: 'Chinese',
-      ja: 'Japanese',
-      ko: 'Korean',
-      pt: 'Portuguese',
-      ru: 'Russian',
-      ar: 'Arabic'
+      en: "English",
+      es: "Spanish",
+      fr: "French",
+      de: "German",
+      zh: "Chinese",
+      ja: "Japanese",
+      ko: "Korean",
+      pt: "Portuguese",
+      ru: "Russian",
+      ar: "Arabic",
     };
 
-    return languages[languageCode] || 'English';
+    return languages[languageCode] || "English";
   }
 
   /**
@@ -211,9 +231,10 @@ Remember: You are not a replacement for professional mental health care, but a s
    */
   async analyzeMood(conversationHistory) {
     try {
-      const recentMessages = conversationHistory.slice(-10).map(msg => 
-        `${msg.role}: ${msg.parts[0].text}`
-      ).join('\n');
+      const recentMessages = conversationHistory
+        .slice(-10)
+        .map((msg) => `${msg.role}: ${msg.parts[0].text}`)
+        .join("\n");
 
       const prompt = `Analyze the emotional tone and mood of this conversation. Provide a brief assessment focusing on:
 1. Overall emotional state (positive, neutral, negative)
@@ -228,15 +249,17 @@ Respond in JSON format with keys: emotionalState, emotions, stressLevel, suggest
 
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
-      
+
       return JSON.parse(response.text());
     } catch (error) {
-      console.error('Mood analysis error:', error);
+      console.error("Mood analysis error:", error);
       return {
-        emotionalState: 'neutral',
-        emotions: ['uncertainty'],
-        stressLevel: 'medium',
-        suggestions: ['Continue the conversation to better understand their needs']
+        emotionalState: "neutral",
+        emotions: ["uncertainty"],
+        stressLevel: "medium",
+        suggestions: [
+          "Continue the conversation to better understand their needs",
+        ],
       };
     }
   }
@@ -261,18 +284,19 @@ Respond in JSON format with an array of suggestions, each containing: title, des
 
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
-      
+
       return JSON.parse(response.text());
     } catch (error) {
-      console.error('Wellness suggestions error:', error);
+      console.error("Wellness suggestions error:", error);
       return [
         {
           title: "Deep Breathing Exercise",
-          description: "Take 5 minutes to practice deep breathing to help center yourself",
+          description:
+            "Take 5 minutes to practice deep breathing to help center yourself",
           category: "breathing",
           estimatedTime: "5 minutes",
-          difficulty: "easy"
-        }
+          difficulty: "easy",
+        },
       ];
     }
   }
@@ -283,13 +307,22 @@ Respond in JSON format with an array of suggestions, each containing: title, des
   async checkCrisisIndicators(message) {
     try {
       const crisisKeywords = [
-        'suicide', 'kill myself', 'end it all', 'not worth living',
-        'hurt myself', 'self harm', 'cutting', 'overdose',
-        'crisis', 'emergency', 'help me', 'can\'t take it anymore'
+        "suicide",
+        "kill myself",
+        "end it all",
+        "not worth living",
+        "hurt myself",
+        "self harm",
+        "cutting",
+        "overdose",
+        "crisis",
+        "emergency",
+        "help me",
+        "can't take it anymore",
       ];
 
       const lowerMessage = message.toLowerCase();
-      const hasCrisisIndicators = crisisKeywords.some(keyword => 
+      const hasCrisisIndicators = crisisKeywords.some((keyword) =>
         lowerMessage.includes(keyword)
       );
 
@@ -302,21 +335,21 @@ Respond in JSON format with an array of suggestions, each containing: title, des
               name: "Suicide & Crisis Lifeline",
               number: "988",
               available: "24/7",
-              description: "Free, confidential support for people in distress"
+              description: "Free, confidential support for people in distress",
             },
             {
               name: "Crisis Text Line",
               text: "HOME to 741741",
               available: "24/7",
-              description: "Text-based crisis support"
-            }
-          ]
+              description: "Text-based crisis support",
+            },
+          ],
         };
       }
 
       return { isCrisis: false };
     } catch (error) {
-      console.error('Crisis check error:', error);
+      console.error("Crisis check error:", error);
       return { isCrisis: false };
     }
   }
@@ -326,9 +359,9 @@ Respond in JSON format with an array of suggestions, each containing: title, des
    */
   async generateConversationSummary(conversationHistory) {
     try {
-      const messages = conversationHistory.map(msg => 
-        `${msg.role}: ${msg.parts[0].text}`
-      ).join('\n');
+      const messages = conversationHistory
+        .map((msg) => `${msg.role}: ${msg.parts[0].text}`)
+        .join("\n");
 
       const prompt = `Provide a brief summary of this mental wellness conversation, focusing on:
 1. Main topics discussed
@@ -343,10 +376,10 @@ Keep the summary concise and focused on mental wellness aspects.`;
 
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
-      
+
       return response.text();
     } catch (error) {
-      console.error('Conversation summary error:', error);
+      console.error("Conversation summary error:", error);
       return "Conversation summary unavailable at this time.";
     }
   }
