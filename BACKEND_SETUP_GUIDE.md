@@ -86,7 +86,7 @@ cp env.example .env
 npm run dev
 ```
 
-The server will start on `http://localhost:5000`
+The server will start on `http://localhost:8000`
 
 ## 🔧 **Configuration Required**
 
@@ -249,13 +249,13 @@ ENCRYPTION_KEY=your-32-character-encryption-key
 ### **Health Check**
 
 ```bash
-curl http://localhost:5000/health
+curl http://localhost:8000/health
 ```
 
 ### **Test Authentication**
 
 ```bash
-curl -X POST http://localhost:5000/api/auth/verify \
+curl -X POST http://localhost:8000/api/auth/verify \
   -H "Content-Type: application/json" \
   -d '{"token": "your-firebase-token"}'
 ```
@@ -263,7 +263,7 @@ curl -X POST http://localhost:5000/api/auth/verify \
 ### **Test Journal Entry**
 
 ```bash
-curl -X POST http://localhost:5000/api/journal/entries \
+curl -X POST http://localhost:8000/api/journal/entries \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your-jwt-token" \
   -d '{"text": "Today was great!", "mood": 8, "tags": ["happy", "productive"]}'
@@ -272,7 +272,7 @@ curl -X POST http://localhost:5000/api/journal/entries \
 ### **Test AI Chat**
 
 ```bash
-curl -X POST http://localhost:5000/api/ai/chat \
+curl -X POST http://localhost:8000/api/ai/chat \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your-jwt-token" \
   -d '{"message": "How are you today?", "sessionId": "test-session"}'

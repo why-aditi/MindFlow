@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
@@ -16,6 +16,8 @@ const Journaling = () => {
   const [currentEntry, setCurrentEntry] = useState('')
   const [selectedTags, setSelectedTags] = useState([])
   const [isRecording, setIsRecording] = useState(false)
+  const recognitionRef = useRef(null)
+  const interimRef = useRef("")
   const [view, setView] = useState('write')
   const [isSaving, setIsSaving] = useState(false)
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -92,7 +94,7 @@ const Journaling = () => {
       }
 
       const idToken = await user.getIdToken()
-      const response = await fetch('http://localhost:5000/api/journal/entries', {
+      const response = await fetch('http://localhost:8000/api/journal/entries', {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
@@ -129,16 +131,16 @@ const Journaling = () => {
     
     try {
       const idToken = await user.getIdToken()
-      const response = await fetch('http://localhost:5000/api/journal/entries', {
+      const response = await fetch('http://localhost:8000/api/journal/entries', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${idToken}`
         },
         body: JSON.stringify({
-          text: currentEntry,
+          content: currentEntry,
           tags: selectedTags,
-          type: 'text'
+          isVoice: false
         })
       })
       
@@ -151,7 +153,16 @@ const Journaling = () => {
       
       const data = await response.json()
       if (data.success) {
-        setEntries(prev => [data.entry, ...prev])
+        const newEntry = {
+          _id: data.entryId,
+          content: currentEntry,
+          tags: selectedTags,
+          mood: 'neutral',
+          isVoice: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+        setEntries(prev => [newEntry, ...prev])
         setCurrentEntry('')
         setSelectedTags([])
       } else {
@@ -173,7 +184,51 @@ const Journaling = () => {
   }
 
   const toggleRecording = () => {
-    setIsRecording(!isRecording)
+    try {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+      if (!SpeechRecognition) {
+        console.warn('Speech Recognition API not supported')
+        return
+      }
+      if (!recognitionRef.current) {
+        const recognition = new SpeechRecognition()
+        recognition.lang = 'en-US'
+        recognition.interimResults = true
+        recognition.continuous = true
+        recognition.onresult = (event) => {
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const result = event.results[i]
+            const chunk = result[0]?.transcript || ''
+            if (result.isFinal) {
+              // Commit only final results to avoid repetition
+              interimRef.current = ''
+              if (chunk.trim()) {
+                setCurrentEntry(prev => (prev ? prev + ' ' : '') + chunk.trim())
+              }
+            } else {
+              // Keep interim separately (do not commit to state to prevent duplicates)
+              interimRef.current = chunk
+            }
+          }
+        }
+        recognition.onerror = () => setIsRecording(false)
+        recognition.onend = () => {
+          interimRef.current = ''
+          setIsRecording(false)
+        }
+        recognitionRef.current = recognition
+      }
+      if (isRecording) {
+        recognitionRef.current.stop()
+        setIsRecording(false)
+      } else {
+        recognitionRef.current.start()
+        setIsRecording(true)
+      }
+    } catch (e) {
+      console.error('Voice recording error:', e)
+      setIsRecording(false)
+    }
   }
   
   // AI Analysis Functions
@@ -181,13 +236,13 @@ const Journaling = () => {
     setIsAnalyzing(true)
     try {
       const idToken = await user.getIdToken()
-      const response = await fetch('http://localhost:5000/api/ai/analyze-journal', {
+      const response = await fetch('http://localhost:8000/api/ai/analyze-journal', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${idToken}`
         },
-        body: JSON.stringify({ text: entryText })
+        body: JSON.stringify({ text: entryText, tags: selectedTags })
       })
       
       if (response.ok) {
@@ -207,12 +262,33 @@ const Journaling = () => {
     
     setIsLoadingAnalytics(true)
     
-    // Calculate mood trends (if entries have mood data)
+    // Calculate mood trends based on tags -> sentiment score
+    const sentimentWeights = {
+      happy: 1,
+      excited: 0.8,
+      grateful: 0.7,
+      peaceful: 0.6,
+      motivated: 0.6,
+      productive: 0.5,
+      energetic: 0.5,
+      neutral: 0,
+      tired: -0.3,
+      anxious: -0.7,
+      sad: -0.8,
+      frustrated: -0.6,
+      overwhelmed: -0.7
+    }
+
+    const scoreEntry = (entry) => {
+      if (!entry.tags || entry.tags.length === 0) return 0
+      const sum = entry.tags.reduce((s, t) => s + (sentimentWeights[t] || 0), 0)
+      return sum / entry.tags.length
+    }
+
     const moodTrends = entries
-      .filter(entry => entry.mood)
       .map(entry => ({
         date: new Date(entry.createdAt),
-        mood: entry.mood,
+        score: scoreEntry(entry),
         day: new Date(entry.createdAt).toLocaleDateString('en-US', { weekday: 'short' })
       }))
       .sort((a, b) => a.date - b.date)
@@ -222,9 +298,9 @@ const Journaling = () => {
       totalEntries: entries.length,
       totalWords: entries.reduce((sum, entry) => sum + (entry.text?.split(' ').length || 0), 0),
       averageWordsPerEntry: entries.length > 0 ? 
-        Math.round(entries.reduce((sum, entry) => sum + (entry.text?.split(' ').length || 0), 0) / entries.length) : 0,
+        Math.round(entries.reduce((sum, entry) => sum + (entry.content?.split(' ').length || 0), 0) / entries.length) : 0,
       longestEntry: entries.reduce((longest, entry) => 
-        (entry.text?.length || 0) > (longest?.text?.length || 0) ? entry : longest, entries[0] || {}),
+        (entry.content?.length || 0) > (longest?.content?.length || 0) ? entry : longest, entries[0] || {}),
       writingFrequency: calculateWritingFrequency(entries),
       mostUsedTags: calculateMostUsedTags(entries),
       writingStreak: calculateWritingStreak(entries)
@@ -347,12 +423,12 @@ const Journaling = () => {
   }
   
   const calculateReflectionDepth = (entries) => {
-    const avgLength = entries.reduce((sum, entry) => sum + (entry.text?.length || 0), 0) / entries.length
+    const avgLength = entries.length > 0 ? entries.reduce((sum, entry) => sum + (entry.content?.length || 0), 0) / entries.length : 0
     return {
       averageLength: Math.round(avgLength),
       depthLevel: avgLength > 500 ? 'Deep' : avgLength > 200 ? 'Moderate' : 'Brief',
       longestReflection: entries.reduce((longest, entry) => 
-        (entry.text?.length || 0) > (longest?.text?.length || 0) ? entry : longest, entries[0] || {})
+        (entry.content?.length || 0) > (longest?.content?.length || 0) ? entry : longest, entries[0] || {})
     }
   }
   
@@ -1002,33 +1078,17 @@ const Journaling = () => {
                       Emotion Trends
                     </h3>
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-700">Happiness</span>
-                        <div className="flex items-center space-x-3">
-                          <div className="w-32 h-3 bg-slate-200 rounded-full">
-                            <div className="h-3 bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full" style={{ width: '75%' }}></div>
+                      {calculateMostUsedTags(entries).map((t) => (
+                        <div key={t.tag} className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-slate-700 capitalize">{t.tag}</span>
+                          <div className="flex items-center space-x-3">
+                            <div className="w-32 h-3 bg-slate-200 rounded-full">
+                              <div className="h-3 bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full" style={{ width: `${Math.min(100, t.count * 20)}%` }}></div>
+                            </div>
+                            <span className="text-sm font-bold text-slate-600">{Math.min(100, t.count * 20)}%</span>
                           </div>
-                          <span className="text-sm font-bold text-slate-600">75%</span>
                         </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-700">Anxiety</span>
-                        <div className="flex items-center space-x-3">
-                          <div className="w-32 h-3 bg-slate-200 rounded-full">
-                            <div className="h-3 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full" style={{ width: '30%' }}></div>
-                          </div>
-                          <span className="text-sm font-bold text-slate-600">30%</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-700">Motivation</span>
-                        <div className="flex items-center space-x-3">
-                          <div className="w-32 h-3 bg-slate-200 rounded-full">
-                            <div className="h-3 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full" style={{ width: '60%' }}></div>
-                          </div>
-                          <span className="text-sm font-bold text-slate-600">60%</span>
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
 
@@ -1041,17 +1101,18 @@ const Journaling = () => {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-slate-700">Most Active Day</span>
-                        <span className="text-sm font-bold text-slate-800">Tuesday</span>
+                        <span className="text-sm font-bold text-slate-800">{analyticsData.writingPatterns?.writingFrequency?.mostActiveDay || 'N/A'}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-slate-700">Average Entry Length</span>
-                        <span className="text-sm font-bold text-slate-800">247 words</span>
+                        <span className="text-sm font-bold text-slate-800">{analyticsData.writingPatterns?.averageWordsPerEntry || 0} words</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-slate-700">Most Used Tags</span>
                         <div className="flex space-x-2">
-                          <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">grateful</span>
-                          <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">productive</span>
+                          {analyticsData.writingPatterns?.mostUsedTags?.map((t) => (
+                            <span key={t.tag} className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">{t.tag}</span>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -1134,7 +1195,7 @@ const Journaling = () => {
                   <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-200">
                     <h3 className="text-lg font-bold text-slate-800 mb-2">Average Mood</h3>
                     <div className="text-4xl font-bold text-emerald-600">
-                      {entries.length > 0 ? (entries.reduce((sum, entry) => sum + entry.mood, 0) / entries.length).toFixed(1) : '0.0'}
+                      {entries.length > 0 ? ((analyticsData.personalGrowth?.positiveGrowth?.positiveRatio || 50) / 10).toFixed(1) : '0.0'}
                     </div>
                     <p className="text-sm text-slate-600 font-medium">out of 10</p>
                   </div>

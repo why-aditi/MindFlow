@@ -33,7 +33,7 @@ This error means the backend server is not running or not accessible.
    ```
 
 4. **Verify backend is running:**
-   - Open http://localhost:5000/health in your browser
+   - Open http://localhost:8000/health in your browser
    - You should see: `{"status":"OK","message":"Backend is running!"}`
 
 #### Environment Setup:
@@ -47,7 +47,7 @@ This error means the backend server is not running or not accessible.
 2. **Add required environment variables:**
    ```env
    # Basic configuration
-   PORT=5000
+   PORT=8000
    NODE_ENV=development
    FRONTEND_URL=http://localhost:5174
    
@@ -125,17 +125,17 @@ This is a warning, not an error. It means the frontend is falling back to mock d
 
 1. **Health Check:**
    ```bash
-   curl http://localhost:5000/health
+   curl http://localhost:8000/health
    ```
 
 2. **API Test:**
    ```bash
-   curl http://localhost:5000/api/test
+   curl http://localhost:8000/api/test
    ```
 
 3. **Journal API Test:**
    ```bash
-   curl http://localhost:5000/api/journal/entries
+   curl http://localhost:8000/api/journal/entries
    ```
 
 ## 🐛 Common Issues & Solutions
@@ -220,7 +220,7 @@ npm run dev
 ### Test Everything:
 ```bash
 # Backend health check
-curl http://localhost:5000/health
+curl http://localhost:8000/health
 
 # Frontend should be at
 http://localhost:5174
@@ -232,7 +232,7 @@ http://localhost:5174
 1. **Check console logs** for error messages
 2. **Verify environment variables** are loaded
 3. **Test individual endpoints** with curl or Postman
-4. **Check port availability** (5000 should be free)
+4. **Check port availability** (8000 should be free)
 
 ### Frontend Debugging:
 1. **Open browser developer tools** (F12)
@@ -248,7 +248,7 @@ http://localhost:5174
 ## 🔍 Log Analysis
 
 ### Backend Logs:
-- Look for `🚀 MindFlow Backend Server running on port 5000`
+- Look for `🚀 MindFlow Backend Server running on port 8000`
 - Check for `✅ Connected to MongoDB`
 - Watch for `❌` error messages
 
@@ -265,13 +265,13 @@ If you're still having issues:
 2. **Verify all dependencies** are installed
 3. **Test with minimal setup** first (quick-start.js)
 4. **Check network connectivity** and firewall settings
-5. **Ensure ports 5000 and 5174** are available
+5. **Ensure ports 8000 and 5174** are available
 
 ## 🎯 Success Indicators
 
 You'll know everything is working when:
 
-✅ Backend shows: `🚀 MindFlow Backend Server running on port 5000`
+✅ Backend shows: `🚀 MindFlow Backend Server running on port 8000`
 ✅ Frontend loads without console errors
 ✅ API calls return data instead of connection errors
 ✅ No `motion is not defined` errors

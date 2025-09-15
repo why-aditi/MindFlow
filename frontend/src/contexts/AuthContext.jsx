@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
   // Check if user is authenticated via cookie on app load
   const checkAuthStatus = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/profile', {
+      const response = await fetch('http://localhost:8000/api/auth/profile', {
         method: 'GET',
         credentials: 'include'
       })
@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }) => {
         const idToken = await result.user.getIdToken()
         
         // Call backend to verify/create user profile with credentials
-        const response = await fetch('http://localhost:5000/api/auth/verify', {
+        const response = await fetch('http://localhost:8000/api/auth/verify', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       // Call backend logout to clear cookie
-      await fetch('http://localhost:5000/api/auth/logout', {
+      await fetch('http://localhost:8000/api/auth/logout', {
         method: 'POST',
         credentials: 'include'
       })

@@ -35,7 +35,7 @@ const ChatSidebar = ({
     
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch('http://localhost:5000/api/ai/chat-sessions', {
+      const response = await fetch('http://localhost:8000/api/ai/chat-sessions', {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
@@ -68,7 +68,7 @@ const ChatSidebar = ({
     
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch(`http://localhost:5000/api/ai/conversations/${sessionId}/close`, {
+      const response = await fetch(`http://localhost:8000/api/ai/conversations/${sessionId}/close`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${idToken}`
@@ -94,7 +94,7 @@ const ChatSidebar = ({
     setIsDeleting(true);
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch(`http://localhost:5000/api/ai/conversations/${sessionId}`, {
+      const response = await fetch(`http://localhost:8000/api/ai/conversations/${sessionId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${idToken}`

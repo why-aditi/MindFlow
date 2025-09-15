@@ -50,28 +50,28 @@ const Profile = () => {
       const idToken = await user.getIdToken()
       
       // Fetch wellness goals
-      const goalsResponse = await fetch('http://localhost:5000/api/profile/wellness-goals', {
+      const goalsResponse = await fetch('http://localhost:8000/api/profile/wellness-goals', {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
       })
       
       // Fetch achievements
-      const achievementsResponse = await fetch('http://localhost:5000/api/profile/achievements', {
+      const achievementsResponse = await fetch('http://localhost:8000/api/profile/achievements', {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
       })
       
       // Fetch user stats
-      const statsResponse = await fetch('http://localhost:5000/api/profile/stats', {
+      const statsResponse = await fetch('http://localhost:8000/api/profile/stats', {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
       })
       
       // Fetch user preferences
-      const preferencesResponse = await fetch('http://localhost:5000/api/profile/preferences', {
+      const preferencesResponse = await fetch('http://localhost:8000/api/profile/preferences', {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
@@ -79,7 +79,7 @@ const Profile = () => {
       
       // Fetch recent activity
       console.log('Fetching recent activity...')
-      const activityResponse = await fetch('http://localhost:5000/api/profile/recent-activity', {
+      const activityResponse = await fetch('http://localhost:8000/api/profile/recent-activity', {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
@@ -88,7 +88,7 @@ const Profile = () => {
       
       // Fetch mood trend
       console.log('Fetching mood trend...')
-      const moodTrendResponse = await fetch('http://localhost:5000/api/profile/mood-trend', {
+      const moodTrendResponse = await fetch('http://localhost:8000/api/profile/mood-trend', {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
@@ -97,7 +97,7 @@ const Profile = () => {
       
       // Fetch activity distribution
       console.log('Fetching activity distribution...')
-      const activityDistResponse = await fetch('http://localhost:5000/api/profile/activity-distribution', {
+      const activityDistResponse = await fetch('http://localhost:8000/api/profile/activity-distribution', {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
@@ -231,7 +231,7 @@ const Profile = () => {
   const updateGoal = async (goalId, newValue) => {
     try {
       const idToken = await user.getIdToken()
-      const response = await fetch('http://localhost:5000/api/profile/wellness-goals', {
+      const response = await fetch('http://localhost:8000/api/profile/wellness-goals', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -271,7 +271,7 @@ const Profile = () => {
       }
 
       const idToken = await user.getIdToken()
-      const response = await fetch('http://localhost:5000/api/profile/wellness-goals', {
+      const response = await fetch('http://localhost:8000/api/profile/wellness-goals', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

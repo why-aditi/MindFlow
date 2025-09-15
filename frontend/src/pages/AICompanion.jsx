@@ -28,7 +28,7 @@ const AICompanion = () => {
     setIsInitializing(true)
     try {
       const idToken = await user.getIdToken()
-      const response = await fetch(`http://localhost:5000/api/ai/conversations/${sessionId}`, {
+      const response = await fetch(`http://localhost:8000/api/ai/conversations/${sessionId}`, {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
@@ -72,7 +72,7 @@ const AICompanion = () => {
       if (currentSessionId && user) {
         try {
           const idToken = await user.getIdToken()
-          await fetch(`http://localhost:5000/api/ai/conversations/${currentSessionId}/close`, {
+          await fetch(`http://localhost:8000/api/ai/conversations/${currentSessionId}/close`, {
             method: 'PUT',
             headers: {
               'Authorization': `Bearer ${idToken}`
@@ -154,7 +154,7 @@ const AICompanion = () => {
 
     try {
       const idToken = await user.getIdToken()
-      const response = await fetch('http://localhost:5000/api/ai/chat', {
+      const response = await fetch('http://localhost:8000/api/ai/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

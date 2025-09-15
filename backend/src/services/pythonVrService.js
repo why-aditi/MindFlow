@@ -186,7 +186,7 @@ class PythonVRService {
           if (!session.process.killed) {
             session.process.kill('SIGKILL');
           }
-        }, 5000);
+        }, 8000);
       }
 
       // Update session status
@@ -308,7 +308,7 @@ class PythonVRService {
     // Remove from active sessions after a delay
     setTimeout(() => {
       this.activeSessions.delete(sessionId);
-    }, 5000);
+    }, 8000);
   }
 
   /**

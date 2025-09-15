@@ -56,6 +56,7 @@ const updateContextValidation = [
 
 const analyzeJournalValidation = [
   body("text").notEmpty().withMessage("Journal text is required"),
+  body("tags").optional().isArray().withMessage("Tags must be an array"),
 ];
 
 // Routes

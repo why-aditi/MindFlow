@@ -143,7 +143,7 @@ const VRExercise = () => {
   const fetchExercises = useCallback(async () => {
     try {
       const idToken = await user.getIdToken()
-      const response = await fetch('http://localhost:5000/api/vr/exercises', {
+      const response = await fetch('http://localhost:8000/api/vr/exercises', {
         headers: { 'Authorization': `Bearer ${idToken}` }
       })
       
@@ -198,7 +198,7 @@ const VRExercise = () => {
       }
       
       const idToken = await user.getIdToken()
-      const response = await fetch('http://localhost:5000/api/vr/vr-exercise-tracking', {
+      const response = await fetch('http://localhost:8000/api/vr/vr-exercise-tracking', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -275,7 +275,7 @@ const VRExercise = () => {
       setIsLoading(true)
       
       const idToken = await user.getIdToken()
-      const response = await fetch(`http://localhost:5000/api/vr/vr-exercise-tracking/${sessionId}`, {
+      const response = await fetch(`http://localhost:8000/api/vr/vr-exercise-tracking/${sessionId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${idToken}` }
       })

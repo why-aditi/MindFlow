@@ -590,7 +590,7 @@ export const aiController = {
   async analyzeJournal(req, res) {
     try {
       const { uid } = req.user;
-      const { text } = req.body;
+      const { text, tags } = req.body;
 
       if (!text || text.trim().length === 0) {
         return res.status(400).json({
@@ -599,7 +599,7 @@ export const aiController = {
       }
 
       // Generate AI analysis using Gemini
-      const analysis = await geminiService.analyzeJournalEntry(text, uid);
+      const analysis = await geminiService.analyzeJournalEntry(text, uid, tags || []);
 
       res.json({
         success: true,

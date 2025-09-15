@@ -180,7 +180,7 @@ const Dashboard = () => {
           const idToken = await user.getIdToken()
           
           // Fetch journal entries
-          const journalResponse = await fetch('http://localhost:5000/api/journal/entries', {
+          const journalResponse = await fetch('http://localhost:8000/api/journal/entries', {
             headers: { 'Authorization': `Bearer ${idToken}` }
           })
           if (journalResponse.ok) {
@@ -192,7 +192,7 @@ const Dashboard = () => {
           
           
           // Fetch AI conversations
-          const aiResponse = await fetch('http://localhost:5000/api/ai/conversations', {
+          const aiResponse = await fetch('http://localhost:8000/api/ai/conversations', {
             headers: { 'Authorization': `Bearer ${idToken}` }
           })
           if (aiResponse.ok) {

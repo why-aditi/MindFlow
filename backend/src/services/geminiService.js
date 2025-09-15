@@ -12,6 +12,65 @@ class GeminiService {
   }
 
   /**
+   * Generate plain text content from Gemini with fallback handling
+   */
+  async generateContent(prompt) {
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
+    } catch (primaryError) {
+      if (
+        primaryError.status === 503 ||
+        (primaryError.message && primaryError.message.includes("overloaded"))
+      ) {
+        try {
+          const result = await this.fallbackModel.generateContent(prompt);
+          const response = await result.response;
+          return response.text();
+        } catch (fallbackError) {
+          console.error("Fallback model failed in generateContent:", fallbackError);
+          throw fallbackError;
+        }
+      }
+      throw primaryError;
+    }
+  }
+
+  /**
+   * Attempt to parse JSON from raw LLM output, including fenced code blocks
+   */
+  tryParseJson(raw) {
+    if (!raw) return null;
+
+    // Remove leading triple backticks blocks with optional language label
+    const cleaned = this.stripCodeFences(raw);
+
+    try {
+      return JSON.parse(cleaned);
+    } catch (_) {
+      // Try to find first JSON object/array in the string
+      const match = cleaned.match(/[\[{][\s\S]*[\]}]/);
+      if (match) {
+        try {
+          return JSON.parse(match[0]);
+        } catch (_) {
+          return null;
+        }
+      }
+      return null;
+    }
+  }
+
+  stripCodeFences(text) {
+    if (!text) return "";
+    return text
+      .replace(/^```[a-zA-Z]*\n/, "")
+      .replace(/```\s*$/m, "")
+      .trim();
+  }
+
+  /**
    * Generate AI response using Gemini 2.0 Flash
    * @param {string} userMessage - The user's message
    * @param {string} sessionId - The conversation session ID
@@ -596,12 +655,13 @@ Respond with only the title, no additional text.`;
   }
 
   // Analyze journal entry for emotions, themes, and insights
-  async analyzeJournalEntry(text, userId) {
+  async analyzeJournalEntry(text, userId, tags = []) {
     try {
       const prompt = `
         Analyze the following journal entry and provide insights in JSON format:
         
         Journal Entry: "${text}"
+        User-selected tags hinting emotions/topics: ${JSON.stringify(tags)}
         
         Please provide:
         1. Emotion analysis with intensity percentages (0-100)
@@ -625,19 +685,19 @@ Respond with only the title, no additional text.`;
 
       const result = await this.generateContent(prompt);
 
-      try {
-        // Try to parse the JSON response
-        const analysis = JSON.parse(result);
-        return analysis;
-      } catch (parseError) {
-        // If JSON parsing fails, return a structured response
-        return {
-          emotions: [{ name: "neutral", intensity: 50 }],
-          themes: ["general reflection"],
-          summary: result.substring(0, 200) + "...",
-          insights: "Analysis completed successfully",
-        };
+      // Try to parse JSON directly or extract from code fences / text
+      const parsed = this.tryParseJson(result);
+      if (parsed) {
+        return parsed;
       }
+
+      // If JSON parsing fails, return a structured response with sanitized preview
+      return {
+        emotions: [{ name: "neutral", intensity: 50 }],
+        themes: ["general reflection"],
+        summary: this.stripCodeFences(result).substring(0, 200) + "...",
+        insights: "Analysis completed successfully",
+      };
     } catch (error) {
       console.error("Journal analysis error:", error);
       return {

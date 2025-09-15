@@ -157,7 +157,7 @@ backend/
 
 ```env
 # Server Configuration
-PORT=5000
+PORT=8000
 NODE_ENV=development
 
 # Firebase Configuration
@@ -401,7 +401,7 @@ eb deploy
 ### Health Check
 
 ```bash
-curl http://localhost:5000/health
+curl http://localhost:8000/health
 ```
 
 ### API Testing
@@ -410,12 +410,12 @@ Use tools like Postman or curl to test endpoints:
 
 ```bash
 # Test authentication
-curl -X POST http://localhost:5000/api/auth/verify \
+curl -X POST http://localhost:8000/api/auth/verify \
   -H "Content-Type: application/json" \
   -d '{"token": "your-firebase-token"}'
 
 # Test journal entry creation
-curl -X POST http://localhost:5000/api/journal/entries \
+curl -X POST http://localhost:8000/api/journal/entries \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your-jwt-token" \
   -d '{"text": "Today was great!", "mood": 8, "tags": ["happy"]}'
