@@ -7,9 +7,35 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // Check if user is authenticated via cookie on app load
+  const checkAuthStatus = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/profile', {
+        method: 'GET',
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        const userData = await response.json()
+        // If we have a valid session, get the Firebase user
+        if (auth.currentUser) {
+          setUser(auth.currentUser)
+        }
+      }
+    } catch (error) {
+      console.log('No valid session found')
+    }
+  }
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user)
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setUser(user)
+        // Check backend session when Firebase user is available
+        await checkAuthStatus()
+      } else {
+        setUser(null)
+      }
       setLoading(false)
     })
 
@@ -25,13 +51,14 @@ export const AuthProvider = ({ children }) => {
       if (result.user) {
         const idToken = await result.user.getIdToken()
         
-        // Call backend to verify/create user profile
+        // Call backend to verify/create user profile with credentials
         const response = await fetch('http://localhost:5000/api/auth/verify', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${idToken}`
           },
+          credentials: 'include', // Include cookies
           body: JSON.stringify({
             uid: result.user.uid,
             email: result.user.email,
@@ -62,6 +89,13 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      // Call backend logout to clear cookie
+      await fetch('http://localhost:5000/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      })
+      
+      // Sign out from Firebase
       await signOut(auth)
     } catch (error) {
       console.error('Error signing out:', error)

@@ -1,11 +1,32 @@
 import { Message, AISession } from "../models/Conversation.js";
+import geminiService from "../services/geminiService.js";
 
 export const aiController = {
   // Send message to AI companion
   async sendMessage(req, res) {
     try {
       const { uid } = req.user;
-      const { message, sessionId, language } = req.body;
+      const { message, sessionId, language, context } = req.body;
+
+      // Validate message
+      if (!message || message.trim().length === 0) {
+        return res.status(400).json({
+          error: "Message cannot be empty",
+        });
+      }
+
+      // Check for crisis indicators first
+      const crisisCheck = await geminiService.checkCrisisIndicators(message);
+      if (crisisCheck.isCrisis) {
+        return res.json({
+          success: true,
+          response: crisisCheck.response,
+          sessionId: sessionId || null,
+          isCrisis: true,
+          resources: crisisCheck.resources,
+          model: "crisis-response"
+        });
+      }
 
       // Create or get session
       let session = null;
@@ -17,43 +38,33 @@ export const aiController = {
         session = new AISession({
           userId: uid,
           language: language || "en",
+          context: context || {},
         });
         await session.save();
       }
 
-      // Store user message
-      const userMessage = new Message({
-        sessionId: session._id,
-        userId: uid,
-        message: message,
-        sender: "user",
-        language: language || "en",
-      });
-      await userMessage.save();
-
-      // TODO: Integrate with Dialogflow CX API
-      // For now, return a mock response
-      const aiResponse =
-        "I'm here to help you with your mental wellness journey. How are you feeling today?";
-
-      // Store AI response
-      const aiMessage = new Message({
-        sessionId: session._id,
-        userId: uid,
-        message: aiResponse,
-        sender: "ai",
-        language: language || "en",
-      });
-      await aiMessage.save();
+      // Generate AI response using Gemini
+      const aiResult = await geminiService.generateResponse(
+        message,
+        session._id,
+        uid,
+        language || "en",
+        { ...context, ...session.context }
+      );
 
       // Update session
       session.lastActivity = new Date();
+      session.messageCount = (session.messageCount || 0) + 1;
       await session.save();
 
       res.json({
-        success: true,
-        response: aiResponse,
+        success: aiResult.success,
+        response: aiResult.response,
         sessionId: session._id,
+        model: aiResult.model,
+        timestamp: aiResult.timestamp,
+        conversationLength: aiResult.conversationLength,
+        error: aiResult.error
       });
     } catch (error) {
       console.error("Send message error:", error);
@@ -241,6 +252,184 @@ export const aiController = {
       console.error("Get messages error:", error);
       res.status(500).json({
         error: "Failed to get messages",
+        message: error.message,
+      });
+    }
+  },
+
+  // Analyze mood from conversation
+  async analyzeMood(req, res) {
+    try {
+      const { uid } = req.user;
+      const { sessionId } = req.params;
+
+      // Verify session belongs to user
+      const session = await AISession.findOne({ _id: sessionId, userId: uid });
+      if (!session) {
+        return res.status(404).json({
+          error: "Conversation not found",
+        });
+      }
+
+      // Get conversation history
+      const conversationHistory = await geminiService.getConversationHistory(sessionId);
+      
+      // Analyze mood
+      const moodAnalysis = await geminiService.analyzeMood(conversationHistory);
+
+      res.json({
+        success: true,
+        moodAnalysis,
+        sessionId,
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      console.error("Mood analysis error:", error);
+      res.status(500).json({
+        error: "Failed to analyze mood",
+        message: error.message,
+      });
+    }
+  },
+
+  // Get personalized wellness suggestions
+  async getWellnessSuggestions(req, res) {
+    try {
+      const { uid } = req.user;
+      const { sessionId } = req.params;
+      const { userProfile } = req.body;
+
+      // Verify session belongs to user
+      const session = await AISession.findOne({ _id: sessionId, userId: uid });
+      if (!session) {
+        return res.status(404).json({
+          error: "Conversation not found",
+        });
+      }
+
+      // Get current mood analysis
+      const conversationHistory = await geminiService.getConversationHistory(sessionId);
+      const moodAnalysis = await geminiService.analyzeMood(conversationHistory);
+
+      // Generate personalized suggestions
+      const suggestions = await geminiService.generateWellnessSuggestions(
+        userProfile || {},
+        moodAnalysis
+      );
+
+      res.json({
+        success: true,
+        suggestions,
+        moodAnalysis,
+        sessionId,
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      console.error("Wellness suggestions error:", error);
+      res.status(500).json({
+        error: "Failed to generate wellness suggestions",
+        message: error.message,
+      });
+    }
+  },
+
+  // Generate conversation summary
+  async getConversationSummary(req, res) {
+    try {
+      const { uid } = req.user;
+      const { sessionId } = req.params;
+
+      // Verify session belongs to user
+      const session = await AISession.findOne({ _id: sessionId, userId: uid });
+      if (!session) {
+        return res.status(404).json({
+          error: "Conversation not found",
+        });
+      }
+
+      // Get conversation history
+      const conversationHistory = await geminiService.getConversationHistory(sessionId);
+      
+      // Generate summary
+      const summary = await geminiService.generateConversationSummary(conversationHistory);
+
+      res.json({
+        success: true,
+        summary,
+        sessionId,
+        messageCount: conversationHistory.length,
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      console.error("Conversation summary error:", error);
+      res.status(500).json({
+        error: "Failed to generate conversation summary",
+        message: error.message,
+      });
+    }
+  },
+
+  // Get AI model information
+  async getModelInfo(req, res) {
+    try {
+      res.json({
+        success: true,
+        model: {
+          name: "Gemini 2.0 Flash",
+          version: "gemini-2.5-flash",
+          provider: "Google",
+          capabilities: [
+            "Mental wellness support",
+            "Multi-language support",
+            "Crisis detection",
+            "Mood analysis",
+            "Personalized suggestions",
+            "Conversation summarization"
+          ],
+          supportedLanguages: [
+            "en", "es", "fr", "de", "zh", "ja", "ko", "pt", "ru", "ar"
+          ]
+        },
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      console.error("Model info error:", error);
+      res.status(500).json({
+        error: "Failed to get model information",
+        message: error.message,
+      });
+    }
+  },
+
+  // Update session context
+  async updateSessionContext(req, res) {
+    try {
+      const { uid } = req.user;
+      const { sessionId } = req.params;
+      const { context } = req.body;
+
+      // Verify session belongs to user
+      const session = await AISession.findOne({ _id: sessionId, userId: uid });
+      if (!session) {
+        return res.status(404).json({
+          error: "Conversation not found",
+        });
+      }
+
+      // Update context
+      session.context = { ...session.context, ...context };
+      await session.save();
+
+      res.json({
+        success: true,
+        message: "Session context updated successfully",
+        sessionId,
+        context: session.context,
+      });
+    } catch (error) {
+      console.error("Update session context error:", error);
+      res.status(500).json({
+        error: "Failed to update session context",
         message: error.message,
       });
     }

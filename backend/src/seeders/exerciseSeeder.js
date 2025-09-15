@@ -1,845 +1,311 @@
-import Exercise from "../models/Exercise.js";
-
-// MediaPipe Pose Landmark IDs (0-32)
-const LANDMARKS = {
-  NOSE: 0,
-  LEFT_EYE_INNER: 1,
-  LEFT_EYE: 2,
-  LEFT_EYE_OUTER: 3,
-  RIGHT_EYE_INNER: 4,
-  RIGHT_EYE: 5,
-  RIGHT_EYE_OUTER: 6,
-  LEFT_EAR: 7,
-  RIGHT_EAR: 8,
-  MOUTH_LEFT: 9,
-  MOUTH_RIGHT: 10,
-  LEFT_SHOULDER: 11,
-  RIGHT_SHOULDER: 12,
-  LEFT_ELBOW: 13,
-  RIGHT_ELBOW: 14,
-  LEFT_WRIST: 15,
-  RIGHT_WRIST: 16,
-  LEFT_PINKY: 17,
-  RIGHT_PINKY: 18,
-  LEFT_INDEX: 19,
-  RIGHT_INDEX: 20,
-  LEFT_THUMB: 21,
-  RIGHT_THUMB: 22,
-  LEFT_HIP: 23,
-  RIGHT_HIP: 24,
-  LEFT_KNEE: 25,
-  RIGHT_KNEE: 26,
-  LEFT_ANKLE: 27,
-  RIGHT_ANKLE: 28,
-  LEFT_HEEL: 29,
-  RIGHT_HEEL: 30,
-  LEFT_FOOT_INDEX: 31,
-  RIGHT_FOOT_INDEX: 32,
-};
-
-const exercises = [
-  // Push-ups
-  {
-    name: "Push-ups",
-    description:
-      "Classic upper body strength exercise targeting chest, shoulders, and triceps",
-    category: "strength",
-    difficulty: "intermediate",
-    duration: 60,
-    instructions: [
-      {
-        step: 1,
-        text: "Start in a plank position with hands shoulder-width apart",
-        imageUrl: "/images/pushup-start.jpg",
-      },
-      {
-        step: 2,
-        text: "Lower your body until chest nearly touches the floor",
-        imageUrl: "/images/pushup-down.jpg",
-      },
-      {
-        step: 3,
-        text: "Push back up to starting position",
-        imageUrl: "/images/pushup-up.jpg",
-      },
-    ],
-    poseLandmarks: {
-      expectedLandmarks: [
-        {
-          landmarkId: LANDMARKS.LEFT_SHOULDER,
-          name: "left_shoulder",
-          expectedPosition: { x: 0.3, y: 0.2, z: 0.0 },
-          tolerance: 0.15,
-          importance: "critical",
-        },
-        {
-          landmarkId: LANDMARKS.RIGHT_SHOULDER,
-          name: "right_shoulder",
-          expectedPosition: { x: 0.7, y: 0.2, z: 0.0 },
-          tolerance: 0.15,
-          importance: "critical",
-        },
-        {
-          landmarkId: LANDMARKS.LEFT_ELBOW,
-          name: "left_elbow",
-          expectedPosition: { x: 0.25, y: 0.4, z: 0.0 },
-          tolerance: 0.2,
-          importance: "important",
-        },
-        {
-          landmarkId: LANDMARKS.RIGHT_ELBOW,
-          name: "right_elbow",
-          expectedPosition: { x: 0.75, y: 0.4, z: 0.0 },
-          tolerance: 0.2,
-          importance: "important",
-        },
-        {
-          landmarkId: LANDMARKS.LEFT_HIP,
-          name: "left_hip",
-          expectedPosition: { x: 0.4, y: 0.6, z: 0.0 },
-          tolerance: 0.1,
-          importance: "critical",
-        },
-        {
-          landmarkId: LANDMARKS.RIGHT_HIP,
-          name: "right_hip",
-          expectedPosition: { x: 0.6, y: 0.6, z: 0.0 },
-          tolerance: 0.1,
-          importance: "critical",
-        },
-      ],
-      transitions: [
-        {
-          name: "down_motion",
-          fromLandmarks: [
-            {
-              landmarkId: LANDMARKS.LEFT_ELBOW,
-              position: { x: 0.25, y: 0.3, z: 0.0 },
-            },
-          ],
-          toLandmarks: [
-            {
-              landmarkId: LANDMARKS.LEFT_ELBOW,
-              position: { x: 0.25, y: 0.5, z: 0.0 },
-            },
-          ],
-          duration: 2,
-        },
-      ],
-      validationRules: {
-        minConfidence: 0.7,
-        requiredLandmarks: [
-          LANDMARKS.LEFT_SHOULDER,
-          LANDMARKS.RIGHT_SHOULDER,
-          LANDMARKS.LEFT_HIP,
-          LANDMARKS.RIGHT_HIP,
-        ],
-        angleConstraints: [
-          {
-            name: "elbow_angle",
-            landmarks: [
-              LANDMARKS.LEFT_SHOULDER,
-              LANDMARKS.LEFT_ELBOW,
-              LANDMARKS.LEFT_WRIST,
-            ],
-            minAngle: 90,
-            maxAngle: 180,
-          },
-        ],
-        distanceConstraints: [
-          {
-            name: "shoulder_width",
-            landmarks: [LANDMARKS.LEFT_SHOULDER, LANDMARKS.RIGHT_SHOULDER],
-            minDistance: 0.3,
-            maxDistance: 0.5,
-          },
-        ],
-      },
-    },
-    metrics: {
-      caloriesPerMinute: 8,
-      muscleGroups: ["chest", "shoulders", "arms", "core"],
-      equipment: ["none"],
-      spaceRequired: "medium",
-    },
-    scoring: {
-      poseAccuracyWeight: 0.8,
-      timingWeight: 0.1,
-      consistencyWeight: 0.1,
-      perfectScoreThreshold: 85,
-    },
-    mediapipeConfig: {
-      modelComplexity: 1,
-      smoothLandmarks: true,
-      enableSegmentation: false,
-      smoothSegmentation: true,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.5,
-    },
-    tags: ["upper_body", "strength", "bodyweight", "chest"],
-  },
-
-  // Squats
-  {
-    name: "Squats",
-    description:
-      "Lower body strength exercise targeting quadriceps, glutes, and hamstrings",
-    category: "strength",
-    difficulty: "beginner",
-    duration: 45,
-    instructions: [
-      {
-        step: 1,
-        text: "Stand with feet shoulder-width apart",
-        imageUrl: "/images/squat-start.jpg",
-      },
-      {
-        step: 2,
-        text: "Lower your body by bending knees and hips",
-        imageUrl: "/images/squat-down.jpg",
-      },
-      {
-        step: 3,
-        text: "Return to standing position",
-        imageUrl: "/images/squat-up.jpg",
-      },
-    ],
-    poseLandmarks: {
-      expectedLandmarks: [
-        {
-          landmarkId: LANDMARKS.LEFT_HIP,
-          name: "left_hip",
-          expectedPosition: { x: 0.4, y: 0.5, z: 0.0 },
-          tolerance: 0.1,
-          importance: "critical",
-        },
-        {
-          landmarkId: LANDMARKS.RIGHT_HIP,
-          name: "right_hip",
-          expectedPosition: { x: 0.6, y: 0.5, z: 0.0 },
-          tolerance: 0.1,
-          importance: "critical",
-        },
-        {
-          landmarkId: LANDMARKS.LEFT_KNEE,
-          name: "left_knee",
-          expectedPosition: { x: 0.4, y: 0.7, z: 0.0 },
-          tolerance: 0.15,
-          importance: "critical",
-        },
-        {
-          landmarkId: LANDMARKS.RIGHT_KNEE,
-          name: "right_knee",
-          expectedPosition: { x: 0.6, y: 0.7, z: 0.0 },
-          tolerance: 0.15,
-          importance: "critical",
-        },
-        {
-          landmarkId: LANDMARKS.LEFT_ANKLE,
-          name: "left_ankle",
-          expectedPosition: { x: 0.4, y: 0.9, z: 0.0 },
-          tolerance: 0.1,
-          importance: "important",
-        },
-        {
-          landmarkId: LANDMARKS.RIGHT_ANKLE,
-          name: "right_ankle",
-          expectedPosition: { x: 0.6, y: 0.9, z: 0.0 },
-          tolerance: 0.1,
-          importance: "important",
-        },
-      ],
-      transitions: [
-        {
-          name: "squat_down",
-          fromLandmarks: [
-            {
-              landmarkId: LANDMARKS.LEFT_HIP,
-              position: { x: 0.4, y: 0.4, z: 0.0 },
-            },
-          ],
-          toLandmarks: [
-            {
-              landmarkId: LANDMARKS.LEFT_HIP,
-              position: { x: 0.4, y: 0.6, z: 0.0 },
-            },
-          ],
-          duration: 2,
-        },
-      ],
-      validationRules: {
-        minConfidence: 0.6,
-        requiredLandmarks: [
-          LANDMARKS.LEFT_HIP,
-          LANDMARKS.RIGHT_HIP,
-          LANDMARKS.LEFT_KNEE,
-          LANDMARKS.RIGHT_KNEE,
-        ],
-        angleConstraints: [
-          {
-            name: "knee_angle",
-            landmarks: [
-              LANDMARKS.LEFT_HIP,
-              LANDMARKS.LEFT_KNEE,
-              LANDMARKS.LEFT_ANKLE,
-            ],
-            minAngle: 60,
-            maxAngle: 180,
-          },
-        ],
-        distanceConstraints: [
-          {
-            name: "hip_width",
-            landmarks: [LANDMARKS.LEFT_HIP, LANDMARKS.RIGHT_HIP],
-            minDistance: 0.15,
-            maxDistance: 0.25,
-          },
-        ],
-      },
-    },
-    metrics: {
-      caloriesPerMinute: 6,
-      muscleGroups: ["legs", "glutes", "core"],
-      equipment: ["none"],
-      spaceRequired: "small",
-    },
-    scoring: {
-      poseAccuracyWeight: 0.7,
-      timingWeight: 0.2,
-      consistencyWeight: 0.1,
-      perfectScoreThreshold: 80,
-    },
-    mediapipeConfig: {
-      modelComplexity: 1,
-      smoothLandmarks: true,
-      enableSegmentation: false,
-      smoothSegmentation: true,
-      minDetectionConfidence: 0.6,
-      minTrackingConfidence: 0.5,
-    },
-    tags: ["lower_body", "strength", "bodyweight", "legs"],
-  },
-
-  // Plank
-  {
-    name: "Plank",
-    description:
-      "Core strengthening exercise that targets the entire core and improves stability",
-    category: "strength",
-    difficulty: "intermediate",
-    duration: 30,
-    instructions: [
-      {
-        step: 1,
-        text: "Start in push-up position",
-        imageUrl: "/images/plank-start.jpg",
-      },
-      {
-        step: 2,
-        text: "Hold position with straight body alignment",
-        imageUrl: "/images/plank-hold.jpg",
-      },
-      {
-        step: 3,
-        text: "Keep core tight and breathe steadily",
-        imageUrl: "/images/plank-breathe.jpg",
-      },
-    ],
-    poseLandmarks: {
-      expectedLandmarks: [
-        {
-          landmarkId: LANDMARKS.LEFT_SHOULDER,
-          name: "left_shoulder",
-          expectedPosition: { x: 0.3, y: 0.2, z: 0.0 },
-          tolerance: 0.1,
-          importance: "critical",
-        },
-        {
-          landmarkId: LANDMARKS.RIGHT_SHOULDER,
-          name: "right_shoulder",
-          expectedPosition: { x: 0.7, y: 0.2, z: 0.0 },
-          tolerance: 0.1,
-          importance: "critical",
-        },
-        {
-          landmarkId: LANDMARKS.LEFT_HIP,
-          name: "left_hip",
-          expectedPosition: { x: 0.4, y: 0.5, z: 0.0 },
-          tolerance: 0.1,
-          importance: "critical",
-        },
-        {
-          landmarkId: LANDMARKS.RIGHT_HIP,
-          name: "right_hip",
-          expectedPosition: { x: 0.6, y: 0.5, z: 0.0 },
-          tolerance: 0.1,
-          importance: "critical",
-        },
-        {
-          landmarkId: LANDMARKS.LEFT_ANKLE,
-          name: "left_ankle",
-          expectedPosition: { x: 0.4, y: 0.8, z: 0.0 },
-          tolerance: 0.1,
-          importance: "important",
-        },
-        {
-          landmarkId: LANDMARKS.RIGHT_ANKLE,
-          name: "right_ankle",
-          expectedPosition: { x: 0.6, y: 0.8, z: 0.0 },
-          tolerance: 0.1,
-          importance: "important",
-        },
-      ],
-      transitions: [],
-      validationRules: {
-        minConfidence: 0.7,
-        requiredLandmarks: [
-          LANDMARKS.LEFT_SHOULDER,
-          LANDMARKS.RIGHT_SHOULDER,
-          LANDMARKS.LEFT_HIP,
-          LANDMARKS.RIGHT_HIP,
-        ],
-        angleConstraints: [],
-        distanceConstraints: [
-          {
-            name: "body_alignment",
-            landmarks: [LANDMARKS.LEFT_SHOULDER, LANDMARKS.LEFT_HIP],
-            minDistance: 0.25,
-            maxDistance: 0.35,
-          },
-        ],
-      },
-    },
-    metrics: {
-      caloriesPerMinute: 4,
-      muscleGroups: ["core", "shoulders", "arms"],
-      equipment: ["none"],
-      spaceRequired: "small",
-    },
-    scoring: {
-      poseAccuracyWeight: 0.9,
-      timingWeight: 0.05,
-      consistencyWeight: 0.05,
-      perfectScoreThreshold: 90,
-    },
-    mediapipeConfig: {
-      modelComplexity: 1,
-      smoothLandmarks: true,
-      enableSegmentation: false,
-      smoothSegmentation: true,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.6,
-    },
-    tags: ["core", "strength", "bodyweight", "stability"],
-  },
-
-  // Jumping Jacks
-  {
-    name: "Jumping Jacks",
-    description:
-      "Cardiovascular exercise that improves coordination and burns calories",
-    category: "cardio",
-    difficulty: "beginner",
-    duration: 60,
-    instructions: [
-      {
-        step: 1,
-        text: "Start standing with feet together and arms at sides",
-        imageUrl: "/images/jumping-jack-start.jpg",
-      },
-      {
-        step: 2,
-        text: "Jump up spreading feet shoulder-width apart and raising arms overhead",
-        imageUrl: "/images/jumping-jack-up.jpg",
-      },
-      {
-        step: 3,
-        text: "Jump back to starting position",
-        imageUrl: "/images/jumping-jack-down.jpg",
-      },
-    ],
-    poseLandmarks: {
-      expectedLandmarks: [
-        {
-          landmarkId: LANDMARKS.LEFT_SHOULDER,
-          name: "left_shoulder",
-          expectedPosition: { x: 0.2, y: 0.1, z: 0.0 },
-          tolerance: 0.2,
-          importance: "important",
-        },
-        {
-          landmarkId: LANDMARKS.RIGHT_SHOULDER,
-          name: "right_shoulder",
-          expectedPosition: { x: 0.8, y: 0.1, z: 0.0 },
-          tolerance: 0.2,
-          importance: "important",
-        },
-        {
-          landmarkId: LANDMARKS.LEFT_HIP,
-          name: "left_hip",
-          expectedPosition: { x: 0.3, y: 0.5, z: 0.0 },
-          tolerance: 0.2,
-          importance: "important",
-        },
-        {
-          landmarkId: LANDMARKS.RIGHT_HIP,
-          name: "right_hip",
-          expectedPosition: { x: 0.7, y: 0.5, z: 0.0 },
-          tolerance: 0.2,
-          importance: "important",
-        },
-        {
-          landmarkId: LANDMARKS.LEFT_ANKLE,
-          name: "left_ankle",
-          expectedPosition: { x: 0.3, y: 0.8, z: 0.0 },
-          tolerance: 0.2,
-          importance: "important",
-        },
-        {
-          landmarkId: LANDMARKS.RIGHT_ANKLE,
-          name: "right_ankle",
-          expectedPosition: { x: 0.7, y: 0.8, z: 0.0 },
-          tolerance: 0.2,
-          importance: "important",
-        },
-      ],
-      transitions: [
-        {
-          name: "jump_spread",
-          fromLandmarks: [
-            {
-              landmarkId: LANDMARKS.LEFT_HIP,
-              position: { x: 0.5, y: 0.5, z: 0.0 },
-            },
-          ],
-          toLandmarks: [
-            {
-              landmarkId: LANDMARKS.LEFT_HIP,
-              position: { x: 0.3, y: 0.5, z: 0.0 },
-            },
-          ],
-          duration: 0.5,
-        },
-      ],
-      validationRules: {
-        minConfidence: 0.5,
-        requiredLandmarks: [
-          LANDMARKS.LEFT_SHOULDER,
-          LANDMARKS.RIGHT_SHOULDER,
-          LANDMARKS.LEFT_HIP,
-          LANDMARKS.RIGHT_HIP,
-        ],
-        angleConstraints: [],
-        distanceConstraints: [
-          {
-            name: "arm_spread",
-            landmarks: [LANDMARKS.LEFT_SHOULDER, LANDMARKS.RIGHT_SHOULDER],
-            minDistance: 0.4,
-            maxDistance: 0.8,
-          },
-          {
-            name: "leg_spread",
-            landmarks: [LANDMARKS.LEFT_HIP, LANDMARKS.RIGHT_HIP],
-            minDistance: 0.2,
-            maxDistance: 0.6,
-          },
-        ],
-      },
-    },
-    metrics: {
-      caloriesPerMinute: 10,
-      muscleGroups: ["legs", "arms", "core"],
-      equipment: ["none"],
-      spaceRequired: "medium",
-    },
-    scoring: {
-      poseAccuracyWeight: 0.6,
-      timingWeight: 0.3,
-      consistencyWeight: 0.1,
-      perfectScoreThreshold: 75,
-    },
-    mediapipeConfig: {
-      modelComplexity: 1,
-      smoothLandmarks: true,
-      enableSegmentation: false,
-      smoothSegmentation: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.4,
-    },
-    tags: ["cardio", "coordination", "full_body", "warm_up"],
-  },
-
-  // Mountain Climbers
-  {
-    name: "Mountain Climbers",
-    description:
-      "High-intensity cardio exercise that targets core and improves agility",
-    category: "cardio",
-    difficulty: "intermediate",
-    duration: 45,
-    instructions: [
-      {
-        step: 1,
-        text: "Start in plank position",
-        imageUrl: "/images/mountain-climber-start.jpg",
-      },
-      {
-        step: 2,
-        text: "Bring right knee toward chest",
-        imageUrl: "/images/mountain-climber-right.jpg",
-      },
-      {
-        step: 3,
-        text: "Quickly switch legs, bringing left knee toward chest",
-        imageUrl: "/images/mountain-climber-left.jpg",
-      },
-    ],
-    poseLandmarks: {
-      expectedLandmarks: [
-        {
-          landmarkId: LANDMARKS.LEFT_SHOULDER,
-          name: "left_shoulder",
-          expectedPosition: { x: 0.3, y: 0.2, z: 0.0 },
-          tolerance: 0.1,
-          importance: "critical",
-        },
-        {
-          landmarkId: LANDMARKS.RIGHT_SHOULDER,
-          name: "right_shoulder",
-          expectedPosition: { x: 0.7, y: 0.2, z: 0.0 },
-          tolerance: 0.1,
-          importance: "critical",
-        },
-        {
-          landmarkId: LANDMARKS.LEFT_HIP,
-          name: "left_hip",
-          expectedPosition: { x: 0.4, y: 0.4, z: 0.0 },
-          tolerance: 0.15,
-          importance: "critical",
-        },
-        {
-          landmarkId: LANDMARKS.RIGHT_HIP,
-          name: "right_hip",
-          expectedPosition: { x: 0.6, y: 0.4, z: 0.0 },
-          tolerance: 0.15,
-          importance: "critical",
-        },
-        {
-          landmarkId: LANDMARKS.LEFT_KNEE,
-          name: "left_knee",
-          expectedPosition: { x: 0.4, y: 0.3, z: 0.0 },
-          tolerance: 0.2,
-          importance: "important",
-        },
-        {
-          landmarkId: LANDMARKS.RIGHT_KNEE,
-          name: "right_knee",
-          expectedPosition: { x: 0.6, y: 0.3, z: 0.0 },
-          tolerance: 0.2,
-          importance: "important",
-        },
-      ],
-      transitions: [
-        {
-          name: "knee_switch",
-          fromLandmarks: [
-            {
-              landmarkId: LANDMARKS.LEFT_KNEE,
-              position: { x: 0.4, y: 0.5, z: 0.0 },
-            },
-          ],
-          toLandmarks: [
-            {
-              landmarkId: LANDMARKS.LEFT_KNEE,
-              position: { x: 0.4, y: 0.3, z: 0.0 },
-            },
-          ],
-          duration: 0.3,
-        },
-      ],
-      validationRules: {
-        minConfidence: 0.6,
-        requiredLandmarks: [
-          LANDMARKS.LEFT_SHOULDER,
-          LANDMARKS.RIGHT_SHOULDER,
-          LANDMARKS.LEFT_HIP,
-          LANDMARKS.RIGHT_HIP,
-        ],
-        angleConstraints: [],
-        distanceConstraints: [
-          {
-            name: "knee_chest_distance",
-            landmarks: [LANDMARKS.LEFT_KNEE, LANDMARKS.LEFT_SHOULDER],
-            minDistance: 0.1,
-            maxDistance: 0.3,
-          },
-        ],
-      },
-    },
-    metrics: {
-      caloriesPerMinute: 12,
-      muscleGroups: ["core", "legs", "shoulders", "arms"],
-      equipment: ["none"],
-      spaceRequired: "medium",
-    },
-    scoring: {
-      poseAccuracyWeight: 0.7,
-      timingWeight: 0.2,
-      consistencyWeight: 0.1,
-      perfectScoreThreshold: 80,
-    },
-    mediapipeConfig: {
-      modelComplexity: 1,
-      smoothLandmarks: true,
-      enableSegmentation: false,
-      smoothSegmentation: true,
-      minDetectionConfidence: 0.6,
-      minTrackingConfidence: 0.5,
-    },
-    tags: ["cardio", "core", "high_intensity", "agility"],
-  },
-
-  // Downward Dog (Yoga)
-  {
-    name: "Downward Dog",
-    description: "Yoga pose that stretches the entire body and builds strength",
-    category: "yoga",
-    difficulty: "beginner",
-    duration: 30,
-    instructions: [
-      {
-        step: 1,
-        text: "Start on hands and knees",
-        imageUrl: "/images/downward-dog-start.jpg",
-      },
-      {
-        step: 2,
-        text: "Tuck toes and lift hips up and back",
-        imageUrl: "/images/downward-dog-pose.jpg",
-      },
-      {
-        step: 3,
-        text: "Straighten legs and press heels toward floor",
-        imageUrl: "/images/downward-dog-stretch.jpg",
-      },
-    ],
-    poseLandmarks: {
-      expectedLandmarks: [
-        {
-          landmarkId: LANDMARKS.LEFT_SHOULDER,
-          name: "left_shoulder",
-          expectedPosition: { x: 0.3, y: 0.3, z: 0.0 },
-          tolerance: 0.1,
-          importance: "critical",
-        },
-        {
-          landmarkId: LANDMARKS.RIGHT_SHOULDER,
-          name: "right_shoulder",
-          expectedPosition: { x: 0.7, y: 0.3, z: 0.0 },
-          tolerance: 0.1,
-          importance: "critical",
-        },
-        {
-          landmarkId: LANDMARKS.LEFT_HIP,
-          name: "left_hip",
-          expectedPosition: { x: 0.4, y: 0.6, z: 0.0 },
-          tolerance: 0.1,
-          importance: "critical",
-        },
-        {
-          landmarkId: LANDMARKS.RIGHT_HIP,
-          name: "right_hip",
-          expectedPosition: { x: 0.6, y: 0.6, z: 0.0 },
-          tolerance: 0.1,
-          importance: "critical",
-        },
-        {
-          landmarkId: LANDMARKS.LEFT_ANKLE,
-          name: "left_ankle",
-          expectedPosition: { x: 0.4, y: 0.9, z: 0.0 },
-          tolerance: 0.1,
-          importance: "important",
-        },
-        {
-          landmarkId: LANDMARKS.RIGHT_ANKLE,
-          name: "right_ankle",
-          expectedPosition: { x: 0.6, y: 0.9, z: 0.0 },
-          tolerance: 0.1,
-          importance: "important",
-        },
-      ],
-      transitions: [],
-      validationRules: {
-        minConfidence: 0.7,
-        requiredLandmarks: [
-          LANDMARKS.LEFT_SHOULDER,
-          LANDMARKS.RIGHT_SHOULDER,
-          LANDMARKS.LEFT_HIP,
-          LANDMARKS.RIGHT_HIP,
-        ],
-        angleConstraints: [
-          {
-            name: "body_angle",
-            landmarks: [
-              LANDMARKS.LEFT_SHOULDER,
-              LANDMARKS.LEFT_HIP,
-              LANDMARKS.LEFT_ANKLE,
-            ],
-            minAngle: 150,
-            maxAngle: 180,
-          },
-        ],
-        distanceConstraints: [
-          {
-            name: "hip_height",
-            landmarks: [LANDMARKS.LEFT_HIP, LANDMARKS.LEFT_SHOULDER],
-            minDistance: 0.2,
-            maxDistance: 0.4,
-          },
-        ],
-      },
-    },
-    metrics: {
-      caloriesPerMinute: 3,
-      muscleGroups: ["core", "arms", "legs", "back"],
-      equipment: ["yoga_mat"],
-      spaceRequired: "small",
-    },
-    scoring: {
-      poseAccuracyWeight: 0.8,
-      timingWeight: 0.1,
-      consistencyWeight: 0.1,
-      perfectScoreThreshold: 85,
-    },
-    mediapipeConfig: {
-      modelComplexity: 1,
-      smoothLandmarks: true,
-      enableSegmentation: false,
-      smoothSegmentation: true,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.6,
-    },
-    tags: ["yoga", "flexibility", "strength", "stretch"],
-  },
-];
+import Exercise from '../models/Exercise.js';
 
 export const seedExercises = async () => {
   try {
-    console.log("Starting exercise seeding...");
+    console.log('🌱 Seeding exercises...');
+
+    const exercises = [
+      // Rep-based exercises
+      {
+        name: 'bicep_curl',
+        displayName: 'Bicep Curl',
+        description: 'Classic bicep strengthening exercise using arm curls',
+        category: 'strength',
+        type: 'rep',
+        difficulty: 'beginner',
+        duration: 300,
+        instructions: [
+          { step: 1, text: 'Stand with feet shoulder-width apart' },
+          { step: 2, text: 'Hold arms at your sides with palms facing forward' },
+          { step: 3, text: 'Curl arms up towards shoulders' },
+          { step: 4, text: 'Lower arms back to starting position' }
+        ],
+        repConfig: {
+          joints: ['shoulder', 'elbow', 'wrist'],
+          upAngle: 30,
+          downAngle: 160
+        },
+        muscleGroups: ['arms'],
+        equipment: ['none'],
+        spaceRequired: 'small',
+        tags: ['strength', 'arms', 'beginner']
+      },
+      {
+        name: 'squat',
+        displayName: 'Squat',
+        description: 'Full-body exercise targeting legs and glutes',
+        category: 'strength',
+        type: 'rep',
+        difficulty: 'beginner',
+        duration: 300,
+        instructions: [
+          { step: 1, text: 'Stand with feet shoulder-width apart' },
+          { step: 2, text: 'Lower your body as if sitting back into a chair' },
+          { step: 3, text: 'Keep your chest up and knees behind toes' },
+          { step: 4, text: 'Return to standing position' }
+        ],
+        repConfig: {
+          joints: ['hip', 'knee', 'ankle'],
+          upAngle: 90,
+          downAngle: 170
+        },
+        muscleGroups: ['legs', 'glutes'],
+        equipment: ['none'],
+        spaceRequired: 'medium',
+        tags: ['strength', 'legs', 'glutes', 'beginner']
+      },
+      {
+        name: 'pushup',
+        displayName: 'Push-up',
+        description: 'Upper body strength exercise targeting chest, shoulders, and arms',
+        category: 'strength',
+        type: 'rep',
+        difficulty: 'intermediate',
+        duration: 300,
+        instructions: [
+          { step: 1, text: 'Start in plank position with hands under shoulders' },
+          { step: 2, text: 'Lower your body until chest nearly touches floor' },
+          { step: 3, text: 'Push back up to starting position' },
+          { step: 4, text: 'Keep body straight throughout movement' }
+        ],
+        repConfig: {
+          joints: ['shoulder', 'elbow', 'wrist'],
+          upAngle: 70,
+          downAngle: 160
+        },
+        muscleGroups: ['chest', 'shoulders', 'arms', 'core'],
+        equipment: ['none'],
+        spaceRequired: 'medium',
+        tags: ['strength', 'chest', 'arms', 'intermediate']
+      },
+      {
+        name: 'lunge',
+        displayName: 'Lunge',
+        description: 'Single-leg exercise for leg strength and balance',
+        category: 'strength',
+        type: 'rep',
+        difficulty: 'intermediate',
+        duration: 300,
+        instructions: [
+          { step: 1, text: 'Stand with feet hip-width apart' },
+          { step: 2, text: 'Step forward with one leg' },
+          { step: 3, text: 'Lower your body until both knees are at 90 degrees' },
+          { step: 4, text: 'Push back to starting position' }
+        ],
+        repConfig: {
+          joints: ['hip', 'knee', 'ankle'],
+          upAngle: 90,
+          downAngle: 170
+        },
+        muscleGroups: ['legs', 'glutes'],
+        equipment: ['none'],
+        spaceRequired: 'medium',
+        tags: ['strength', 'legs', 'balance', 'intermediate']
+      },
+
+      // Hold-based exercises (Yoga poses)
+      {
+        name: 'tree_pose',
+        displayName: 'Tree Pose',
+        description: 'Balancing yoga pose for stability and focus',
+        category: 'yoga',
+        type: 'hold',
+        difficulty: 'beginner',
+        duration: 300,
+        instructions: [
+          { step: 1, text: 'Stand on one leg' },
+          { step: 2, text: 'Place the sole of other foot on inner thigh' },
+          { step: 3, text: 'Bring hands to prayer position at chest' },
+          { step: 4, text: 'Hold position and breathe deeply' }
+        ],
+        holdConfig: {
+          joints: ['hip', 'knee', 'ankle'],
+          targetAngle: 180,
+          tolerance: 20
+        },
+        muscleGroups: ['legs', 'core'],
+        equipment: ['none'],
+        spaceRequired: 'small',
+        tags: ['yoga', 'balance', 'meditation', 'beginner']
+      },
+      {
+        name: 'warrior_ii',
+        displayName: 'Warrior II',
+        description: 'Strong standing yoga pose for strength and endurance',
+        category: 'yoga',
+        type: 'hold',
+        difficulty: 'beginner',
+        duration: 300,
+        instructions: [
+          { step: 1, text: 'Stand with feet wide apart' },
+          { step: 2, text: 'Turn one foot out 90 degrees' },
+          { step: 3, text: 'Bend front knee over ankle' },
+          { step: 4, text: 'Extend arms parallel to floor' }
+        ],
+        holdConfig: {
+          joints: ['hip', 'knee', 'ankle'],
+          targetAngle: 100,
+          tolerance: 20
+        },
+        muscleGroups: ['legs', 'glutes', 'shoulders'],
+        equipment: ['none'],
+        spaceRequired: 'medium',
+        tags: ['yoga', 'strength', 'endurance', 'beginner']
+      },
+      {
+        name: 'plank',
+        displayName: 'Plank',
+        description: 'Core strengthening exercise for stability',
+        category: 'strength',
+        type: 'hold',
+        difficulty: 'intermediate',
+        duration: 300,
+        instructions: [
+          { step: 1, text: 'Start in push-up position' },
+          { step: 2, text: 'Lower to forearms' },
+          { step: 3, text: 'Keep body straight from head to heels' },
+          { step: 4, text: 'Hold position and breathe normally' }
+        ],
+        holdConfig: {
+          joints: ['shoulder', 'hip', 'ankle'],
+          targetAngle: 180,
+          tolerance: 15
+        },
+        muscleGroups: ['core', 'shoulders', 'arms'],
+        equipment: ['none'],
+        spaceRequired: 'small',
+        tags: ['strength', 'core', 'stability', 'intermediate']
+      },
+      {
+        name: 'chair_pose',
+        displayName: 'Chair Pose',
+        description: 'Yoga pose for leg strength and endurance',
+        category: 'yoga',
+        type: 'hold',
+        difficulty: 'intermediate',
+        duration: 300,
+        instructions: [
+          { step: 1, text: 'Stand with feet together' },
+          { step: 2, text: 'Bend knees as if sitting in a chair' },
+          { step: 3, text: 'Raise arms overhead' },
+          { step: 4, text: 'Hold position and breathe deeply' }
+        ],
+        holdConfig: {
+          joints: ['hip', 'knee', 'ankle'],
+          targetAngle: 100,
+          tolerance: 15
+        },
+        muscleGroups: ['legs', 'glutes', 'shoulders'],
+        equipment: ['none'],
+        spaceRequired: 'small',
+        tags: ['yoga', 'strength', 'endurance', 'intermediate']
+      },
+      {
+        name: 'cobra_pose',
+        displayName: 'Cobra Pose',
+        description: 'Back-bending yoga pose for flexibility and strength',
+        category: 'yoga',
+        type: 'hold',
+        difficulty: 'beginner',
+        duration: 300,
+        instructions: [
+          { step: 1, text: 'Lie face down on the floor' },
+          { step: 2, text: 'Place hands under shoulders' },
+          { step: 3, text: 'Press up lifting chest off floor' },
+          { step: 4, text: 'Keep hips on floor and breathe deeply' }
+        ],
+        holdConfig: {
+          joints: ['hip', 'shoulder', 'ear'],
+          targetAngle: 200,
+          tolerance: 30
+        },
+        muscleGroups: ['back', 'core'],
+        equipment: ['none'],
+        spaceRequired: 'small',
+        tags: ['yoga', 'flexibility', 'back', 'beginner']
+      },
+
+      // Meditation and breathing exercises
+      {
+        name: 'meditation',
+        displayName: 'Meditation',
+        description: 'Mindfulness meditation for relaxation and focus',
+        category: 'meditation',
+        type: 'meditation',
+        difficulty: 'beginner',
+        duration: 300,
+        instructions: [
+          { step: 1, text: 'Find a comfortable seated position' },
+          { step: 2, text: 'Close your eyes and relax your body' },
+          { step: 3, text: 'Focus on your breath' },
+          { step: 4, text: 'Let thoughts come and go without judgment' }
+        ],
+        meditationConfig: {
+          pattern: 'natural',
+          backgroundMusic: 'nature_sounds',
+          environment: 'peaceful'
+        },
+        muscleGroups: ['full_body'],
+        equipment: ['none'],
+        spaceRequired: 'small',
+        tags: ['meditation', 'mindfulness', 'relaxation', 'beginner']
+      },
+      {
+        name: 'breathing',
+        displayName: 'Breathing Exercise',
+        description: 'Controlled breathing exercise for stress relief',
+        category: 'breathing',
+        type: 'breathing',
+        difficulty: 'beginner',
+        duration: 300,
+        instructions: [
+          { step: 1, text: 'Sit comfortably with spine straight' },
+          { step: 2, text: 'Inhale slowly for 4 counts' },
+          { step: 3, text: 'Hold breath for 4 counts' },
+          { step: 4, text: 'Exhale slowly for 4 counts' }
+        ],
+        meditationConfig: {
+          pattern: '4-4-4',
+          backgroundMusic: 'calm_music',
+          environment: 'quiet'
+        },
+        muscleGroups: ['full_body'],
+        equipment: ['none'],
+        spaceRequired: 'small',
+        tags: ['breathing', 'stress_relief', 'relaxation', 'beginner']
+      },
+      {
+        name: 'stretching',
+        displayName: 'Stretching',
+        description: 'Gentle stretching routine for flexibility and relaxation',
+        category: 'stretching',
+        type: 'stretch',
+        difficulty: 'beginner',
+        duration: 300,
+        instructions: [
+          { step: 1, text: 'Start with gentle neck rolls' },
+          { step: 2, text: 'Move to shoulder stretches' },
+          { step: 3, text: 'Include back and spine stretches' },
+          { step: 4, text: 'Finish with leg and hip stretches' }
+        ],
+        muscleGroups: ['full_body'],
+        equipment: ['none'],
+        spaceRequired: 'medium',
+        tags: ['stretching', 'flexibility', 'relaxation', 'beginner']
+      }
+    ];
 
     // Clear existing exercises
     await Exercise.deleteMany({});
-    console.log("Cleared existing exercises");
+    console.log('🗑️  Cleared existing exercises');
 
     // Insert new exercises
     const insertedExercises = await Exercise.insertMany(exercises);
-    console.log(`Successfully seeded ${insertedExercises.length} exercises`);
+    console.log(`✅ Seeded ${insertedExercises.length} exercises`);
 
     return insertedExercises;
   } catch (error) {
-    console.error("Error seeding exercises:", error);
+    console.error('❌ Error seeding exercises:', error);
     throw error;
   }
 };
-
-export default exercises;

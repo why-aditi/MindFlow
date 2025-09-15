@@ -1,6 +1,6 @@
 import User from "../models/User.js";
 import JournalEntry from "../models/JournalEntry.js";
-import VRSession from "../models/VRSession.js";
+import ExerciseSession from "../models/ExerciseSession.js";
 import { AISession } from "../models/Conversation.js";
 
 // Helper function to format time ago
@@ -199,8 +199,8 @@ export const userController = {
       // Get user's journal entries count
       const journalCount = await JournalEntry.countDocuments({ userId: uid });
 
-      // Get user's VR sessions count
-      const vrCount = await VRSession.countDocuments({ userId: uid });
+      // Get user's exercise sessions count
+      const vrCount = await ExerciseSession.countDocuments({ userId: uid });
 
       // Get user's AI conversations count
       const aiCount = await AISession.countDocuments({ userId: uid });
@@ -229,15 +229,15 @@ export const userController = {
 
       if (vrCount >= 1)
         achievements.push({
-          id: "first_vr",
-          name: "VR Explorer",
-          description: "Complete your first VR session",
+          id: "first_exercise",
+          name: "Exercise Explorer",
+          description: "Complete your first exercise session",
         });
       if (vrCount >= 10)
         achievements.push({
-          id: "vr_master",
-          name: "VR Master",
-          description: "Complete 10 VR sessions",
+          id: "exercise_master",
+          name: "Exercise Master",
+          description: "Complete 10 exercise sessions",
         });
 
       if (aiCount >= 1)
@@ -258,7 +258,7 @@ export const userController = {
         achievements,
         stats: {
           journalEntries: journalCount,
-          vrSessions: vrCount,
+          exerciseSessions: vrCount,
           aiConversations: aiCount,
         },
       });
@@ -299,7 +299,7 @@ export const userController = {
 
       // Get counts
       const journalCount = await JournalEntry.countDocuments(dateFilter);
-      const vrCount = await VRSession.countDocuments(dateFilter);
+      const vrCount = await ExerciseSession.countDocuments(dateFilter);
       const aiCount = await AISession.countDocuments(dateFilter);
 
       // Get journal entries for mood analysis
@@ -309,12 +309,12 @@ export const userController = {
         moodCounts[entry.mood] = (moodCounts[entry.mood] || 0) + 1;
       });
 
-      // Get VR sessions for type analysis
-      const vrSessions = await VRSession.find(dateFilter);
-      const vrTypeCounts = {};
-      vrSessions.forEach((session) => {
-        vrTypeCounts[session.sessionType] =
-          (vrTypeCounts[session.sessionType] || 0) + 1;
+      // Get exercise sessions for type analysis
+      const exerciseSessions = await ExerciseSession.find(dateFilter);
+      const exerciseTypeCounts = {};
+      exerciseSessions.forEach((session) => {
+        exerciseTypeCounts[session.sessionType] =
+          (exerciseTypeCounts[session.sessionType] || 0) + 1;
       });
 
       res.json({
@@ -322,10 +322,10 @@ export const userController = {
         stats: {
           period,
           journalEntries: journalCount,
-          vrSessions: vrCount,
+          exerciseSessions: vrCount,
           aiConversations: aiCount,
           moodDistribution: moodCounts,
-          vrSessionTypes: vrTypeCounts,
+          exerciseSessionTypes: exerciseTypeCounts,
         },
       });
     } catch (error) {
@@ -351,13 +351,13 @@ export const userController = {
 
       console.log("Recent journals found:", recentJournals.length);
 
-      // Get recent VR sessions
-      const recentVRSessions = await VRSession.find({ userId: uid })
+      // Get recent exercise sessions
+      const recentExerciseSessions = await ExerciseSession.find({ userId: uid })
         .sort({ createdAt: -1 })
         .limit(parseInt(limit))
-        .select("sessionType duration createdAt");
+        .select("sessionType plannedDuration createdAt");
 
-      console.log("Recent VR sessions found:", recentVRSessions.length);
+      console.log("Recent exercise sessions found:", recentExerciseSessions.length);
 
       // Get recent AI conversations
       const recentAIConversations = await AISession.find({ userId: uid })
@@ -384,12 +384,12 @@ export const userController = {
         });
       });
 
-      recentVRSessions.forEach((session) => {
+      recentExerciseSessions.forEach((session) => {
         activities.push({
-          id: `vr_${session._id}`,
-          type: "vr",
-          activity: "Completed VR session",
-          description: `${session.sessionType} - ${session.duration} minutes`,
+          id: `exercise_${session._id}`,
+          type: "exercise",
+          activity: "Completed exercise session",
+          description: `${session.sessionType} - ${session.plannedDuration} seconds`,
           timestamp: session.createdAt,
           points: 100,
         });
@@ -545,12 +545,12 @@ export const userController = {
 
       console.log("Journal count for period:", journalCount);
 
-      const vrCount = await VRSession.countDocuments({
+      const vrCount = await ExerciseSession.countDocuments({
         userId: uid,
         createdAt: { $gte: startDate },
       });
 
-      console.log("VR count for period:", vrCount);
+      console.log("Exercise count for period:", vrCount);
 
       const aiCount = await AISession.countDocuments({
         userId: uid,
@@ -565,7 +565,7 @@ export const userController = {
       const distribution = {
         meditation: total > 0 ? Math.round((vrCount / total) * 100) : 0,
         journaling: total > 0 ? Math.round((journalCount / total) * 100) : 0,
-        vrSessions: total > 0 ? Math.round((vrCount / total) * 100) : 0,
+        exerciseSessions: total > 0 ? Math.round((vrCount / total) * 100) : 0,
         aiConversations: total > 0 ? Math.round((aiCount / total) * 100) : 0,
       };
 
@@ -574,7 +574,7 @@ export const userController = {
         distribution,
         counts: {
           journal: journalCount,
-          vr: vrCount,
+          exercise: vrCount,
           ai: aiCount,
           total,
         },

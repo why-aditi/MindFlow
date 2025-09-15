@@ -7,6 +7,10 @@ const exerciseSchema = new mongoose.Schema({
     trim: true,
     unique: true,
   },
+  displayName: {
+    type: String,
+    required: true,
+  },
   description: {
     type: String,
     required: true,
@@ -15,14 +19,19 @@ const exerciseSchema = new mongoose.Schema({
     type: String,
     enum: [
       "strength",
-      "cardio",
+      "cardio", 
       "flexibility",
       "balance",
       "yoga",
-      "pilates",
-      "dance",
-      "martial_arts",
+      "meditation",
+      "breathing",
+      "stretching"
     ],
+    required: true,
+  },
+  type: {
+    type: String,
+    enum: ["rep", "hold", "meditation", "breathing", "stretch"],
     required: true,
   },
   difficulty: {
@@ -32,198 +41,66 @@ const exerciseSchema = new mongoose.Schema({
   },
   duration: {
     type: Number, // in seconds
-    required: true,
+    default: 300, // 5 minutes default
   },
-  instructions: [
-    {
-      step: {
-        type: Number,
-        required: true,
-      },
-      text: {
-        type: String,
-        required: true,
-      },
-      imageUrl: String, // Reference image for the step
-    },
-  ],
-
-  // MediaPipe Pose Landmarks for this exercise
-  poseLandmarks: {
-    // Expected pose landmarks (33 MediaPipe landmarks)
-    expectedLandmarks: [
-      {
-        landmarkId: {
-          type: Number,
-          required: true,
-          min: 0,
-          max: 32, // MediaPipe has 33 landmarks (0-32)
-        },
-        name: {
-          type: String,
-          required: true,
-        },
-        expectedPosition: {
-          x: Number, // Normalized coordinates (0-1)
-          y: Number,
-          z: Number,
-        },
-        tolerance: {
-          type: Number,
-          default: 0.1, // Tolerance for position matching
-        },
-        importance: {
-          type: String,
-          enum: ["critical", "important", "optional"],
-          default: "important",
-        },
-      },
-    ],
-
-    // Key pose transitions for the exercise
-    transitions: [
-      {
-        name: String,
-        fromLandmarks: [
-          {
-            landmarkId: Number,
-            position: {
-              x: Number,
-              y: Number,
-              z: Number,
-            },
-          },
-        ],
-        toLandmarks: [
-          {
-            landmarkId: Number,
-            position: {
-              x: Number,
-              y: Number,
-              z: Number,
-            },
-          },
-        ],
-        duration: Number, // Expected transition time in seconds
-      },
-    ],
-
-    // Pose validation rules
-    validationRules: {
-      minConfidence: {
-        type: Number,
-        default: 0.5,
-        min: 0,
-        max: 1,
-      },
-      requiredLandmarks: [Number], // Array of landmark IDs that must be visible
-      angleConstraints: [
-        {
-          name: String, // e.g., "knee_angle", "elbow_angle"
-          landmarks: [Number], // 3 landmark IDs to form the angle
-          minAngle: Number, // in degrees
-          maxAngle: Number, // in degrees
-        },
-      ],
-      distanceConstraints: [
-        {
-          name: String, // e.g., "shoulder_width", "arm_length"
-          landmarks: [Number], // 2 landmark IDs
-          minDistance: Number, // normalized distance
-          maxDistance: Number, // normalized distance
-        },
-      ],
-    },
-  },
-
-  // Exercise-specific metrics
-  metrics: {
-    caloriesPerMinute: {
+  instructions: [{
+    step: {
       type: Number,
-      default: 0,
+      required: true,
     },
-    muscleGroups: [
-      {
-        type: String,
-        enum: [
-          "chest",
-          "back",
-          "shoulders",
-          "arms",
-          "core",
-          "legs",
-          "glutes",
-          "calves",
-        ],
-      },
-    ],
-    equipment: [
-      {
-        type: String,
-        enum: [
-          "none",
-          "dumbbells",
-          "resistance_bands",
-          "yoga_mat",
-          "chair",
-          "wall",
-        ],
-      },
-    ],
-    spaceRequired: {
+    text: {
       type: String,
-      enum: ["small", "medium", "large"],
-      default: "medium",
+      required: true,
     },
+    imageUrl: String,
+  }],
+  
+  // For rep-based exercises
+  repConfig: {
+    joints: [String], // ["shoulder", "elbow", "wrist"]
+    upAngle: Number,
+    downAngle: Number,
   },
-
-  // Feedback and scoring
-  scoring: {
-    poseAccuracyWeight: {
-      type: Number,
-      default: 0.7,
-      min: 0,
-      max: 1,
-    },
-    timingWeight: {
-      type: Number,
-      default: 0.2,
-      min: 0,
-      max: 1,
-    },
-    consistencyWeight: {
-      type: Number,
-      default: 0.1,
-      min: 0,
-      max: 1,
-    },
-    perfectScoreThreshold: {
-      type: Number,
-      default: 90,
-      min: 0,
-      max: 100,
-    },
+  
+  // For hold-based exercises
+  holdConfig: {
+    joints: [String],
+    targetAngle: Number,
+    tolerance: Number,
   },
-
-  // MediaPipe-specific configuration
+  
+  // For meditation/breathing exercises
+  meditationConfig: {
+    pattern: String, // "4-4-4" for inhale-hold-exhale
+    backgroundMusic: String,
+    environment: String,
+  },
+  
+  // Exercise metadata
+  muscleGroups: [{
+    type: String,
+    enum: [
+      "chest", "back", "shoulders", "arms", "core", 
+      "legs", "glutes", "calves", "full_body"
+    ],
+  }],
+  equipment: [{
+    type: String,
+    enum: ["none", "dumbbells", "resistance_bands", "yoga_mat", "chair", "wall"],
+  }],
+  spaceRequired: {
+    type: String,
+    enum: ["small", "medium", "large"],
+    default: "medium",
+  },
+  
+  // MediaPipe configuration
   mediapipeConfig: {
     modelComplexity: {
       type: Number,
       default: 1,
       min: 0,
       max: 2,
-    },
-    smoothLandmarks: {
-      type: Boolean,
-      default: true,
-    },
-    enableSegmentation: {
-      type: Boolean,
-      default: false,
-    },
-    smoothSegmentation: {
-      type: Boolean,
-      default: true,
     },
     minDetectionConfidence: {
       type: Number,
@@ -238,7 +115,7 @@ const exerciseSchema = new mongoose.Schema({
       max: 1,
     },
   },
-
+  
   // Metadata
   tags: [String],
   isActive: {
@@ -263,8 +140,9 @@ exerciseSchema.pre("save", function (next) {
 
 // Indexes for efficient queries
 exerciseSchema.index({ category: 1, difficulty: 1 });
+exerciseSchema.index({ type: 1 });
 exerciseSchema.index({ isActive: 1 });
 exerciseSchema.index({ tags: 1 });
-exerciseSchema.index({ "metrics.muscleGroups": 1 });
+exerciseSchema.index({ muscleGroups: 1 });
 
 export default mongoose.model("Exercise", exerciseSchema);

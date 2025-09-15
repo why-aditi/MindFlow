@@ -40,6 +40,19 @@ const feedbackValidation = [
     .withMessage("Feedback must be a string"),
 ];
 
+const wellnessSuggestionsValidation = [
+  body("userProfile")
+    .optional()
+    .isObject()
+    .withMessage("User profile must be an object"),
+];
+
+const updateContextValidation = [
+  body("context")
+    .isObject()
+    .withMessage("Context must be an object"),
+];
+
 // Routes
 router.post("/chat", sendMessageValidation, validate, aiController.sendMessage);
 router.get(
@@ -57,5 +70,22 @@ router.post(
 );
 router.get("/sessions", aiController.getSessions);
 router.get("/messages", aiController.getMessages);
+
+// New Gemini-powered AI routes
+router.get("/model-info", aiController.getModelInfo);
+router.get("/conversations/:sessionId/mood-analysis", aiController.analyzeMood);
+router.post(
+  "/conversations/:sessionId/wellness-suggestions",
+  wellnessSuggestionsValidation,
+  validate,
+  aiController.getWellnessSuggestions
+);
+router.get("/conversations/:sessionId/summary", aiController.getConversationSummary);
+router.put(
+  "/conversations/:sessionId/context",
+  updateContextValidation,
+  validate,
+  aiController.updateSessionContext
+);
 
 export default router;
