@@ -167,12 +167,6 @@ const Profile = () => {
             color: 'from-blue-500 to-blue-600'
           },
           {
-            label: 'VR Sessions',
-            value: backendStats.vrSessions || 0,
-            icon: <BarChart3 className="w-6 h-6 text-white" />,
-            color: 'from-purple-500 to-purple-600'
-          },
-          {
             label: 'AI Conversations',
             value: backendStats.aiConversations || 0,
             icon: <User className="w-6 h-6 text-white" />,
@@ -565,13 +559,6 @@ const Profile = () => {
                             <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${activityDistribution.journaling || 0}%` }}></div>
                           </div>
                           
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">VR Sessions</span>
-                            <span className="text-sm font-medium">{activityDistribution.vrSessions || 0}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div className="bg-green-500 h-2 rounded-full" style={{ width: `${activityDistribution.vrSessions || 0}%` }}></div>
-                          </div>
                         </div>
                       </div>
                     </div>

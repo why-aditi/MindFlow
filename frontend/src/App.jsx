@@ -4,8 +4,8 @@ import LandingPage from './pages/LandingPage'
 import Dashboard from './pages/Dashboard'
 import AICompanion from './pages/AICompanion'
 import Journaling from './pages/Journaling'
-import VRMeditation from './pages/VRMeditation'
 import Profile from './pages/Profile'
+import VRExercise from './pages/VRExercise'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider } from './contexts/AuthContext.jsx'
 
@@ -31,9 +31,9 @@ function App() {
                 <Journaling />
               </ProtectedRoute>
             } />
-            <Route path="/vr-meditation" element={
+            <Route path="/vr-exercise" element={
               <ProtectedRoute>
-                <VRMeditation />
+                <VRExercise />
               </ProtectedRoute>
             } />
             <Route path="/profile" element={

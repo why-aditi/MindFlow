@@ -6,22 +6,26 @@ const exerciseSessionSchema = new mongoose.Schema({
     required: true,
     index: true,
   },
-  exercisePlanId: {
+  exerciseId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "ExercisePlan",
+    ref: "Exercise",
+    required: true,
+  },
+  exerciseName: {
+    type: String,
     required: true,
   },
   sessionType: {
     type: String,
-    enum: ["yoga", "meditation", "breathing", "mindfulness"],
+    enum: ["rep", "hold", "meditation", "breathing", "stretch"],
     required: true,
   },
   plannedDuration: {
-    type: Number, // in minutes
+    type: Number, // in seconds
     required: true,
   },
   actualDuration: {
-    type: Number, // in minutes
+    type: Number, // in seconds
     min: 0,
   },
   status: {
@@ -29,61 +33,57 @@ const exerciseSessionSchema = new mongoose.Schema({
     enum: ["active", "completed", "cancelled", "paused"],
     default: "active",
   },
-  progress: {
-    currentExercise: {
+  
+  // Session results
+  results: {
+    // For rep-based exercises
+    repCount: {
       type: Number,
       default: 0,
     },
-    completedExercises: [
-      {
-        exerciseIndex: Number,
-        completedAt: Date,
-        duration: Number, // actual duration in seconds
-        accuracy: Number, // pose accuracy percentage
-        breathingAccuracy: Number, // breathing pattern accuracy
-      },
-    ],
-    overallAccuracy: {
+    
+    // For hold-based exercises
+    holdTime: {
+      type: Number, // in seconds
+      default: 0,
+    },
+    maxHoldTime: {
+      type: Number, // in seconds
+      default: 0,
+    },
+    
+    // For all exercises
+    accuracy: {
+      type: Number, // percentage
+      min: 0,
+      max: 100,
+      default: 0,
+    },
+    
+    // Session quality metrics
+    qualityScore: {
       type: Number,
       min: 0,
       max: 100,
+      default: 0,
     },
   },
-  monitoringData: {
-    poseTracking: [
-      {
-        timestamp: Date,
-        exerciseIndex: Number,
-        keyPoints: [
-          {
-            name: String,
-            x: Number,
-            y: Number,
-            confidence: Number,
-          },
-        ],
-        accuracy: Number,
-        feedback: String,
-      },
-    ],
-    breathingTracking: [
-      {
-        timestamp: Date,
-        exerciseIndex: Number,
-        inhaleDuration: Number,
-        exhaleDuration: Number,
-        holdDuration: Number,
-        accuracy: Number,
-        feedback: String,
-      },
-    ],
-    heartRate: [
-      {
-        timestamp: Date,
-        bpm: Number,
-      },
-    ],
-  },
+  
+  // Real-time tracking data
+  trackingData: [{
+    timestamp: {
+      type: Date,
+      default: Date.now,
+    },
+    type: {
+      type: String,
+      enum: ["rep", "hold", "angle", "quality", "progress"],
+    },
+    value: Number,
+    metadata: mongoose.Schema.Types.Mixed,
+  }],
+  
+  // Session feedback
   feedback: {
     rating: {
       type: Number,
@@ -101,13 +101,24 @@ const exerciseSessionSchema = new mongoose.Schema({
       max: 5,
     },
   },
-  achievements: [
-    {
-      type: String, // e.g., "perfect_pose", "consistent_breathing", "completed_session"
-      earnedAt: Date,
-      exerciseIndex: Number,
+  
+  // Achievements earned during session
+  achievements: [{
+    type: String,
+    earnedAt: {
+      type: Date,
+      default: Date.now,
     },
-  ],
+    metadata: mongoose.Schema.Types.Mixed,
+  }],
+  
+  // Session metadata
+  deviceInfo: {
+    camera: String,
+    resolution: String,
+    fps: Number,
+  },
+  
   createdAt: {
     type: Date,
     default: Date.now,
@@ -135,6 +146,7 @@ exerciseSessionSchema.pre("save", function (next) {
 exerciseSessionSchema.index({ userId: 1, createdAt: -1 });
 exerciseSessionSchema.index({ userId: 1, sessionType: 1 });
 exerciseSessionSchema.index({ userId: 1, status: 1 });
-exerciseSessionSchema.index({ exercisePlanId: 1 });
+exerciseSessionSchema.index({ exerciseId: 1 });
+exerciseSessionSchema.index({ startedAt: -1 });
 
 export default mongoose.model("ExerciseSession", exerciseSessionSchema);

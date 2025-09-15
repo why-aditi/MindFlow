@@ -4,6 +4,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
+import { createServer } from "http";
 
 // Load environment variables
 dotenv.config();
@@ -16,14 +17,17 @@ import { connectMongoDB } from "./src/config/mongodb.js";
 import authRoutes from "./src/routes/auth.js";
 import journalRoutes from "./src/routes/journal.js";
 import aiRoutes from "./src/routes/ai.js";
-import vrRoutes from "./src/routes/vr.js";
 import userRoutes from "./src/routes/user.js";
 import profileRoutes from "./src/routes/profile.js";
-import exerciseRoutes from "./src/routes/exercises.js";
+import vrRoutes from "./src/routes/vr.js";
 
 // Import middleware
 import { errorHandler } from "./src/middleware/errorHandler.js";
 import { authMiddleware } from "./src/middleware/auth.js";
+
+// Import services
+import websocketService from "./src/services/websocketService.js";
+import aiWebSocketService from "./src/services/aiWebSocketService.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -83,7 +87,6 @@ app.use("/api/ai", authMiddleware, aiRoutes);
 app.use("/api/vr", authMiddleware, vrRoutes);
 app.use("/api/user", authMiddleware, userRoutes);
 app.use("/api/profile", authMiddleware, profileRoutes);
-app.use("/api/exercises", authMiddleware, exerciseRoutes);
 
 // 404 handler
 app.use("*", (req, res) => {
@@ -96,8 +99,15 @@ app.use("*", (req, res) => {
 // Error handling middleware
 app.use(errorHandler);
 
+// Create HTTP server
+const server = createServer(app);
+
+// Initialize WebSocket services
+websocketService.initialize(server);
+aiWebSocketService.initialize(server);
+
 // Start server
-app.listen(PORT, async () => {
+server.listen(PORT, async () => {
   try {
     // Initialize Firebase (for auth only)
     initializeFirebase();
@@ -111,6 +121,8 @@ app.listen(PORT, async () => {
     console.log(`📚 API Documentation: http://localhost:${PORT}/api`);
     console.log(`🔥 Firebase: Authentication only`);
     console.log(`🍃 MongoDB: Data storage`);
+    console.log(`🔌 WebSocket: Real-time VR tracking enabled`);
+    console.log(`🤖 AI Chat: Gemini 2.0 Flash powered chatbot`);
   } catch (error) {
     console.error("❌ Backend initialization failed:", error);
     process.exit(1);

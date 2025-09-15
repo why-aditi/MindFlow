@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import { Send, Mic, MicOff, Bot, User } from 'lucide-react';
@@ -231,10 +231,10 @@ const AICompanion = () => {
                             : 'text-gray-500'
                         }`}
                       >
-                        {message.timestamp.toLocaleTimeString([], {
+                        {message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit',
-                        })}
+                        }) : 'Just now'}
                       </p>
                     </div>
                   </div>

@@ -10,7 +10,6 @@ const Dashboard = () => {
   const [userStats, setUserStats] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [journalEntries, setJournalEntries] = useState([])
-  const [vrSessions, setVrSessions] = useState([])
   const [aiConversations, setAiConversations] = useState([])
 
   const handleLogout = async () => {
@@ -60,15 +59,9 @@ const Dashboard = () => {
         return entryDate >= todayStart
       })
       
-      const todayVrSessions = vrSessions.filter(session => {
-        const sessionDate = new Date(session.createdAt || session.date)
-        return sessionDate >= todayStart
-      })
-      
       const journalMinutes = todayEntries.length * 5 // Assume 5 minutes per journal entry
-      const vrMinutes = todayVrSessions.reduce((total, session) => total + (session.duration || 0), 0)
       
-      return journalMinutes + vrMinutes
+      return journalMinutes
     }
     
     // Calculate goals completed
@@ -82,12 +75,6 @@ const Dashboard = () => {
       })
       if (hasJournalToday) completedGoals.push('journal')
       
-      // Exercise goal (VR sessions)
-      const hasExerciseToday = vrSessions.some(session => {
-        const sessionDate = new Date(session.createdAt || session.date)
-        return sessionDate >= todayStart
-      })
-      if (hasExerciseToday) completedGoals.push('exercise')
       
       // AI interaction goal
       const hasAiToday = aiConversations.some(conv => {
@@ -124,7 +111,7 @@ const Dashboard = () => {
       goalsCompleted: calculateGoalsCompleted(),
       wellnessScore: calculateWellnessScore()
     }
-  }, [journalEntries, vrSessions, aiConversations])
+  }, [journalEntries, aiConversations])
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -135,8 +122,8 @@ const Dashboard = () => {
           description: 'AI-powered exercise tracking with pose detection',
           icon: '💪',
           color: 'from-green-500 to-blue-500',
-          route: '/vr-meditation',
-          onClick: () => navigate('/vr-meditation')
+          route: '/vr-exercise',
+          onClick: () => navigate('/vr-exercise')
         },
         {
           title: 'AI Companion',
@@ -180,16 +167,6 @@ const Dashboard = () => {
             }
           }
           
-          // Fetch VR sessions
-          const vrResponse = await fetch('http://localhost:5000/api/vr/sessions', {
-            headers: { 'Authorization': `Bearer ${idToken}` }
-          })
-          if (vrResponse.ok) {
-            const vrData = await vrResponse.json()
-            if (vrData.success) {
-              setVrSessions(vrData.sessions || [])
-            }
-          }
           
           // Fetch AI conversations
           const aiResponse = await fetch('http://localhost:5000/api/ai/conversations', {
@@ -208,10 +185,6 @@ const Dashboard = () => {
             { createdAt: new Date().toISOString(), mood: 8 },
             { createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), mood: 7 },
             { createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), mood: 6 }
-          ])
-          setVrSessions([
-            { createdAt: new Date().toISOString(), duration: 15 },
-            { createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), duration: 20 }
           ])
           setAiConversations([
             { createdAt: new Date().toISOString() },
