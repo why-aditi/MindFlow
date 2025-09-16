@@ -6,6 +6,8 @@ import AICompanion from './pages/AICompanion'
 import Journaling from './pages/Journaling'
 import Profile from './pages/Profile'
 import VRExercise from './pages/VRExercise'
+import CommunityForums from './components/CommunityForums'
+import ForumPosts from './components/ForumPosts'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider } from './contexts/AuthContext.jsx'
 
@@ -54,6 +56,16 @@ function App() {
               <Route path="/journaling" element={
                 <ProtectedRoute>
                   <Journaling />
+                </ProtectedRoute>
+              } />
+              <Route path="/community-forums" element={
+                <ProtectedRoute>
+                  <CommunityForums />
+                </ProtectedRoute>
+              } />
+              <Route path="/community-forums/:forumId" element={
+                <ProtectedRoute>
+                  <ForumPosts />
                 </ProtectedRoute>
               } />
               <Route path="/vr-exercise" element={

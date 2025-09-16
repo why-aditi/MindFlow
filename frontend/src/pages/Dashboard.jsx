@@ -163,6 +163,16 @@ const Dashboard = () => {
           onClick: () => navigate('/journaling')
         },
         {
+          title: 'Community Forums',
+          description: 'Connect with others on your wellness journey',
+          icon: Cloud,
+          color: 'from-blue-400 to-indigo-500',
+          bgColor: 'from-blue-50 to-indigo-50',
+          borderColor: 'border-blue-200',
+          route: '/community-forums',
+          onClick: () => navigate('/community-forums')
+        },
+        {
           title: 'Wellness Profile',
           description: 'Track your journey and achievements',
           icon: User,

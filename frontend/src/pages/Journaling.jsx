@@ -5,7 +5,8 @@ import { Button } from '../components/ui/Button'
 import { 
   Mic, MicOff, Save, Calendar, BarChart3, PenTool, Cloud, Leaf, Sparkles,
   Brain, Target, BookOpen, TrendingUp, Heart, Eye, EyeOff, Clock, BarChart, PieChart,
-  Plus, Minus, ChevronRight, ChevronLeft, Zap, Star, Lightbulb
+  Plus, Minus, ChevronRight, ChevronLeft, Zap, Star, Lightbulb,
+  CheckCircle, AlertCircle
 } from 'lucide-react'
 
 const Journaling = () => {
@@ -22,6 +23,9 @@ const Journaling = () => {
   const [isSaving, setIsSaving] = useState(false)
   const [currentDate, setCurrentDate] = useState(new Date())
   const [journalEntries] = useState({})
+
+  // Voice journaling state
+  const [recordingStatus, setRecordingStatus] = useState('')
 
   // Theme and UI state
   const [selectedFramework, setSelectedFramework] = useState(null)
@@ -188,46 +192,72 @@ const Journaling = () => {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
       if (!SpeechRecognition) {
         console.warn('Speech Recognition API not supported')
+        setRecordingStatus('Speech Recognition not supported in this browser')
         return
       }
+      
       if (!recognitionRef.current) {
         const recognition = new SpeechRecognition()
         recognition.lang = 'en-US'
         recognition.interimResults = true
         recognition.continuous = true
+        
         recognition.onresult = (event) => {
+          let interimTranscript = ''
+          let finalTranscript = ''
+          
           for (let i = event.resultIndex; i < event.results.length; i++) {
             const result = event.results[i]
-            const chunk = result[0]?.transcript || ''
+            const transcript = result[0]?.transcript || ''
+            
             if (result.isFinal) {
-              // Commit only final results to avoid repetition
-              interimRef.current = ''
-              if (chunk.trim()) {
-                setCurrentEntry(prev => (prev ? prev + ' ' : '') + chunk.trim())
-              }
+              finalTranscript += transcript
             } else {
-              // Keep interim separately (do not commit to state to prevent duplicates)
-              interimRef.current = chunk
+              interimTranscript += transcript
             }
           }
+          
+          // Update the current entry with final results
+          if (finalTranscript.trim()) {
+            setCurrentEntry(prev => (prev ? prev + ' ' : '') + finalTranscript.trim())
+            // Clear interim results when we have final results
+            interimRef.current = ''
+          }
+          
+          // Show interim results in real-time (only if no final results)
+          if (interimTranscript.trim() && !finalTranscript.trim()) {
+            interimRef.current = interimTranscript
+          }
         }
-        recognition.onerror = () => setIsRecording(false)
+        
+        recognition.onerror = (event) => {
+          console.error('Speech recognition error:', event.error)
+          setIsRecording(false)
+          setRecordingStatus(`Error: ${event.error}`)
+        }
+        
         recognition.onend = () => {
           interimRef.current = ''
           setIsRecording(false)
+          setRecordingStatus('')
         }
+        
         recognitionRef.current = recognition
       }
+      
       if (isRecording) {
         recognitionRef.current.stop()
         setIsRecording(false)
+        setRecordingStatus('')
       } else {
         recognitionRef.current.start()
         setIsRecording(true)
+        setRecordingStatus('Listening...')
       }
     } catch (e) {
       console.error('Voice recording error:', e)
       setIsRecording(false)
+      setRecordingStatus('Error starting voice recognition')
     }
   }
   
@@ -784,12 +814,24 @@ const Journaling = () => {
                       <label className="block text-lg font-semibold text-slate-800 mb-4">Your Entry</label>
                       <div className="relative">
                 <textarea
-                  value={currentEntry}
+                  value={currentEntry + (interimRef.current ? ' ' + interimRef.current : '')}
                   onChange={(e) => setCurrentEntry(e.target.value)}
                   placeholder="Write about your day, thoughts, feelings, or anything on your mind..."
-                          className="w-full h-80 px-6 py-4 border-2 border-slate-200 rounded-2xl resize-none focus:outline-none focus:ring-4 focus:ring-emerald-200 focus:border-emerald-400 bg-slate-50 text-slate-900 placeholder-slate-500 text-base leading-relaxed"
+                          className={`w-full h-80 px-6 py-4 border-2 rounded-2xl resize-none focus:outline-none focus:ring-4 focus:ring-emerald-200 focus:border-emerald-400 text-slate-900 placeholder-slate-500 text-base leading-relaxed transition-all duration-200 ${
+                            isRecording 
+                              ? 'border-red-300 bg-red-50' 
+                              : 'border-slate-200 bg-slate-50'
+                          }`}
                         />
-                        {showVisualHighlights && (
+                        {isRecording && (
+                          <div className="absolute top-4 right-4">
+                            <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg flex items-center space-x-2">
+                              <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                              <span>Voice Input Active</span>
+                            </div>
+                          </div>
+                        )}
+                        {showVisualHighlights && !isRecording && (
                           <div className="absolute top-4 right-4">
                             <div className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg">
                               AI Analysis Available
@@ -801,11 +843,13 @@ const Journaling = () => {
 
               {/* Voice Input */}
                     <div>
-                      <label className="block text-lg font-semibold text-slate-800 mb-4">Voice Entry</label>
+                      <label className="block text-lg font-semibold text-slate-800 mb-4">Voice to Text</label>
+                      <p className="text-sm text-slate-600 mb-4">Speak naturally and your words will appear in the text area above</p>
                 <div className="flex items-center space-x-4">
                   <Button
                     variant="outline"
                     onClick={toggleRecording}
+                    disabled={false}
                           className={`flex items-center space-x-3 px-6 py-3 rounded-xl border-2 transition-all duration-200 ${
                       isRecording 
                         ? 'bg-red-500 text-white border-red-500 hover:bg-red-600' 
@@ -813,13 +857,26 @@ const Journaling = () => {
                     }`}
                   >
                           {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                          <span className="font-medium">{isRecording ? 'Stop Recording' : 'Start Recording'}</span>
+                          <span className="font-medium">{isRecording ? 'Stop Listening' : 'Start Voice Input'}</span>
                   </Button>
                   
                   {isRecording && (
                           <div className="flex items-center space-x-3 text-red-500">
                             <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                            <span className="text-sm font-medium">Recording...</span>
+                            <span className="text-sm font-medium">Listening...</span>
+                    </div>
+                  )}
+
+                  {recordingStatus && !isRecording && (
+                    <div className={`flex items-center space-x-3 ${
+                      recordingStatus.includes('Error') ? 'text-red-500' : 'text-green-500'
+                    }`}>
+                      {recordingStatus.includes('Error') ? (
+                        <AlertCircle className="w-4 h-4" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4" />
+                      )}
+                      <span className="text-sm font-medium">{recordingStatus}</span>
                     </div>
                   )}
                 </div>
@@ -1226,6 +1283,7 @@ const Journaling = () => {
           )}
         </AnimatePresence>
       </div>
+
     </div>
   )
 }
