@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
+import Navbar from '../components/Navbar'
 import { 
   Mic, MicOff, Save, Calendar, BarChart3, PenTool, Cloud, Leaf, Sparkles,
   Brain, Target, BookOpen, TrendingUp, Heart, Eye, EyeOff, Clock, BarChart, PieChart,
@@ -666,29 +667,12 @@ const Journaling = () => {
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center space-x-6">
-              <Button 
-                variant="ghost" 
-                onClick={() => window.history.back()}
-                className="hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5 mr-2" />
-                Back
-              </Button>
-              <div className="flex items-center space-x-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg">
-                  <PenTool className="w-7 h-7 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-slate-900">Mindful Journal</h1>
-                  <p className="text-sm text-slate-500">Express your thoughts and feelings</p>
-                </div>
-              </div>
-            </div>
+      <Navbar />
 
+      {/* Page Navigation */}
+      <div className="bg-white/80 backdrop-blur-xl border-b border-slate-200/50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex justify-center">
             {/* Navigation */}
             <div className="flex items-center space-x-2 bg-slate-100 rounded-2xl p-1">
               {[
@@ -713,7 +697,7 @@ const Journaling = () => {
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from './ui/Button';
+import Navbar from './Navbar';
 import { 
   MessageSquare, 
   Plus, 
@@ -165,26 +166,7 @@ const CommunityForums = () => {
       </div>
 
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/dashboard')}
-                className="hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5 mr-2" />
-                Back
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900">Community Forums</h1>
-                <p className="text-sm text-slate-500">Connect with others on your wellness journey</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">

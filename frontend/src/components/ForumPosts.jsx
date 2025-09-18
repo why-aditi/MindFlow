@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from './ui/Button';
+import Navbar from './Navbar';
 import { 
   ArrowLeft,
   Plus,
@@ -171,8 +172,12 @@ const ForumPosts = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+      <Navbar />
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Forum Info and Actions */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Button
@@ -184,8 +189,8 @@ const ForumPosts = () => {
                 <span>Back to Forums</span>
               </Button>
               <div>
-                <h1 className="text-2xl font-bold text-slate-900">{forum.name}</h1>
-                <p className="text-slate-600">{forum.description}</p>
+                <h1 className="text-2xl font-bold text-slate-900">{forum?.name || 'Loading...'}</h1>
+                <p className="text-slate-600">{forum?.description || 'Loading forum details...'}</p>
               </div>
             </div>
             <Button
@@ -197,10 +202,7 @@ const ForumPosts = () => {
             </Button>
           </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="space-y-6">
           {/* Posts List */}
           <div className="space-y-4">

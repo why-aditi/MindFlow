@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
+import Navbar from '../components/Navbar'
 import { motion, AnimatePresence } from 'framer-motion'
 import poseTrackingService from '../services/mediapipePoseService'
 import { 
@@ -521,28 +522,12 @@ const VRExercise = () => {
       </div>
 
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md shadow-wellness border-b border-emerald-100/50 relative z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center">
-              <Button 
-                variant="ghost" 
-                onClick={() => window.history.back()}
-                className="mr-6 hover:bg-emerald-50 text-slate-600 hover:text-emerald-600"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <div className="flex items-center">
-                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
-                  <Heart className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-light text-slate-700">Mindful Movement</h1>
-                  <p className="text-sm text-slate-500">Wellness & Exercise</p>
-                </div>
-              </div>
-            </div>
-            
+      <Navbar />
+
+      {/* VR Status Bar */}
+      <div className="bg-white/80 backdrop-blur-md shadow-wellness border-b border-emerald-100/50 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-end">
             <div className="flex items-center space-x-6">
               <div className={`flex items-center space-x-3 px-4 py-2 rounded-full ${vrAvailable ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
                 <div className={`w-3 h-3 rounded-full ${vrAvailable ? 'bg-emerald-400' : 'bg-rose-400'}`}></div>
@@ -560,7 +545,7 @@ const VRExercise = () => {
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">

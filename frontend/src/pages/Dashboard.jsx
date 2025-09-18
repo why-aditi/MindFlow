@@ -2,12 +2,12 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
+import Navbar from '../components/Navbar'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Heart, 
   Brain, 
   BookOpen, 
-  User, 
   Sparkles, 
   Leaf, 
   Cloud, 
@@ -19,22 +19,13 @@ import {
 } from 'lucide-react'
 
 const Dashboard = () => {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [quickActions, setQuickActions] = useState([])
   const [userStats, setUserStats] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [journalEntries, setJournalEntries] = useState([])
   const [aiConversations, setAiConversations] = useState([])
-
-  const handleLogout = async () => {
-    try {
-      await logout()
-      navigate('/')
-    } catch (err) {
-      console.error('Logout failed:', err)
-    }
-  }
 
   // Calculate dynamic progress metrics
   const calculateProgressMetrics = useCallback(() => {
@@ -171,16 +162,6 @@ const Dashboard = () => {
           borderColor: 'border-blue-200',
           route: '/community-forums',
           onClick: () => navigate('/community-forums')
-        },
-        {
-          title: 'Wellness Profile',
-          description: 'Track your journey and achievements',
-          icon: User,
-          color: 'from-rose-400 to-pink-500',
-          bgColor: 'from-rose-50 to-pink-50',
-          borderColor: 'border-rose-200',
-          route: '/profile',
-          onClick: () => navigate('/profile')
         }
       ]
 
@@ -343,37 +324,7 @@ const Dashboard = () => {
       </div>
 
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md shadow-wellness border-b border-emerald-100/50 relative z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
-                <Heart className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-light text-slate-700">MindFlow</h1>
-                <p className="text-sm text-slate-500">Your Wellness Journey</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-6">
-              <div className="text-right">
-                <p className="text-sm font-medium text-slate-700">
-                  Welcome back, {user?.displayName || 'Wellness Seeker'}!
-                </p>
-                <p className="text-xs text-slate-500">Ready for your wellness journey?</p>
-              </div>
-              <Button 
-                variant="outline" 
-                onClick={handleLogout}
-                className="hover:bg-emerald-50 border-emerald-200 text-slate-600 hover:text-emerald-600 px-4 py-2 rounded-xl"
-              >
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">

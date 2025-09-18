@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
+import Navbar from '../components/Navbar';
 import ChatSidebar from '../components/ChatSidebar';
 import { Send, Mic, MicOff, Bot, User, Heart, Sparkles, Leaf, Cloud, Waves, ArrowLeft } from 'lucide-react';
 
@@ -282,48 +283,24 @@ const AICompanion = () => {
       </div>
 
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md shadow-wellness border-b border-emerald-100/50 relative z-10">
-        <div className="max-w-4xl mx-auto px-3 sm:px-4 lg:px-8">
-          <div className="flex justify-between items-center h-16 sm:h-20">
-            <div className="flex items-center min-w-0 flex-1">
-              <Button
-                variant="ghost"
-                onClick={() => window.history.back()}
-                className="mr-2 sm:mr-6 hover:bg-emerald-50 text-slate-600 hover:text-emerald-600 flex-shrink-0"
-              >
-                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-              </Button>
-              <div className="flex items-center min-w-0">
-                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl sm:rounded-2xl flex items-center justify-center mr-2 sm:mr-4 shadow-lg flex-shrink-0">
-                  <Heart className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
-                </div>
-                <div className="min-w-0">
-                  <h1 className="text-lg sm:text-2xl font-light text-slate-700 truncate">
-                    AI Wellness Coach
-                  </h1>
-                  <p className="text-xs sm:text-sm text-slate-500 hidden sm:block">Your mindful companion</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
-              <Button
-                variant="ghost"
-                onClick={startNewChat}
-                className="hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2"
-              >
-                <span className="hidden sm:inline">New Chat</span>
-                <span className="sm:hidden">New</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Chat Container */}
       <div className={`max-w-4xl mx-auto px-2 sm:px-4 lg:px-8 py-3 sm:py-6 transition-all duration-300 ${
         isSidebarOpen ? 'lg:ml-80' : ''
       }`}>
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-wellness h-[calc(100vh-140px)] sm:h-[calc(100vh-200px)] flex flex-col border border-emerald-100">
+        {/* New Chat Button */}
+        <div className="flex justify-end mb-4">
+          <Button
+            onClick={startNewChat}
+            className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-wellness hover:shadow-wellness-lg px-4 py-2 rounded-xl"
+          >
+            <span className="mr-2">+</span>
+            New Chat
+          </Button>
+        </div>
+        
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-wellness h-[calc(100vh-180px)] sm:h-[calc(100vh-240px)] flex flex-col border border-emerald-100">
           {/* Messages */}
           <div 
             ref={messagesContainerRef}
