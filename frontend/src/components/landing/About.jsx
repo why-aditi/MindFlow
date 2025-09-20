@@ -108,6 +108,11 @@ const About = () => {
                   icon: "📝", 
                   title: "Gentle Journaling", 
                   description: "Express your thoughts safely with AI-powered insights and privacy" 
+                },
+                { 
+                  icon: "👥", 
+                  title: "Community Support", 
+                  description: "Connect with others on similar journeys in safe, moderated forums" 
                 }
               ].map((item, index) => (
                 <motion.div

@@ -30,6 +30,13 @@ const Wellness = () => {
       image: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=90",
       duration: "15-30 min",
       level: "All Levels"
+    },
+    {
+      title: "Community Connection",
+      description: "Join supportive forums where you can share experiences, find encouragement, and connect with others on similar wellness journeys.",
+      image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=90",
+      duration: "10-30 min",
+      level: "All Levels"
     }
   ]
 
@@ -135,7 +142,7 @@ const Wellness = () => {
         </motion.div>
 
         {/* Wellness Practices */}
-        <div className="grid md:grid-cols-2 gap-8 mb-20">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20">
           {practices.map((practice, index) => (
             <motion.div
               key={practice.title}

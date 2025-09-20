@@ -124,16 +124,6 @@ const Features = () => {
           viewport={{ once: true }}
         >
           <div className="text-center mb-16">
-            <motion.div
-              className="inline-flex items-center px-4 py-2 bg-teal-100/50 rounded-full border border-teal-200/50 mb-6"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              viewport={{ once: true }}
-            >
-              <span className="text-teal-600 text-sm font-medium">✨ Advanced Wellness Technology</span>
-            </motion.div>
-
             <h3 className="text-3xl lg:text-5xl font-light text-slate-800 mb-4">
               Gentle Technology for{' '}
               <span className="bg-gradient-to-r from-teal-500 to-cyan-500 bg-clip-text text-transparent font-normal">
@@ -145,7 +135,7 @@ const Features = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               {
                 title: "AI Companion",
@@ -164,6 +154,12 @@ const Features = () => {
                 description: "Express your thoughts safely with AI-powered insights that help you understand your mental patterns",
                 image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=90",
                 features: ["Voice transcription", "Mood graphs", "Privacy protection", "Gentle insights"]
+              },
+              {
+                title: "Community Forums",
+                description: "Connect with others on similar wellness journeys in safe, moderated spaces where you can share experiences and find support",
+                image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=90",
+                features: ["Safe discussions", "Peer support", "Expert moderation", "Topic categories"]
               }
             ].map((feature, index) => (
               <motion.div
