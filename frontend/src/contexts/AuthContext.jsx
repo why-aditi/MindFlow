@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { auth, googleProvider } from '../config/firebase'
 import { onAuthStateChanged, signInWithPopup, getRedirectResult, signOut } from 'firebase/auth'
 import { AuthContext } from './AuthContext'
@@ -7,6 +7,46 @@ import { getDeviceInfo } from '../utils/mobileUtils'
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const tokenRefreshIntervalRef = useRef(null)
+
+  // Get backend URL based on environment
+  const getBackendUrl = () => {
+    if (typeof window !== 'undefined') {
+      // Use the same host as the frontend but with port 8000
+      const host = window.location.hostname
+      const protocol = window.location.protocol
+      return `${protocol}//${host}:8000`
+    }
+    return 'http://localhost:8000'
+  }
+
+  // Helper function to cleanup token refresh interval
+  const cleanupTokenRefresh = useCallback(() => {
+    if (tokenRefreshIntervalRef.current) {
+      clearInterval(tokenRefreshIntervalRef.current)
+      tokenRefreshIntervalRef.current = null
+    }
+  }, [])
+
+  // Handle automatic logout when token expires
+  const handleTokenExpiration = useCallback(async () => {
+    console.log('Token expired, logging out user')
+    try {
+      // Cleanup token refresh interval
+      cleanupTokenRefresh()
+      
+      // Call backend logout to clear cookie
+      await fetch(`${getBackendUrl()}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+      
+      // Sign out from Firebase
+      await signOut(auth)
+    } catch (error) {
+      console.error('Error during automatic logout:', error)
+    }
+  }, [cleanupTokenRefresh])
 
   // Log device info for debugging
   useEffect(() => {
@@ -14,21 +54,73 @@ export const AuthProvider = ({ children }) => {
     console.log('Device Info:', deviceInfo)
   }, [])
 
-  // Get backend URL based on environment
-  const getBackendUrl = () => {
-    if (typeof window !== 'undefined') {
-      // Use the same host as the frontend but with port 5000
-      const host = window.location.hostname
-      const protocol = window.location.protocol
-      return `${protocol}//${host}:5000`
+  // Listen for token expiration events
+  useEffect(() => {
+    const handleTokenExpired = () => {
+      console.log('Token expired event received, logging out user')
+      handleTokenExpiration()
     }
-    return 'http://localhost:5000'
-  }
+
+    window.addEventListener('token-expired', handleTokenExpired)
+    
+    return () => {
+      window.removeEventListener('token-expired', handleTokenExpired)
+    }
+  }, [handleTokenExpiration])
+
+  // Refresh Firebase token and update backend
+  const refreshToken = useCallback(async () => {
+    if (!user) return false
+
+    try {
+      // Get fresh token from Firebase
+      const idToken = await user.getIdToken(true) // Force refresh
+      
+      // Send to backend to refresh session
+      const response = await fetch(`${getBackendUrl()}/api/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        credentials: 'include'
+      })
+
+      if (response.ok) {
+        console.log('Token refreshed successfully')
+        return true
+      } else {
+        console.error('Token refresh failed:', response.status)
+        return false
+      }
+    } catch (error) {
+      console.error('Error refreshing token:', error)
+      return false
+    }
+  }, [user])
+
+  // Setup token refresh interval
+  const setupTokenRefresh = useCallback(() => {
+    // Clear existing interval if any
+    if (tokenRefreshIntervalRef.current) {
+      clearInterval(tokenRefreshIntervalRef.current)
+    }
+    
+    // Refresh token every 45 minutes (Firebase tokens expire after 1 hour)
+    const interval = setInterval(async () => {
+      const success = await refreshToken()
+      if (!success) {
+        await handleTokenExpiration()
+      }
+    }, 45 * 60 * 1000) // 45 minutes
+    
+    tokenRefreshIntervalRef.current = interval
+  }, [refreshToken, handleTokenExpiration])
 
   // Check if user is authenticated via cookie on app load
-  const checkAuthStatus = async () => {
+  const checkAuthStatus = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/auth/profile', {
+      const response = await fetch(`${getBackendUrl()}/api/auth/profile`, {
         method: 'GET',
         credentials: 'include'
       })
@@ -44,7 +136,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.log('No valid session found:', error.message)
     }
-  }
+  }, [])
 
   useEffect(() => {
     // Handle redirect result first
@@ -87,14 +179,21 @@ export const AuthProvider = ({ children }) => {
         setUser(user)
         // Check backend session when Firebase user is available
         await checkAuthStatus()
+        // Setup token refresh for authenticated user
+        setupTokenRefresh()
       } else {
         setUser(null)
+        // Cleanup token refresh when user logs out
+        cleanupTokenRefresh()
       }
       setLoading(false)
     })
 
-    return unsubscribe
-  }, [])
+    return () => {
+      unsubscribe()
+      cleanupTokenRefresh()
+    }
+  }, [setupTokenRefresh, cleanupTokenRefresh, checkAuthStatus])
 
   const signInWithGoogle = async () => {
     try {
@@ -106,7 +205,7 @@ export const AuthProvider = ({ children }) => {
         const idToken = await result.user.getIdToken()
         
         // Call backend to verify/create user profile with credentials
-        const response = await fetch('http://localhost:8000/api/auth/verify', {
+        const response = await fetch(`${getBackendUrl()}/api/auth/verify`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -130,6 +229,8 @@ export const AuthProvider = ({ children }) => {
         
         // Manually set user state to avoid waiting for onAuthStateChanged
         setUser(result.user)
+        // Setup token refresh for newly signed in user
+        setupTokenRefresh()
       }
       
       setLoading(false)
@@ -143,8 +244,11 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      // Cleanup token refresh interval
+      cleanupTokenRefresh()
+      
       // Call backend logout to clear cookie
-      await fetch('http://localhost:8000/api/auth/logout', {
+      await fetch(`${getBackendUrl()}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include'
       })
@@ -161,7 +265,8 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     signInWithGoogle,
-    logout
+    logout,
+    refreshToken
   }
 
   return (

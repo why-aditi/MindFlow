@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
 import Navbar from '../components/Navbar'
 import { motion, AnimatePresence } from 'framer-motion'
+import { apiClient } from '../utils/apiClient'
 import { 
   Heart, 
   Brain, 
@@ -168,12 +169,8 @@ const Dashboard = () => {
       // Fetch user data for dynamic calculations
       if (user) {
         try {
-          const idToken = await user.getIdToken()
-          
           // Fetch journal entries
-          const journalResponse = await fetch('http://localhost:8000/api/journal/entries', {
-            headers: { 'Authorization': `Bearer ${idToken}` }
-          })
+          const journalResponse = await apiClient.get('/api/journal/entries')
           if (journalResponse.ok) {
             const journalData = await journalResponse.json()
             if (journalData.success) {
@@ -183,9 +180,7 @@ const Dashboard = () => {
           
           
           // Fetch AI conversations
-          const aiResponse = await fetch('http://localhost:8000/api/ai/conversations', {
-            headers: { 'Authorization': `Bearer ${idToken}` }
-          })
+          const aiResponse = await apiClient.get('/api/ai/conversations')
           if (aiResponse.ok) {
             const aiData = await aiResponse.json()
             if (aiData.success) {

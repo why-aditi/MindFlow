@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import Navbar from '../components/Navbar';
 import ChatSidebar from '../components/ChatSidebar';
+import { apiClient } from '../utils/apiClient';
 import { Send, Mic, MicOff, Bot, User, Heart, Sparkles, Leaf, Cloud, Waves, ArrowLeft } from 'lucide-react';
 
 const AICompanion = () => {
@@ -28,12 +29,7 @@ const AICompanion = () => {
 
     setIsInitializing(true)
     try {
-      const idToken = await user.getIdToken()
-      const response = await fetch(`http://localhost:8000/api/ai/conversations/${sessionId}`, {
-        headers: {
-          'Authorization': `Bearer ${idToken}`
-        }
-      })
+      const response = await apiClient.get(`/api/ai/conversations/${sessionId}`)
 
       if (response.ok) {
         const data = await response.json()
@@ -79,13 +75,7 @@ const AICompanion = () => {
     const handleBeforeUnload = async () => {
       if (currentSessionId && user) {
         try {
-          const idToken = await user.getIdToken()
-          await fetch(`http://localhost:8000/api/ai/conversations/${currentSessionId}/close`, {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bearer ${idToken}`
-            }
-          })
+          await apiClient.put(`/api/ai/conversations/${currentSessionId}/close`)
         } catch (error) {
           console.error('Error closing session on unload:', error)
         }
@@ -190,17 +180,9 @@ const AICompanion = () => {
     setIsLoading(true);
 
     try {
-      const idToken = await user.getIdToken()
-      const response = await fetch('http://localhost:8000/api/ai/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify({ 
-          message: messageText,
-          ...(currentSessionId && { sessionId: currentSessionId })
-        })
+      const response = await apiClient.post('/api/ai/chat', { 
+        message: messageText,
+        ...(currentSessionId && { sessionId: currentSessionId })
       })
       
       if (!response.ok) {

@@ -6,7 +6,7 @@ export const authController = {
   async verifyUser(req, res) {
     try {
       const { uid, email, name, picture } = req.body;
-      const idToken = req.headers.authorization?.split(' ')[1];
+      const idToken = req.headers.authorization?.split(" ")[1];
 
       // Check if user exists
       let user = await User.findOne({ uid });
@@ -21,12 +21,12 @@ export const authController = {
 
         // Set secure HTTP-only cookie for authentication persistence
         if (idToken) {
-          res.cookie('authToken', idToken, {
+          res.cookie("authToken", idToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-            path: '/'
+            path: "/",
           });
         }
 
@@ -57,12 +57,12 @@ export const authController = {
 
         // Set secure HTTP-only cookie for authentication persistence
         if (idToken) {
-          res.cookie('authToken', idToken, {
+          res.cookie("authToken", idToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-            path: '/'
+            path: "/",
           });
         }
 
@@ -84,16 +84,16 @@ export const authController = {
   // Logout user and clear cookie
   async logout(req, res) {
     try {
-      res.clearCookie('authToken', {
+      res.clearCookie("authToken", {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/'
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
       });
-      
+
       res.json({
         success: true,
-        message: "Logged out successfully"
+        message: "Logged out successfully",
       });
     } catch (error) {
       console.error("Logout error:", error);
@@ -159,6 +159,51 @@ export const authController = {
       console.error("Update profile error:", error);
       res.status(500).json({
         error: "Failed to update profile",
+        message: error.message,
+      });
+    }
+  },
+
+  // Refresh user token
+  async refreshToken(req, res) {
+    try {
+      const { uid } = req.user;
+      const auth = getAuthInstance();
+
+      // Get the current user from Firebase
+      const firebaseUser = await auth.getUser(uid);
+
+      if (!firebaseUser) {
+        return res.status(404).json({
+          error: "User not found",
+          message: "User does not exist in Firebase",
+        });
+      }
+
+      // Generate a new custom token (this would typically be done by the client)
+      // For now, we'll just verify the current token is still valid
+      const user = await User.findOne({ uid });
+
+      if (!user) {
+        return res.status(404).json({
+          error: "User not found",
+          message: "User profile not found",
+        });
+      }
+
+      // Update last login
+      user.lastLogin = new Date();
+      await user.save();
+
+      res.json({
+        success: true,
+        message: "Token refreshed successfully",
+        user: user,
+      });
+    } catch (error) {
+      console.error("Refresh token error:", error);
+      res.status(500).json({
+        error: "Failed to refresh token",
         message: error.message,
       });
     }

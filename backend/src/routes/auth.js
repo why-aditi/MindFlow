@@ -33,6 +33,7 @@ router.post(
   authController.verifyUser
 );
 router.post("/logout", authController.logout);
+router.post("/refresh", authMiddleware, authController.refreshToken);
 router.get("/profile", authMiddleware, authController.getProfile);
 router.put(
   "/profile",
