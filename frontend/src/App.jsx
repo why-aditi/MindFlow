@@ -4,6 +4,7 @@ import LandingPage from './pages/LandingPage'
 import Dashboard from './pages/Dashboard'
 import AICompanion from './pages/AICompanion'
 import Journaling from './pages/Journaling'
+import JournalEntryDetail from './pages/JournalEntryDetail'
 import Profile from './pages/Profile'
 import VRExercise from './pages/VRExercise'
 import CommunityForums from './components/CommunityForums'
@@ -56,6 +57,11 @@ function App() {
               <Route path="/journaling" element={
                 <ProtectedRoute>
                   <Journaling />
+                </ProtectedRoute>
+              } />
+              <Route path="/journal-entry/:entryId" element={
+                <ProtectedRoute>
+                  <JournalEntryDetail />
                 </ProtectedRoute>
               } />
               <Route path="/community-forums" element={

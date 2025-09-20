@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
 import Navbar from '../components/Navbar'
@@ -12,6 +13,7 @@ import {
 
 const Journaling = () => {
   const { user } = useAuth()
+  const navigate = useNavigate()
   
   // Core journal state
   const [entries, setEntries] = useState([])
@@ -661,19 +663,7 @@ const Journaling = () => {
   }
 
   const handleEntryClick = (entry) => {
-    setCurrentEntry(entry.content)
-    setSelectedTags(entry.tags || [])
-    setView('write')
-    setIsModalOpen(false)
-    
-    // Scroll to the editor section
-    setTimeout(() => {
-      const editorElement = document.querySelector('textarea')
-      if (editorElement) {
-        editorElement.focus()
-        editorElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
-    }, 100)
+    navigate(`/journal-entry/${entry._id}`)
   }
 
   const closeModal = () => {
