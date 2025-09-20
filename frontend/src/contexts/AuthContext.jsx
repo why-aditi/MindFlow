@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { auth, googleProvider } from '../config/firebase'
-import { onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from 'firebase/auth'
+import { onAuthStateChanged, signInWithPopup, getRedirectResult, signOut } from 'firebase/auth'
 import { AuthContext } from './AuthContext'
-import { isMobile, getDeviceInfo } from '../utils/mobileUtils'
+import { getDeviceInfo } from '../utils/mobileUtils'
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
@@ -35,13 +35,14 @@ export const AuthProvider = ({ children }) => {
       
       if (response.ok) {
         const userData = await response.json()
+        console.log('User session verified:', userData)
         // If we have a valid session, get the Firebase user
         if (auth.currentUser) {
           setUser(auth.currentUser)
         }
       }
     } catch (error) {
-      console.log('No valid session found')
+      console.log('No valid session found:', error.message)
     }
   }
 
