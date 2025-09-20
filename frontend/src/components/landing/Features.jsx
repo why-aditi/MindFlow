@@ -135,7 +135,7 @@ const Features = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               {
                 title: "AI Companion",
@@ -154,6 +154,12 @@ const Features = () => {
                 description: "Express your thoughts safely with AI-powered insights that help you understand your mental patterns",
                 image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=90",
                 features: ["Voice transcription", "Mood graphs", "Privacy protection", "Gentle insights"]
+              },
+              {
+                title: "Community Forums",
+                description: "Connect with others on similar wellness journeys in safe, moderated spaces where you can share experiences and find support",
+                image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=90",
+                features: ["Safe discussions", "Peer support", "Expert moderation", "Topic categories"]
               }
             ].map((feature, index) => (
               <motion.div

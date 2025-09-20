@@ -35,7 +35,10 @@ const Rewards = () => {
     { activity: "VR relaxation", points: 100, icon: "🥽" },
     { activity: "Weekly reflection", points: 200, icon: "🌙" },
     { activity: "Helping others", points: 150, icon: "🤝" },
-    { activity: "Learning & growth", points: 75, icon: "🌱" }
+    { activity: "Learning & growth", points: 75, icon: "🌱" },
+    { activity: "Community participation", points: 40, icon: "👥" },
+    { activity: "Supporting peers", points: 60, icon: "💬" },
+    { activity: "Sharing experiences", points: 80, icon: "📖" }
   ]
 
   return (
@@ -144,7 +147,7 @@ const Rewards = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {activities.map((item, index) => (
               <motion.div
                 key={index}
