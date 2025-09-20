@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from './ui/Button';
 import Navbar from './Navbar';
+import { getApiBaseUrl } from '../utils/config';
 import { 
   ArrowLeft,
   Plus,
@@ -28,7 +29,7 @@ const ForumPosts = () => {
     try {
       setLoading(true);
       const idToken = await user.getIdToken();
-      const response = await fetch(`http://localhost:8000/api/community-forums/${forumId}`, {
+      const response = await fetch(`${getApiBaseUrl()}/community-forums/${forumId}`, {
         headers: {
           'Authorization': `Bearer ${idToken}`,
         },
@@ -49,7 +50,7 @@ const ForumPosts = () => {
     try {
       setLoading(true);
       const idToken = await user.getIdToken();
-      const response = await fetch(`http://localhost:8000/api/community-forums/${forumId}/posts`, {
+      const response = await fetch(`${getApiBaseUrl()}/community-forums/${forumId}/posts`, {
         headers: {
           'Authorization': `Bearer ${idToken}`,
         },
@@ -96,7 +97,7 @@ const ForumPosts = () => {
       
       console.log('postData being sent:', postData);
       
-      const response = await fetch(`http://localhost:8000/api/community-forums/${forumId}/posts`, {
+      const response = await fetch(`${getApiBaseUrl()}/community-forums/${forumId}/posts`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${idToken}`,

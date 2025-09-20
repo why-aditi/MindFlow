@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from './ui/Button';
+import { getApiBaseUrl } from '../utils/config';
 import { 
   MessageSquare, 
   Plus, 
@@ -35,7 +36,7 @@ const ChatSidebar = ({
     
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch('http://localhost:8000/api/ai/chat-sessions', {
+      const response = await fetch(`${getApiBaseUrl()}/ai/chat-sessions`, {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
@@ -68,7 +69,7 @@ const ChatSidebar = ({
     
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch(`http://localhost:8000/api/ai/conversations/${sessionId}/close`, {
+      const response = await fetch(`${getApiBaseUrl()}/ai/conversations/${sessionId}/close`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${idToken}`
@@ -94,7 +95,7 @@ const ChatSidebar = ({
     setIsDeleting(true);
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch(`http://localhost:8000/api/ai/conversations/${sessionId}`, {
+      const response = await fetch(`${getApiBaseUrl()}/ai/conversations/${sessionId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${idToken}`

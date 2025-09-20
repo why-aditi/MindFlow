@@ -1,15 +1,5 @@
 import { auth } from "../config/firebase";
-
-// Get backend URL based on environment
-const getBackendUrl = () => {
-  if (typeof window !== "undefined") {
-    // Use the same host as the frontend but with port 8000
-    const host = window.location.hostname;
-    const protocol = window.location.protocol;
-    return `${protocol}//${host}:8000`;
-  }
-  return "http://localhost:8000";
-};
+import { getBackendUrl } from "./config";
 
 // API client with automatic token refresh and retry
 class ApiClient {

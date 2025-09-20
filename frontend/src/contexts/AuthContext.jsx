@@ -3,22 +3,12 @@ import { auth, googleProvider } from '../config/firebase'
 import { onAuthStateChanged, signInWithPopup, getRedirectResult, signOut } from 'firebase/auth'
 import { AuthContext } from './AuthContext'
 import { getDeviceInfo } from '../utils/mobileUtils'
+import { getBackendUrl } from '../utils/config'
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const tokenRefreshIntervalRef = useRef(null)
-
-  // Get backend URL based on environment
-  const getBackendUrl = () => {
-    if (typeof window !== 'undefined') {
-      // Use the same host as the frontend but with port 8000
-      const host = window.location.hostname
-      const protocol = window.location.protocol
-      return `${protocol}//${host}:8000`
-    }
-    return 'http://localhost:8000'
-  }
 
   // Helper function to cleanup token refresh interval
   const cleanupTokenRefresh = useCallback(() => {

@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
 import { motion } from 'framer-motion'
 import { User, Settings, Target, Award, Calendar, BarChart3, Globe, Bell, Cloud, Leaf, Sparkles, Brain, Heart } from 'lucide-react'
+import { getApiBaseUrl } from '../utils/config'
 
 const Profile = () => {
   const { user } = useAuth()
@@ -53,28 +54,28 @@ const Profile = () => {
       const idToken = await user.getIdToken()
       
       // Fetch wellness goals
-      const goalsResponse = await fetch('http://localhost:8000/api/profile/wellness-goals', {
+      const goalsResponse = await fetch(`${getApiBaseUrl()}/profile/wellness-goals`, {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
       })
       
       // Fetch achievements
-      const achievementsResponse = await fetch('http://localhost:8000/api/profile/achievements', {
+      const achievementsResponse = await fetch(`${getApiBaseUrl()}/profile/achievements`, {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
       })
       
       // Fetch user stats
-      const statsResponse = await fetch('http://localhost:8000/api/profile/stats', {
+      const statsResponse = await fetch(`${getApiBaseUrl()}/profile/stats`, {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
       })
       
       // Fetch user preferences
-      const preferencesResponse = await fetch('http://localhost:8000/api/profile/preferences', {
+      const preferencesResponse = await fetch(`${getApiBaseUrl()}/profile/preferences`, {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
@@ -84,21 +85,21 @@ const Profile = () => {
       
       
       // Fetch journal entries for wellness calculation
-      const journalResponse = await fetch('http://localhost:8000/api/journal/entries', {
+      const journalResponse = await fetch(`${getApiBaseUrl()}/journal/entries`, {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
       })
       
       // Fetch AI conversations for wellness calculation
-      const aiResponse = await fetch('http://localhost:8000/api/ai/conversations', {
+      const aiResponse = await fetch(`${getApiBaseUrl()}/ai/conversations`, {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
       })
       
       // Fetch exercise sessions for wellness calculation
-      const exerciseResponse = await fetch('http://localhost:8000/api/vr/sessions', {
+      const exerciseResponse = await fetch(`${getApiBaseUrl()}/vr/sessions`, {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
@@ -210,12 +211,8 @@ const Profile = () => {
         console.error('Failed to fetch preferences:', preferencesData.error)
       }
       
-      if (activityDistData.success) {
-        setActivityDistribution(activityDistData.distribution || {})
-      } else {
-        console.error('Failed to fetch activity distribution:', activityDistData.error)
-        setActivityDistribution({})
-      }
+      // Set default activity distribution since we're not fetching it from backend
+      setActivityDistribution({})
     } catch (error) {
       console.error('Error fetching profile data:', error.message)
       setWellnessGoals([])
@@ -415,7 +412,7 @@ const Profile = () => {
   const updateGoal = async (goalId, newValue) => {
     try {
       const idToken = await user.getIdToken()
-      const response = await fetch('http://localhost:8000/api/profile/wellness-goals', {
+      const response = await fetch(`${getApiBaseUrl()}/profile/wellness-goals`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -455,7 +452,7 @@ const Profile = () => {
       }
 
       const idToken = await user.getIdToken()
-      const response = await fetch('http://localhost:8000/api/profile/wellness-goals', {
+      const response = await fetch(`${getApiBaseUrl()}/profile/wellness-goals`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

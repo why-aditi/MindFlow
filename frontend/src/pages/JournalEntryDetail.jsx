@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import Navbar from '../components/Navbar';
+import { getApiBaseUrl } from '../utils/config';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -43,7 +44,7 @@ const JournalEntryDetail = () => {
       setError(null);
       
       const idToken = await user.getIdToken();
-      const response = await fetch(`http://localhost:8000/api/journal/entries/${entryId}`, {
+      const response = await fetch(`${getApiBaseUrl()}/journal/entries/${entryId}`, {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
@@ -73,7 +74,7 @@ const JournalEntryDetail = () => {
     try {
       setIsAnalyzing(true);
       const idToken = await user.getIdToken();
-      const response = await fetch('http://localhost:8000/api/ai/analyze-journal', {
+      const response = await fetch(`${getApiBaseUrl()}/ai/analyze-journal`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -151,7 +152,7 @@ const JournalEntryDetail = () => {
     
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch(`http://localhost:8000/api/journal/entries/${entryId}`, {
+      const response = await fetch(`${getApiBaseUrl()}/journal/entries/${entryId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${idToken}`

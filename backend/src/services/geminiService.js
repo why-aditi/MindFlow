@@ -117,6 +117,13 @@ class GeminiService {
         chatHistory.length = 0; // Clear invalid history
       }
 
+      // Determine response length based on context
+      const maxTokens = this.getResponseLength(
+        userMessage,
+        conversationHistory,
+        context
+      );
+
       // Try primary model first (2.5-flash)
       let chat,
         modelUsed = "gemini-2.5-flash";
@@ -128,7 +135,7 @@ class GeminiService {
             temperature: 0.7,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 1024,
+            maxOutputTokens: maxTokens,
           },
           systemInstruction: {
             parts: [{ text: systemPrompt }],
@@ -175,7 +182,7 @@ class GeminiService {
                 temperature: 0.7,
                 topK: 40,
                 topP: 0.95,
-                maxOutputTokens: 1024,
+                maxOutputTokens: maxTokens,
               },
               systemInstruction: {
                 parts: [{ text: systemPrompt }],
@@ -227,6 +234,69 @@ class GeminiService {
   }
 
   /**
+   * Determine appropriate response length based on context
+   */
+  getResponseLength(userMessage, conversationHistory, context) {
+    const messageLength = userMessage.length;
+    const conversationLength = conversationHistory.length;
+
+    // Crisis situations need longer responses
+    const crisisKeywords = [
+      "suicide",
+      "kill myself",
+      "hurt myself",
+      "hurting myself",
+      "crisis",
+      "emergency",
+    ];
+    const isCrisis = crisisKeywords.some((keyword) =>
+      userMessage.toLowerCase().includes(keyword)
+    );
+
+    if (isCrisis) {
+      return 400; // Longer for crisis support
+    }
+
+    // Short responses for simple greetings or acknowledgments
+    const greetingKeywords = [
+      "hello",
+      "hi",
+      "hey",
+      "thanks",
+      "thank you",
+      "ok",
+      "okay",
+    ];
+    const isGreeting = greetingKeywords.some((keyword) =>
+      userMessage.toLowerCase().includes(keyword)
+    );
+
+    if (isGreeting && messageLength < 50) {
+      return 150; // Very short for greetings
+    }
+
+    // Medium responses for complex questions or emotional topics
+    const complexKeywords = [
+      "why",
+      "how",
+      "what should",
+      "advice",
+      "help me",
+      "struggling",
+    ];
+    const isComplex = complexKeywords.some((keyword) =>
+      userMessage.toLowerCase().includes(keyword)
+    );
+
+    if (isComplex || messageLength > 100) {
+      return 300; // Medium length for complex topics
+    }
+
+    // Default short response
+    return 200;
+  }
+
+  /**
    * Build system prompt for mental wellness support
    */
   buildSystemPrompt(language, context) {
@@ -249,13 +319,14 @@ Guidelines:
 - Use active listening and validation techniques
 
 Response style:
-- Keep responses conversational and engaging
+- Keep responses CONCISE and conversational (aim for 2-4 sentences)
 - Use appropriate emojis sparingly
 - Ask follow-up questions to show interest
 - Provide practical, actionable advice
 - Be culturally sensitive and inclusive
+- Focus on one key point per response to avoid overwhelming users
 
-Remember: You are not a replacement for professional mental health care, but a supportive companion on their wellness journey.`;
+Remember: You are not a replacement for professional mental health care, but a supportive companion on their wellness journey. Keep responses brief and focused.`;
 
     // Add language-specific instructions
     if (language !== "en") {

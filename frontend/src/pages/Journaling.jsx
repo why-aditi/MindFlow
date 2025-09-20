@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
 import Navbar from '../components/Navbar'
+import { getApiBaseUrl } from '../utils/config'
 import { 
   Mic, MicOff, Save, Calendar, BarChart3, PenTool, Cloud, Leaf, Sparkles,
   Brain, Target, BookOpen, TrendingUp, Heart, Eye, EyeOff, Clock, BarChart, PieChart,
@@ -107,7 +108,7 @@ const Journaling = () => {
       }
 
       const idToken = await user.getIdToken()
-      const response = await fetch('http://localhost:8000/api/journal/entries', {
+      const response = await fetch(`${getApiBaseUrl()}/journal/entries`, {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
@@ -185,8 +186,8 @@ const Journaling = () => {
       // Determine if we're creating or updating
       const isUpdate = editingEntry !== null
       const url = isUpdate 
-        ? `http://localhost:8000/api/journal/entries/${editingEntry.id}`
-        : 'http://localhost:8000/api/journal/entries'
+        ? `${getApiBaseUrl()}/journal/entries/${editingEntry.id}`
+        : `${getApiBaseUrl()}/journal/entries`
       
       const method = isUpdate ? 'PUT' : 'POST'
       
@@ -337,7 +338,7 @@ const Journaling = () => {
     setIsAnalyzing(true)
     try {
       const idToken = await user.getIdToken()
-      const response = await fetch('http://localhost:8000/api/ai/analyze-journal', {
+      const response = await fetch(`${getApiBaseUrl()}/ai/analyze-journal`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

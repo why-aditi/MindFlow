@@ -34,6 +34,7 @@ import aiWebSocketService from "./src/services/aiWebSocketService.js";
 
 const app = express();
 const PORT = process.env.PORT || 8000;
+const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${PORT}`;
 
 // Security middleware
 app.use(helmet());

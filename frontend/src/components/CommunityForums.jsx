@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from './ui/Button';
 import Navbar from './Navbar';
+import { getApiBaseUrl } from '../utils/config';
 import { 
   MessageSquare, 
   Plus, 
@@ -29,7 +30,7 @@ const CommunityForums = () => {
     try {
       setLoading(true);
       const idToken = await user.getIdToken();
-      const response = await fetch('http://localhost:8000/api/community-forums/', {
+      const response = await fetch(`${getApiBaseUrl()}/community-forums/`, {
         headers: {
           'Authorization': `Bearer ${idToken}`,
         },
@@ -49,7 +50,7 @@ const CommunityForums = () => {
   const createForum = async () => {
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch('http://localhost:8000/api/community-forums/', {
+      const response = await fetch(`${getApiBaseUrl()}/community-forums/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${idToken}`,
