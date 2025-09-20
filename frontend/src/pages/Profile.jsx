@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
 import { motion } from 'framer-motion'
-import { User, Settings, Target, Award, Calendar, BarChart3, Globe, Bell, Cloud, Leaf, Sparkles } from 'lucide-react'
+import { User, Settings, Target, Award, Calendar, BarChart3, Globe, Bell, Cloud, Leaf, Sparkles, Brain, Heart } from 'lucide-react'
 
 const Profile = () => {
   const { user } = useAuth()
@@ -28,6 +28,9 @@ const Profile = () => {
   const [recentActivity, setRecentActivity] = useState([])
   const [moodTrend, setMoodTrend] = useState([])
   const [activityDistribution, setActivityDistribution] = useState({})
+  const [journalEntries, setJournalEntries] = useState([])
+  const [aiConversations, setAiConversations] = useState([])
+  const [exerciseSessions, setExerciseSessions] = useState([])
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: User },
@@ -35,6 +38,127 @@ const Profile = () => {
     { id: 'achievements', label: 'Achievements', icon: Award },
     { id: 'settings', label: 'Settings', icon: Settings }
   ]
+
+  // Calculate wellness scores
+  const calculateWellnessScores = useCallback(() => {
+    const today = new Date()
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    
+    // Calculate day streak
+    const calculateStreak = () => {
+      if (journalEntries.length === 0) return 0
+      
+      const sortedEntries = journalEntries
+        .map(entry => new Date(entry.createdAt || entry.date))
+        .sort((a, b) => b - a)
+      
+      let streak = 0
+      let currentDate = new Date(todayStart)
+      
+      for (const entryDate of sortedEntries) {
+        const entryDateOnly = new Date(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate())
+        const expectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate())
+        
+        if (entryDateOnly.getTime() === expectedDate.getTime()) {
+          streak++
+          currentDate.setDate(currentDate.getDate() - 1)
+        } else if (entryDateOnly.getTime() < expectedDate.getTime()) {
+          break
+        }
+      }
+      
+      return streak
+    }
+    
+    // Calculate minutes today
+    const calculateMinutesToday = () => {
+      const todayEntries = journalEntries.filter(entry => {
+        const entryDate = new Date(entry.createdAt || entry.date)
+        return entryDate >= todayStart
+      })
+      
+      const journalMinutes = todayEntries.length * 5 // Assume 5 minutes per journal entry
+      return journalMinutes
+    }
+    
+    // Calculate goals completed
+    const calculateGoalsCompleted = () => {
+      const completedGoals = []
+      
+      // Journal goal (daily)
+      const hasJournalToday = journalEntries.some(entry => {
+        const entryDate = new Date(entry.createdAt || entry.date)
+        return entryDate >= todayStart
+      })
+      if (hasJournalToday) completedGoals.push('journal')
+      
+      // AI interaction goal
+      const hasAiToday = aiConversations.some(conv => {
+        const convDate = new Date(conv.createdAt || conv.date)
+        return convDate >= todayStart
+      })
+      if (hasAiToday) completedGoals.push('ai_interaction')
+      
+      return completedGoals.length
+    }
+    
+    // Calculate mental wellness score
+    const calculateMentalWellnessScore = () => {
+      const streak = calculateStreak()
+      const minutesToday = calculateMinutesToday()
+      const goalsCompleted = calculateGoalsCompleted()
+      
+      // Base score from streak (max 40 points)
+      const streakScore = Math.min(streak * 5, 40)
+      
+      // Activity score from minutes today (max 30 points)
+      const activityScore = Math.min(minutesToday * 0.5, 30)
+      
+      // Goals score (max 30 points)
+      const goalsScore = goalsCompleted * 10
+      
+      const totalScore = streakScore + activityScore + goalsScore
+      return Math.min(Math.round(totalScore), 100)
+    }
+    
+    // Calculate physical wellness score based on exercise sessions
+    const calculatePhysicalWellnessScore = () => {
+      const today = new Date()
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+      
+      // Count exercises done today
+      const exercisesToday = exerciseSessions.filter(session => {
+        const sessionDate = new Date(session.createdAt || session.date)
+        return sessionDate >= todayStart
+      }).length
+      
+      // Count total exercises this week
+      const weekStart = new Date(today)
+      weekStart.setDate(today.getDate() - today.getDay())
+      weekStart.setHours(0, 0, 0, 0)
+      
+      const exercisesThisWeek = exerciseSessions.filter(session => {
+        const sessionDate = new Date(session.createdAt || session.date)
+        return sessionDate >= weekStart
+      }).length
+      
+      // Calculate score based on exercises (max 100 points)
+      // Daily exercises: 20 points each (max 40 points)
+      // Weekly exercises: 10 points each (max 60 points)
+      const dailyScore = Math.min(exercisesToday * 20, 40)
+      const weeklyScore = Math.min(exercisesThisWeek * 10, 60)
+      
+      return Math.min(dailyScore + weeklyScore, 100)
+    }
+    
+    return {
+      streak: calculateStreak(),
+      minutesToday: calculateMinutesToday(),
+      goalsCompleted: calculateGoalsCompleted(),
+      mentalWellnessScore: calculateMentalWellnessScore(),
+      physicalWellnessScore: calculatePhysicalWellnessScore()
+    }
+  }, [journalEntries, aiConversations, exerciseSessions])
 
   const fetchProfileData = useCallback(async () => {
     try {
@@ -104,9 +228,31 @@ const Profile = () => {
       })
       console.log('Activity distribution response status:', activityDistResponse.status)
       
+      // Fetch journal entries for wellness calculation
+      const journalResponse = await fetch('http://localhost:8000/api/journal/entries', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
+      
+      // Fetch AI conversations for wellness calculation
+      const aiResponse = await fetch('http://localhost:8000/api/ai/conversations', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
+      
+      // Fetch exercise sessions for wellness calculation
+      const exerciseResponse = await fetch('http://localhost:8000/api/vr/sessions', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
+      
       // Check if any response failed
       if (!goalsResponse.ok || !achievementsResponse.ok || !statsResponse.ok || !preferencesResponse.ok || 
-          !activityResponse.ok || !moodTrendResponse.ok || !activityDistResponse.ok) {
+          !activityResponse.ok || !moodTrendResponse.ok || !activityDistResponse.ok || 
+          !journalResponse.ok || !aiResponse.ok || !exerciseResponse.ok) {
         console.warn('Backend server not running')
         setWellnessGoals([])
         setAchievements([])
@@ -114,6 +260,9 @@ const Profile = () => {
         setRecentActivity([])
         setMoodTrend([])
         setActivityDistribution({})
+        setJournalEntries([])
+        setAiConversations([])
+        setExerciseSessions([])
         setIsLoading(false)
         return
       }
@@ -141,6 +290,9 @@ const Profile = () => {
       console.log('Mood trend data:', moodTrendData)
       const activityDistData = await activityDistResponse.json()
       console.log('Activity distribution data:', activityDistData)
+      const journalData = await journalResponse.json()
+      const aiData = await aiResponse.json()
+      const exerciseData = await exerciseResponse.json()
       
       if (goalsData.success) {
         setWellnessGoals(goalsData.goals || [])
@@ -177,6 +329,29 @@ const Profile = () => {
       } else {
         console.error('Failed to fetch stats:', statsData.error)
         setStats([])
+      }
+      
+      // Process journal entries and AI conversations for wellness calculation
+      if (journalData.success) {
+        setJournalEntries(journalData.entries || [])
+      } else {
+        console.error('Failed to fetch journal entries:', journalData.error)
+        setJournalEntries([])
+      }
+      
+      if (aiData.success) {
+        setAiConversations(aiData.conversations || [])
+      } else {
+        console.error('Failed to fetch AI conversations:', aiData.error)
+        setAiConversations([])
+      }
+      
+      // Process exercise sessions for wellness calculation
+      if (exerciseData.success) {
+        setExerciseSessions(exerciseData.sessions || [])
+      } else {
+        console.error('Failed to fetch exercise sessions:', exerciseData.error)
+        setExerciseSessions([])
       }
       
       if (preferencesData.success) {
@@ -227,6 +402,31 @@ const Profile = () => {
   useEffect(() => {
     fetchProfileData()
   }, [fetchProfileData])
+
+  // Update stats when wellness scores change
+  useEffect(() => {
+    const wellnessScores = calculateWellnessScores()
+    setStats(prevStats => {
+      const baseStats = prevStats.filter(stat => 
+        stat.label !== 'Mental Wellness' && stat.label !== 'Physical Wellness'
+      )
+      return [
+        ...baseStats,
+        {
+          label: 'Mental Wellness',
+          value: `${exerciseSessions.length} exercises`,
+          icon: <Brain className="w-6 h-6 text-white" />,
+          color: 'from-indigo-500 to-purple-600'
+        },
+        {
+          label: 'Physical Wellness',
+          value: `${exerciseSessions.length} exercises`,
+          icon: <Heart className="w-6 h-6 text-white" />,
+          color: 'from-rose-500 to-pink-600'
+        }
+      ]
+    })
+  }, [calculateWellnessScores, exerciseSessions])
 
   const updateGoal = async (goalId, newValue) => {
     try {
