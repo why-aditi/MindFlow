@@ -124,16 +124,6 @@ const Features = () => {
           viewport={{ once: true }}
         >
           <div className="text-center mb-16">
-            <motion.div
-              className="inline-flex items-center px-4 py-2 bg-teal-100/50 rounded-full border border-teal-200/50 mb-6"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              viewport={{ once: true }}
-            >
-              <span className="text-teal-600 text-sm font-medium">✨ Advanced Wellness Technology</span>
-            </motion.div>
-
             <h3 className="text-3xl lg:text-5xl font-light text-slate-800 mb-4">
               Gentle Technology for{' '}
               <span className="bg-gradient-to-r from-teal-500 to-cyan-500 bg-clip-text text-transparent font-normal">
