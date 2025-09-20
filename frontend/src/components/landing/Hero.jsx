@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { Button } from '../ui/Button'
 
-const Hero = ({ onGetStarted }) => {
+const Hero = ({ onGetStarted, isSigningIn = false }) => {
   return (
     <section className="pt-16 sm:pt-20 pb-12 sm:pb-16 bg-gradient-to-br from-sky-50 via-emerald-50 to-teal-50 min-h-screen flex items-center relative overflow-hidden">
       {/* Background Elements */}
@@ -89,9 +89,17 @@ const Hero = ({ onGetStarted }) => {
               <Button 
                 onClick={onGetStarted}
                 size="lg"
-                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-medium rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                disabled={isSigningIn}
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-medium rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                Begin Your Journey
+                {isSigningIn ? (
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Signing In...
+                  </div>
+                ) : (
+                  'Begin Your Journey'
+                )}
               </Button>
               
               <Button 

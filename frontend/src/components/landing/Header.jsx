@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { Button } from '../ui/Button'
 
-const Header = ({ onGetStarted }) => {
+const Header = ({ onGetStarted, isSigningIn = false }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   return (
@@ -49,9 +49,10 @@ const Header = ({ onGetStarted }) => {
           >
             <Button 
               onClick={onGetStarted}
-              className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-4 sm:px-6 py-2 rounded-full font-medium shadow-lg hover:shadow-xl transition-all duration-300 text-sm sm:text-base"
+              disabled={isSigningIn}
+              className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-4 sm:px-6 py-2 rounded-full font-medium shadow-lg hover:shadow-xl transition-all duration-300 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Begin Journey
+              {isSigningIn ? 'Signing In...' : 'Begin Journey'}
             </Button>
           </motion.div>
 
@@ -104,9 +105,10 @@ const Header = ({ onGetStarted }) => {
                     onGetStarted()
                     setIsMobileMenuOpen(false)
                   }}
-                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-6 py-3 rounded-full font-medium shadow-lg hover:shadow-xl transition-all duration-300"
+                  disabled={isSigningIn}
+                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-6 py-3 rounded-full font-medium shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Begin Journey
+                  {isSigningIn ? 'Signing In...' : 'Begin Journey'}
                 </Button>
               </motion.div>
             </nav>

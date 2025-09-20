@@ -1,11 +1,29 @@
 import { useEffect, useState } from 'react'
 import { auth, googleProvider } from '../config/firebase'
-import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth'
+import { onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from 'firebase/auth'
 import { AuthContext } from './AuthContext'
+import { isMobile, getDeviceInfo } from '../utils/mobileUtils'
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  // Log device info for debugging
+  useEffect(() => {
+    const deviceInfo = getDeviceInfo()
+    console.log('Device Info:', deviceInfo)
+  }, [])
+
+  // Get backend URL based on environment
+  const getBackendUrl = () => {
+    if (typeof window !== 'undefined') {
+      // Use the same host as the frontend but with port 5000
+      const host = window.location.hostname
+      const protocol = window.location.protocol
+      return `${protocol}//${host}:5000`
+    }
+    return 'http://localhost:5000'
+  }
 
   // Check if user is authenticated via cookie on app load
   const checkAuthStatus = async () => {
@@ -28,6 +46,41 @@ export const AuthProvider = ({ children }) => {
   }
 
   useEffect(() => {
+    // Handle redirect result first
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth)
+        if (result) {
+          // User signed in via redirect
+          const idToken = await result.user.getIdToken()
+          const backendUrl = getBackendUrl()
+          
+          const response = await fetch(`${backendUrl}/api/auth/verify`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              uid: result.user.uid,
+              email: result.user.email,
+              name: result.user.displayName,
+              picture: result.user.photoURL
+            })
+          })
+          
+          if (response.ok) {
+            console.log('User verified with backend after redirect')
+          }
+        }
+      } catch (error) {
+        console.error('Error handling redirect result:', error)
+      }
+    }
+
+    handleRedirectResult()
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUser(user)

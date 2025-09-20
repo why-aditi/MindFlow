@@ -382,11 +382,24 @@ class MediaPipePoseService {
     this.holdTime = (currentTime - this.lastRepTime) / 1000;
   }
 
-  countMeditation() {
-    // For meditation, track breathing cycles
-    const currentTime = Date.now();
-    const cycleDuration = 12000; // 12 seconds per cycle
-    this.holdTime = Math.floor((currentTime - this.lastRepTime) / cycleDuration);
+  countMeditation(landmarks) {
+    // For meditation, check if user is in correct seated position
+    if (!landmarks || landmarks.length < 33) return;
+    
+    // Calculate meditation accuracy
+    const accuracy = this.calculateMeditationAccuracy(landmarks);
+    
+    // Only count meditation time if accuracy is above 80%
+    if (accuracy >= 80) {
+      const currentTime = Date.now();
+      if (this.lastRepTime === 0) {
+        this.lastRepTime = currentTime;
+      }
+      this.holdTime = (currentTime - this.lastRepTime) / 1000; // Convert to seconds
+    } else {
+      this.lastRepTime = 0;
+      this.holdTime = 0;
+    }
   }
 
   calculateExerciseAngle(landmarks) {
@@ -444,7 +457,64 @@ class MediaPipePoseService {
   }
 
   calculateAccuracy(landmarks) {
-    // Calculate accuracy based on pose confidence and landmark visibility
+    // Calculate accuracy based on exercise type and pose correctness
+    if (this.exerciseType === 'meditation') {
+      return this.calculateMeditationAccuracy(landmarks);
+    } else {
+      return this.calculateExerciseAccuracy(landmarks);
+    }
+  }
+
+  calculateMeditationAccuracy(landmarks) {
+    // For meditation, accuracy is based on correct pose, not just landmark visibility
+    if (!landmarks || landmarks.length < 33) return 0;
+    
+    // Check key landmarks for meditation pose
+    const nose = landmarks[0];
+    const leftShoulder = landmarks[11];
+    const rightShoulder = landmarks[12];
+    const leftHip = landmarks[23];
+    const rightHip = landmarks[24];
+    const leftKnee = landmarks[25];
+    const rightKnee = landmarks[26];
+    
+    if (!nose || !leftShoulder || !rightShoulder || !leftHip || !rightHip || !leftKnee || !rightKnee) {
+      return 0;
+    }
+    
+    let accuracyScore = 0;
+    let totalChecks = 0;
+    
+    // Check 1: User should be seated (hips lower than shoulders)
+    const isSeated = leftHip.y > leftShoulder.y && rightHip.y > rightShoulder.y;
+    if (isSeated) accuracyScore += 30;
+    totalChecks += 30;
+    
+    // Check 2: Back should be relatively straight (shoulders and hips aligned)
+    const shoulderAlignment = Math.abs(leftShoulder.y - rightShoulder.y);
+    const hipAlignment = Math.abs(leftHip.y - rightHip.y);
+    const isAligned = shoulderAlignment < 0.1 && hipAlignment < 0.1;
+    if (isAligned) accuracyScore += 25;
+    totalChecks += 25;
+    
+    // Check 3: Knees should be bent (seated position)
+    const leftKneeBent = leftKnee.y > leftHip.y;
+    const rightKneeBent = rightKnee.y > rightHip.y;
+    const isKneesBent = leftKneeBent && rightKneeBent;
+    if (isKneesBent) accuracyScore += 25;
+    totalChecks += 25;
+    
+    // Check 4: Head should be relatively straight (nose between shoulders)
+    const noseBetweenShoulders = nose.x > Math.min(leftShoulder.x, rightShoulder.x) && 
+                                nose.x < Math.max(leftShoulder.x, rightShoulder.x);
+    if (noseBetweenShoulders) accuracyScore += 20;
+    totalChecks += 20;
+    
+    return Math.round((accuracyScore / totalChecks) * 100);
+  }
+
+  calculateExerciseAccuracy(landmarks) {
+    // For exercises, calculate accuracy based on pose confidence and landmark visibility
     let totalConfidence = 0;
     let visibleLandmarks = 0;
     

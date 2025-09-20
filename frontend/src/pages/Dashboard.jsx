@@ -130,8 +130,8 @@ const Dashboard = () => {
           color: 'from-emerald-400 to-sky-500',
           bgColor: 'from-emerald-50 to-sky-50',
           borderColor: 'border-emerald-200',
-          route: '/vr-exercise',
-          onClick: () => navigate('/vr-exercise')
+          route: '/mindful-movement',
+          onClick: () => navigate('/mindful-movement')
         },
         {
           title: 'AI Wellness Coach',

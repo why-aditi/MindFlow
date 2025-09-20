@@ -6,6 +6,7 @@ import AICompanion from './pages/AICompanion'
 import Journaling from './pages/Journaling'
 import Profile from './pages/Profile'
 import VRExercise from './pages/VRExercise'
+import MindfulMovement from './pages/MindfulMovement'
 import CommunityForums from './components/CommunityForums'
 import ForumPosts from './components/ForumPosts'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -71,6 +72,11 @@ function App() {
               <Route path="/vr-exercise" element={
                 <ProtectedRoute>
                   <VRExercise />
+                </ProtectedRoute>
+              } />
+              <Route path="/mindful-movement" element={
+                <ProtectedRoute>
+                  <MindfulMovement />
                 </ProtectedRoute>
               } />
               <Route path="/profile" element={
