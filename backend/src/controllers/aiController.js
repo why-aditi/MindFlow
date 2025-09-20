@@ -40,6 +40,17 @@ export const aiController = {
           language: language || "en",
           context: context || {},
         });
+
+        // Add welcome message to new session
+        const welcomeMessage = {
+          message:
+            "Hello! I'm your AI wellness companion. I'm here to listen, support, and help you on your mental wellness journey. How are you feeling today?",
+          sender: "ai",
+          timestamp: new Date(),
+          language: language || "en",
+        };
+
+        session.messages = [welcomeMessage];
         await session.save();
       }
 
@@ -599,7 +610,11 @@ export const aiController = {
       }
 
       // Generate AI analysis using Gemini
-      const analysis = await geminiService.analyzeJournalEntry(text, uid, tags || []);
+      const analysis = await geminiService.analyzeJournalEntry(
+        text,
+        uid,
+        tags || []
+      );
 
       res.json({
         success: true,

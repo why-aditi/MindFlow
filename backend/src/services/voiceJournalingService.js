@@ -390,10 +390,10 @@ class VoiceJournalingService {
       });
     }
 
-    // Add sentiment tags
-    if (nlpAnalysis.sentiment.score > 0.3) {
+    // Add sentiment tags with more accurate thresholds
+    if (nlpAnalysis.sentiment.score > 0.1) {
       tags.push("positive");
-    } else if (nlpAnalysis.sentiment.score < -0.3) {
+    } else if (nlpAnalysis.sentiment.score < -0.1) {
       tags.push("negative");
     } else {
       tags.push("neutral");

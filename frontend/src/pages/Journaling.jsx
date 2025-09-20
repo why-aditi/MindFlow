@@ -23,7 +23,10 @@ const Journaling = () => {
   const [view, setView] = useState('write')
   const [isSaving, setIsSaving] = useState(false)
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [journalEntries] = useState({})
+  const [journalEntries, setJournalEntries] = useState({})
+  const [selectedDate, setSelectedDate] = useState(null)
+  const [selectedDateEntries, setSelectedDateEntries] = useState([])
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   // Voice journaling state
   const [recordingStatus, setRecordingStatus] = useState('')
@@ -95,6 +98,7 @@ const Journaling = () => {
       if (!user) {
         console.warn('User not authenticated, cannot fetch entries')
         setEntries([])
+        setJournalEntries({})
         return
       }
 
@@ -109,19 +113,33 @@ const Journaling = () => {
       if (!contentType || !contentType.includes('application/json')) {
         console.warn('Backend server not running')
         setEntries([])
+        setJournalEntries({})
         return
       }
       
       const data = await response.json()
       if (data.success) {
         setEntries(data.entries || [])
+        
+        // Organize entries by date for calendar
+        const entriesByDate = {}
+        data.entries.forEach(entry => {
+          const dateKey = formatDateKey(new Date(entry.createdAt))
+          if (!entriesByDate[dateKey]) {
+            entriesByDate[dateKey] = []
+          }
+          entriesByDate[dateKey].push(entry)
+        })
+        setJournalEntries(entriesByDate)
       } else {
         console.error('Failed to fetch entries:', data.error)
         setEntries([])
+        setJournalEntries({})
       }
     } catch (error) {
       console.error('Error fetching entries:', error.message)
       setEntries([])
+      setJournalEntries({})
     }
   }, [user])
 
@@ -592,12 +610,76 @@ const Journaling = () => {
   }
 
   const formatDateKey = (date) => {
-    return date.toISOString().split('T')[0]
+    // Use local date instead of UTC to avoid timezone issues
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   }
 
   const hasJournalEntry = (date) => {
     const dateKey = formatDateKey(date)
-    return journalEntries[dateKey] || false
+    return journalEntries[dateKey] && journalEntries[dateKey].length > 0
+  }
+
+  const getJournalEntriesForDate = (date) => {
+    const dateKey = formatDateKey(date)
+    return journalEntries[dateKey] || []
+  }
+
+  const getMoodForDate = (date) => {
+    const entries = getJournalEntriesForDate(date)
+    if (entries.length === 0) return null
+    
+    // Get the most recent entry's mood
+    const latestEntry = entries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
+    return latestEntry.mood
+  }
+
+  const getMoodColor = (mood) => {
+    const colors = {
+      happy: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      sad: 'bg-blue-100 text-blue-800 border-blue-200',
+      anxious: 'bg-red-100 text-red-800 border-red-200',
+      calm: 'bg-green-100 text-green-800 border-green-200',
+      angry: 'bg-red-100 text-red-800 border-red-200',
+      excited: 'bg-purple-100 text-purple-800 border-purple-200',
+      tired: 'bg-gray-100 text-gray-800 border-gray-200',
+      confused: 'bg-orange-100 text-orange-800 border-orange-200',
+      neutral: 'bg-slate-100 text-slate-800 border-slate-200'
+    }
+    return colors[mood] || colors.neutral
+  }
+
+  const handleDateClick = (date) => {
+    if (!date) return
+    
+    const entriesForDate = getJournalEntriesForDate(date)
+    setSelectedDate(date)
+    setSelectedDateEntries(entriesForDate)
+    setIsModalOpen(true)
+  }
+
+  const handleEntryClick = (entry) => {
+    setCurrentEntry(entry.content)
+    setSelectedTags(entry.tags || [])
+    setView('write')
+    setIsModalOpen(false)
+    
+    // Scroll to the editor section
+    setTimeout(() => {
+      const editorElement = document.querySelector('textarea')
+      if (editorElement) {
+        editorElement.focus()
+        editorElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }, 100)
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false)
+    setSelectedDate(null)
+    setSelectedDateEntries([])
   }
 
   const navigateMonth = (direction) => {
@@ -1046,40 +1128,53 @@ const Journaling = () => {
                     <div
                       key={index}
                       className={`
-                          aspect-square flex items-center justify-center text-sm rounded-xl transition-all duration-200 cursor-pointer relative
+                          aspect-square flex items-center justify-center text-sm rounded-xl transition-all duration-200 cursor-pointer relative border-2
                         ${day 
                           ? hasJournalEntry(day)
-                              ? 'bg-emerald-100 text-emerald-800 font-bold hover:bg-emerald-200'
-                              : 'text-slate-600 hover:bg-white hover:text-slate-800'
-                          : ''
+                              ? `${getMoodColor(getMoodForDate(day))} font-bold hover:opacity-80`
+                              : 'text-slate-600 hover:bg-white hover:text-slate-800 border-transparent'
+                          : 'border-transparent'
                         }
                         ${day && day.toDateString() === new Date().toDateString() 
-                            ? 'ring-2 ring-emerald-400 bg-emerald-50' 
+                            ? 'ring-2 ring-emerald-400 ring-offset-2' 
                           : ''
                         }
                       `}
-                      onClick={() => day && setView('write')}
+                      onClick={() => day && handleDateClick(day)}
                     >
                       {day ? day.getDate() : ''}
                       {day && hasJournalEntry(day) && (
-                          <div className="absolute w-2 h-2 bg-emerald-500 rounded-full -bottom-1"></div>
+                          <div className="absolute w-2 h-2 bg-current rounded-full -bottom-1"></div>
                       )}
                     </div>
                   ))}
                 </div>
                 
                 {/* Legend */}
-                  <div className="flex items-center justify-center mt-8 space-x-8 text-sm">
-                  <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 bg-emerald-100 rounded"></div>
-                      <span className="text-slate-600 font-medium">Journal Entry</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 bg-emerald-50 ring-2 ring-emerald-400 rounded"></div>
-                      <span className="text-slate-600 font-medium">Today</span>
+                  <div className="mt-8">
+                    <div className="flex items-center justify-center mb-4">
+                      <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-slate-100 border-2 border-slate-200 rounded"></div>
+                          <span className="text-slate-600 font-medium">Journal Entry</span>
+                      </div>
+                      <div className="flex items-center space-x-2 ml-8">
+                          <div className="w-4 h-4 bg-slate-50 ring-2 ring-emerald-400 rounded"></div>
+                          <span className="text-slate-600 font-medium">Today</span>
+                        </div>
+                    </div>
+                    
+                    {/* Mood Legend */}
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      {['happy', 'sad', 'anxious', 'calm', 'angry', 'excited', 'tired', 'confused', 'neutral'].map(mood => (
+                        <div key={mood} className="flex items-center space-x-2">
+                          <div className={`w-3 h-3 rounded border ${getMoodColor(mood).split(' ')[0]} ${getMoodColor(mood).split(' ')[2]}`}></div>
+                          <span className="text-slate-600 capitalize">{mood}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
+
               </div>
             </motion.div>
           )}
@@ -1267,6 +1362,127 @@ const Journaling = () => {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Journal Entries Modal */}
+      {isModalOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={closeModal}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold text-white">
+                    {selectedDate?.toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </h2>
+                  <p className="text-emerald-100 text-sm">
+                    {selectedDateEntries.length} journal {selectedDateEntries.length === 1 ? 'entry' : 'entries'}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={closeModal}
+                  className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                >
+                  ✕
+                </Button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 max-h-[60vh] overflow-y-auto">
+              {selectedDateEntries.length > 0 ? (
+                <div className="space-y-4">
+                  {selectedDateEntries.map((entry, index) => (
+                    <motion.div
+                      key={entry._id || index}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="bg-slate-50 rounded-xl p-4 border border-slate-100 cursor-pointer hover:bg-slate-100 transition-colors"
+                      onClick={() => handleEntryClick(entry)}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center space-x-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            entry.mood === 'happy' ? 'bg-yellow-100 text-yellow-800' :
+                            entry.mood === 'sad' ? 'bg-blue-100 text-blue-800' :
+                            entry.mood === 'anxious' ? 'bg-red-100 text-red-800' :
+                            entry.mood === 'calm' ? 'bg-green-100 text-green-800' :
+                            entry.mood === 'angry' ? 'bg-red-100 text-red-800' :
+                            entry.mood === 'excited' ? 'bg-purple-100 text-purple-800' :
+                            entry.mood === 'tired' ? 'bg-gray-100 text-gray-800' :
+                            entry.mood === 'confused' ? 'bg-orange-100 text-orange-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {entry.mood}
+                          </span>
+                          {entry.isVoice && (
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                              Voice
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-slate-500">
+                          {new Date(entry.createdAt).toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-slate-700 leading-relaxed line-clamp-3">{entry.content}</p>
+                      {entry.tags && entry.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {entry.tags.map((tag, tagIndex) => (
+                            <span
+                              key={tagIndex}
+                              className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs"
+                            >
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="mt-2 text-xs text-slate-500">
+                        Click to open →
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-600 mb-2">No journal entries</h3>
+                  <p className="text-slate-500 mb-6">No journal entries were saved on this date.</p>
+                  <Button
+                    onClick={() => {
+                      setView('write')
+                      closeModal()
+                    }}
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Write Entry
+                  </Button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
 
     </div>
   )

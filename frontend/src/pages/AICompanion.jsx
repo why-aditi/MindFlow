@@ -62,7 +62,14 @@ const AICompanion = () => {
 
   // Start new chat
   const startNewChat = useCallback(() => {
-    setMessages([])
+    const welcomeMessage = {
+      id: Date.now(),
+      text: "Hello! I'm your AI wellness companion. I'm here to listen, support, and help you on your mental wellness journey. How are you feeling today?",
+      sender: 'ai',
+      timestamp: new Date(),
+    };
+    
+    setMessages([welcomeMessage])
     setCurrentSessionId(null)
     setIsInitializing(false)
   }, [])
@@ -91,10 +98,19 @@ const AICompanion = () => {
     }
   }, [currentSessionId, user])
 
-  // Start with fresh chat - don't load previous messages
+  // Start with fresh chat - show welcome message immediately
   useEffect(() => {
-    setIsInitializing(false)
-  }, [])
+    if (messages.length === 0) {
+      const welcomeMessage = {
+        id: Date.now(),
+        text: "Hello! I'm your AI wellness companion. I'm here to listen, support, and help you on your mental wellness journey. How are you feeling today?",
+        sender: 'ai',
+        timestamp: new Date(),
+      };
+      setMessages([welcomeMessage]);
+    }
+    setIsInitializing(false);
+  }, [messages.length])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

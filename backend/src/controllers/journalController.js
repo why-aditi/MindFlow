@@ -1,4 +1,5 @@
 import JournalEntry from "../models/JournalEntry.js";
+import geminiService from "../services/geminiService.js";
 
 export const journalController = {
   // Create new journal entry
@@ -7,10 +8,71 @@ export const journalController = {
       const { uid } = req.user;
       const { content, mood, tags, isVoice } = req.body;
 
+      // If no mood is provided, analyze the content to determine mood using Gemini
+      let detectedMood = mood;
+      if (!mood && content) {
+        try {
+          const sentimentPrompt = `Analyze the emotional sentiment of this journal entry and determine the primary mood. 
+
+Journal Entry: "${content}"
+
+Respond with ONLY one of these mood values based on the emotional tone:
+- happy (for positive, joyful, excited feelings)
+- sad (for negative, melancholic, grieving feelings)  
+- anxious (for worried, nervous, stressed feelings)
+- angry (for frustrated, irritated, mad feelings)
+- calm (for peaceful, relaxed, serene feelings)
+- tired (for exhausted, drained, fatigued feelings)
+- confused (for uncertain, puzzled, lost feelings)
+- excited (for enthusiastic, energetic, thrilled feelings)
+- neutral (for balanced, neither positive nor negative feelings)
+
+Mood:`;
+
+          const sentimentResult = await geminiService.generateContent(
+            sentimentPrompt
+          );
+          const moodResponse = sentimentResult.trim().toLowerCase();
+
+          // Validate the response is one of our valid moods
+          const validMoods = [
+            "happy",
+            "sad",
+            "anxious",
+            "angry",
+            "calm",
+            "tired",
+            "confused",
+            "excited",
+            "neutral",
+          ];
+          if (validMoods.includes(moodResponse)) {
+            detectedMood = moodResponse;
+          } else {
+            // If response doesn't match exactly, try to extract mood from response
+            for (const validMood of validMoods) {
+              if (moodResponse.includes(validMood)) {
+                detectedMood = validMood;
+                break;
+              }
+            }
+            if (!detectedMood) {
+              detectedMood = "neutral";
+            }
+          }
+        } catch (analysisError) {
+          console.warn(
+            "Failed to analyze mood with Gemini, using neutral:",
+            analysisError.message
+          );
+          detectedMood = "neutral";
+        }
+      }
+
       const newEntry = new JournalEntry({
         userId: uid,
         content: content,
-        mood: mood || "neutral",
+        mood: detectedMood || "neutral",
         tags: tags || [],
         isVoice: isVoice || false,
       });
@@ -21,6 +83,7 @@ export const journalController = {
         success: true,
         message: "Journal entry created successfully",
         entryId: savedEntry._id,
+        detectedMood: detectedMood,
       });
     } catch (error) {
       console.error("Create entry error:", error);
