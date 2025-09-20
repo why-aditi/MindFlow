@@ -466,6 +466,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **CORS Errors**: If you see `Access to fetch at 'http://localhost:8000/api/...' has been blocked by CORS policy`, your frontend and backend are running on different ports. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed solutions.
 
+**AI Companion Errors**: If you see `First content should be with role 'user', got model`, this has been fixed in the latest version. Restart your backend server to apply the fix.
+
 **Quick Fix**: Update the CORS configuration in `backend/server.js` to include your frontend's port (usually 3000, 3001, etc.).
 
 **Backend Not Running**: Make sure to start the backend server:

@@ -29,7 +29,10 @@ class GeminiService {
           const response = await result.response;
           return response.text();
         } catch (fallbackError) {
-          console.error("Fallback model failed in generateContent:", fallbackError);
+          console.error(
+            "Fallback model failed in generateContent:",
+            fallbackError
+          );
           throw fallbackError;
         }
       }
@@ -94,6 +97,25 @@ class GeminiService {
 
       // Prepare the chat history for Gemini
       const chatHistory = this.prepareChatHistory(conversationHistory);
+
+      // Debug logging
+      console.log("Conversation history length:", conversationHistory.length);
+      console.log("Prepared chat history length:", chatHistory.length);
+      if (chatHistory.length > 0) {
+        console.log("First message role:", chatHistory[0].role);
+        console.log(
+          "Last message role:",
+          chatHistory[chatHistory.length - 1].role
+        );
+      }
+
+      // Ensure we have a valid chat history (empty is fine for new conversations)
+      if (chatHistory.length > 0 && chatHistory[0].role !== "user") {
+        console.warn(
+          "Invalid chat history detected, starting fresh conversation"
+        );
+        chatHistory.length = 0; // Clear invalid history
+      }
 
       // Try primary model first (2.5-flash)
       let chat,
@@ -277,10 +299,39 @@ Remember: You are not a replacement for professional mental health care, but a s
    * Prepare chat history for Gemini API
    */
   prepareChatHistory(conversationHistory) {
-    return conversationHistory.map((msg) => ({
-      role: msg.role,
-      parts: msg.parts,
-    }));
+    // Ensure the conversation starts with a user message
+    const validHistory = [];
+
+    for (let i = 0; i < conversationHistory.length; i++) {
+      const msg = conversationHistory[i];
+
+      // Skip if this is a model message and it's the first message
+      if (i === 0 && msg.role === "model") {
+        continue;
+      }
+
+      // Ensure we alternate between user and model messages
+      if (validHistory.length === 0) {
+        // First message must be from user
+        if (msg.role === "user") {
+          validHistory.push({
+            role: msg.role,
+            parts: msg.parts,
+          });
+        }
+      } else {
+        // Subsequent messages can be either user or model
+        const lastRole = validHistory[validHistory.length - 1].role;
+        if (msg.role !== lastRole) {
+          validHistory.push({
+            role: msg.role,
+            parts: msg.parts,
+          });
+        }
+      }
+    }
+
+    return validHistory;
   }
 
   /**

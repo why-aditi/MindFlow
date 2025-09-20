@@ -47,9 +47,9 @@ const AICompanion = () => {
           setMessages(formattedMessages)
           setCurrentSessionId(sessionId)
           
-          // Scroll to top when loading a conversation to show the beginning
+          // Scroll to bottom to show the latest messages
           setTimeout(() => {
-            scrollToTop()
+            scrollToBottom()
           }, 100)
         }
       }
@@ -113,7 +113,13 @@ const AICompanion = () => {
   }, [messages.length])
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'end',
+        inline: 'nearest'
+      });
+    }
   };
 
   const scrollToTop = () => {
@@ -122,19 +128,33 @@ const AICompanion = () => {
     }
   };
 
-  // Scroll to bottom when new messages are added
+  // Scroll to bottom when new messages are added (always)
   useEffect(() => {
     if (messages.length > 0) {
-      scrollToBottom();
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
     }
-  }, [messages]);
+  }, [messages.length]); // Only trigger when message count changes
 
-  // Scroll to top when loading a conversation
+  // Scroll to bottom when loading is complete
   useEffect(() => {
-    if (!isInitializing && messages.length > 0) {
-      scrollToTop();
+    if (!isLoading && messages.length > 0) {
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
     }
-  }, [isInitializing, messages.length]);
+  }, [isLoading, messages.length]);
+
+  // Initial scroll to bottom when component mounts
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        scrollToBottom();
+      }, 200); // Slightly longer delay for initial load
+    }
+  }, [messages.length]); // Include messages.length dependency
 
   // Handle scroll events to show/hide scroll to bottom button
   useEffect(() => {
@@ -143,10 +163,10 @@ const AICompanion = () => {
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
-      const isAtBottom = scrollHeight - scrollTop <= clientHeight + 50; // 50px threshold
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100; // 100px threshold
       const isAtTop = scrollTop <= 50; // 50px threshold
       
-      setShowScrollToBottom(!isAtBottom && messages.length > 0);
+      setShowScrollToBottom(!isNearBottom && messages.length > 0);
       setShowScrollToTop(!isAtTop && messages.length > 0);
     };
 
@@ -360,10 +380,10 @@ const AICompanion = () => {
                   }`}
                 >
                   <div
-                    className={`flex items-start space-x-2 sm:space-x-3 max-w-[85%] sm:max-w-xs lg:max-w-md ${
+                    className={`flex items-start max-w-[85%] sm:max-w-xs lg:max-w-md ${
                       message.sender === 'user'
-                        ? 'flex-row-reverse space-x-reverse'
-                        : ''
+                        ? 'flex-row-reverse space-x-reverse space-x-2 sm:space-x-3'
+                        : 'space-x-2 sm:space-x-3'
                     }`}
                   >
                     <div
@@ -380,7 +400,7 @@ const AICompanion = () => {
                       )}
                     </div>
                     <div
-                      className={`px-3 py-2 sm:px-4 sm:py-3 rounded-xl sm:rounded-2xl ${
+                      className={`px-3 py-2 mx-2 sm:px-4 sm:py-3 rounded-xl sm:rounded-2xl ${
                         message.sender === 'user'
                           ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white'
                           : 'bg-gradient-to-br from-emerald-50 to-teal-50 text-slate-900 border border-emerald-100'
