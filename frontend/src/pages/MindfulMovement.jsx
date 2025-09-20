@@ -303,13 +303,13 @@ const MindfulMovement = () => {
     
     if ('speechSynthesis' in window) {
       return new Promise((resolve) => {
-        const utterance = new SpeechSynthesisUtterance(text)
-        utterance.rate = 0.8
-        utterance.pitch = 1
-        utterance.volume = 0.7
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.rate = 0.8
+      utterance.pitch = 1
+      utterance.volume = 0.7
         utterance.onend = resolve
         utterance.onerror = resolve
-        speechSynthesis.speak(utterance)
+      speechSynthesis.speak(utterance)
       })
     }
     return Promise.resolve()
@@ -399,7 +399,7 @@ const MindfulMovement = () => {
     let count = 3
     
     // Set initial countdown display and speak "3" immediately
-    setSessionData(prev => ({ ...prev, countdown: count }))
+        setSessionData(prev => ({ ...prev, countdown: count }))
     await speak(count.toString())
     
     // Wait 1 second, then continue countdown
@@ -419,12 +419,12 @@ const MindfulMovement = () => {
     
     // Start the exercise
     if (selectedCategory === 'mental') {
-      startMeditation()
-    } else {
-      startPhysicalExercise(selectedActivity)
-    }
-  }
-
+          startMeditation()
+        } else {
+          startPhysicalExercise(selectedActivity)
+        }
+      }
+    
   // Countdown function (kept for backward compatibility)
   const startCountdown = () => {
     startExerciseManually()
@@ -611,7 +611,6 @@ const MindfulMovement = () => {
       setIsTracking(true)
       setIsCompleting(false)
       isCompletingRef.current = false // Reset completion flag
-      isCompletingRef.current = false // Reset completion ref
       setError(null)
       
       // Start camera
@@ -648,7 +647,9 @@ const MindfulMovement = () => {
                 }
                 
                 // Check if target reps reached
-                if (newRepCount >= activitySettings.targetReps) {
+                if (newRepCount >= activitySettings.targetReps && !isCompletingRef.current) {
+                  isCompletingRef.current = true // Prevent multiple completions
+                  setIsCompleting(true) // Update state for UI
                   setTimeout(() => {
                     stopSession(true) // Force complete since we've reached the target
                   }, 1000)
@@ -1081,22 +1082,22 @@ const MindfulMovement = () => {
                       <div className="text-center">
                         <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-4">
                           <Camera className="w-8 h-8 text-white" />
-                        </div>
-                        <p className="text-slate-600 font-medium">Preparing camera...</p>
                       </div>
+                        <p className="text-slate-600 font-medium">Preparing camera...</p>
                     </div>
+                      </div>
                   )}
                   {cameraError && (
                     <div className="absolute inset-0 bg-rose-50/90 backdrop-blur-sm flex items-center justify-center">
                       <div className="text-center text-rose-600">
                         <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-3">
                           <AlertCircle className="w-6 h-6" />
-                        </div>
+                    </div>
                         <p className="text-sm font-medium">{cameraError}</p>
                       </div>
                     </div>
-                  )}
-                </div>
+                )}
+              </div>
 
                 {/* Live Pose Tracking Info */}
                 <div className="text-center mb-8">
@@ -1182,15 +1183,15 @@ const MindfulMovement = () => {
                     <div className="text-center bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-100">
                       <div className="text-3xl font-light text-emerald-600 mb-2">
                         {sessionData.repCount}/{activitySettings.targetReps}
-                      </div>
+                        </div>
                       <div className="text-sm text-slate-600 font-medium">Reps Progress</div>
-                    </div>
+                      </div>
                     <div className="text-center bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl p-6 border border-teal-100">
                       <div className="text-3xl font-light text-teal-600 mb-2">
                         {Math.round((sessionData.repCount / activitySettings.targetReps) * 100)}%
-                      </div>
-                      <div className="text-sm text-slate-600 font-medium">Completion</div>
                     </div>
+                      <div className="text-sm text-slate-600 font-medium">Completion</div>
+                        </div>
                     <div className="text-center bg-gradient-to-br from-sky-50 to-blue-50 rounded-2xl p-6 border border-sky-100">
                       <div className="text-3xl font-light text-sky-600 mb-2">
                         {sessionData.accuracy}%
@@ -1200,7 +1201,7 @@ const MindfulMovement = () => {
                     <div className="text-center bg-gradient-to-br from-violet-50 to-purple-50 rounded-2xl p-6 border border-violet-100">
                       <div className="text-3xl font-light text-violet-600 mb-2">
                         {sessionData.qualityScore}
-                      </div>
+                </div>
                       <div className="text-sm text-slate-600 font-medium">Quality Score</div>
                     </div>
                   </>
@@ -1381,50 +1382,51 @@ const MindfulMovement = () => {
                 <div className="space-y-6">
                   {selectedCategory === 'mental' ? (
                     // Mental wellness: Duration only, no difficulty levels
-                    <div>
-                      <label className="block text-sm font-medium text-slate-600 mb-3">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-600 mb-3">
                         Duration
-                      </label>
-                      <select
-                        value={activitySettings.duration}
+                        </label>
+                        <select
+                          value={activitySettings.duration}
                         onChange={(e) => setActivitySettings(prev => ({ ...prev, duration: parseFloat(e.target.value) }))}
-                        className="w-full p-4 border border-emerald-200 rounded-2xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-white text-slate-700"
-                      >
+                          className="w-full p-4 border border-emerald-200 rounded-2xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-white text-slate-700"
+                        >
                         <option value={0.5}>30 seconds</option>
-                        <option value={5}>5 minutes</option>
-                        <option value={10}>10 minutes</option>
-                        <option value={15}>15 minutes</option>
-                        <option value={20}>20 minutes</option>
+                          <option value={5}>5 minutes</option>
+                          <option value={10}>10 minutes</option>
+                          <option value={15}>15 minutes</option>
+                          <option value={20}>20 minutes</option>
                         <option value={30}>30 minutes</option>
-                      </select>
+                        </select>
                       <p className="text-xs text-slate-500 mt-2">
                         Choose how long you'd like to practice mindfulness
                       </p>
-                    </div>
+                      </div>
                   ) : (
                     // Physical wellness: Reps only, no difficulty levels
-                    <div>
-                      <label className="block text-sm font-medium text-slate-600 mb-3">
-                        Target Repetitions
-                      </label>
-                      <select
-                        value={activitySettings.targetReps}
-                        onChange={(e) => setActivitySettings(prev => ({ ...prev, targetReps: parseInt(e.target.value) }))}
-                        className="w-full p-4 border border-emerald-200 rounded-2xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-white text-slate-700"
-                      >
-                        <option value={5}>5 reps</option>
-                        <option value={10}>10 reps</option>
-                        <option value={15}>15 reps</option>
-                        <option value={20}>20 reps</option>
-                        <option value={25}>25 reps</option>
-                        <option value={30}>30 reps</option>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-600 mb-3">
+                          Target Repetitions
+                        </label>
+                        <select
+                          value={activitySettings.targetReps}
+                          onChange={(e) => setActivitySettings(prev => ({ ...prev, targetReps: parseInt(e.target.value) }))}
+                          className="w-full p-4 border border-emerald-200 rounded-2xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-white text-slate-700"
+                        >
+                        <option value={1}>1 rep</option>
+                          <option value={5}>5 reps</option>
+                          <option value={10}>10 reps</option>
+                          <option value={15}>15 reps</option>
+                          <option value={20}>20 reps</option>
+                          <option value={25}>25 reps</option>
+                          <option value={30}>30 reps</option>
                         <option value={40}>40 reps</option>
                         <option value={50}>50 reps</option>
-                      </select>
+                        </select>
                       <p className="text-xs text-slate-500 mt-2">
                         Choose how many repetitions you'd like to complete
                       </p>
-                    </div>
+                      </div>
                   )}
                 </div>
 
