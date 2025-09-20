@@ -678,35 +678,7 @@ const Profile = () => {
                 animate={{ opacity: 1, x: 0 }}
                 className="space-y-8"
               >
-                <div>
-                  <h3 className="text-xl font-light text-slate-700 mb-6">Recent Activity</h3>
-                  <div className="space-y-4">
-                    {recentActivity.length > 0 ? (
-                      recentActivity.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-100">
-                          <div className="flex items-center space-x-3">
-                            <div className="text-2xl">{item.icon}</div>
-                            <div>
-                              <p className="font-medium text-slate-700">{item.activity}</p>
-                              <p className="text-sm text-slate-500">{item.time}</p>
-                              {item.description && (
-                                <p className="text-xs text-slate-400 mt-1">{item.description}</p>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-sm font-semibold text-emerald-600">+{item.points}</div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-8 text-slate-500">
-                        <p>No recent activity found</p>
-                        <p className="text-sm mt-2">Start journaling, meditating, or chatting with AI to see your activity here!</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
+                                <div>
                   <h3 className="text-xl font-light text-slate-700 mb-6">Weekly Progress</h3>
                   <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-100">
                     <div className="grid md:grid-cols-2 gap-6">
@@ -801,6 +773,34 @@ const Profile = () => {
                     </div>
                   </div>
                 </div>
+                <div>
+                  <h3 className="text-xl font-light text-slate-700 mb-6">Recent Activity</h3>
+                  <div className="space-y-4">
+                    {recentActivity.length > 0 ? (
+                      recentActivity.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-100">
+                          <div className="flex items-center space-x-3">
+                            <div className="text-2xl">{item.icon}</div>
+                            <div>
+                              <p className="font-medium text-slate-700">{item.activity}</p>
+                              <p className="text-sm text-slate-500">{item.time}</p>
+                              {item.description && (
+                                <p className="text-xs text-slate-400 mt-1">{item.description}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-sm font-semibold text-emerald-600">+{item.points}</div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-slate-500">
+                        <p>No recent activity found</p>
+                        <p className="text-sm mt-2">Start journaling, meditating, or chatting with AI to see your activity here!</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
               </motion.div>
             )}
 
