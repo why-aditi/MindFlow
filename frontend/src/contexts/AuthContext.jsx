@@ -110,8 +110,28 @@ export const AuthProvider = ({ children }) => {
   // Check if user is authenticated via cookie on app load
   const checkAuthStatus = useCallback(async () => {
     try {
+      // Get current token if user is available
+      let token = null;
+      if (auth.currentUser) {
+        try {
+          token = await auth.currentUser.getIdToken();
+        } catch (error) {
+          console.error('Error getting token for auth check:', error);
+        }
+      }
+
+      // Prepare headers
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`${getBackendUrl()}/api/auth/profile`, {
         method: 'GET',
+        headers,
         credentials: 'include'
       })
       

@@ -42,18 +42,11 @@ app.use(helmet());
 // CORS configuration
 app.use(
   cors({
-    origin: [
-      process.env.FRONTEND_URL || "http://localhost:5174",
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "http://localhost:3002",
-      "http://localhost:3003",
-      "http://localhost:5173",
-      "http://localhost:5174",
-    ],
+    origin: [process.env.FRONTEND_URL],
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    optionsSuccessStatus: 200, // For legacy browser support
   })
 );
 
