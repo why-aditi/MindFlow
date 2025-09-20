@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import {AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import Navbar from '../components/Navbar';
@@ -28,6 +28,8 @@ const JournalEntryDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (entryId && user) {
@@ -127,11 +129,25 @@ const JournalEntryDetail = () => {
   };
 
   const handleEdit = () => {
-    navigate(`/journaling?edit=${entryId}`);
+    // Navigate to journaling page and pass entry data via state
+    navigate('/journaling', { 
+      state: { 
+        editEntry: {
+          id: entry._id,
+          content: entry.content,
+          mood: entry.mood,
+          tags: entry.tags || []
+        }
+      } 
+    });
   };
 
-  const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this journal entry?')) return;
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    setIsDeleting(true);
     
     try {
       const idToken = await user.getIdToken();
@@ -143,14 +159,22 @@ const JournalEntryDetail = () => {
       });
 
       if (response.ok) {
+        setShowDeleteModal(false);
         navigate('/journaling');
       } else {
-        alert('Failed to delete entry');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Delete failed:', errorData.error || 'Unknown error');
+        // You could add a toast notification here instead of alert
       }
     } catch (error) {
       console.error('Error deleting entry:', error);
-      alert('Failed to delete entry');
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false);
   };
 
   if (isLoading) {
@@ -212,7 +236,7 @@ const JournalEntryDetail = () => {
               Edit
             </Button>
             <Button
-              onClick={handleDelete}
+              onClick={handleDeleteClick}
               variant="outline"
               className="flex items-center text-red-600 hover:text-red-700 hover:border-red-300"
             >
@@ -456,6 +480,66 @@ const JournalEntryDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={handleDeleteCancel}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-red-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Delete Journal Entry</h3>
+                  <p className="text-sm text-gray-600">This action cannot be undone</p>
+                </div>
+              </div>
+              
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to delete this journal entry? This will permanently remove the entry and all its associated data.
+              </p>
+              
+              <div className="flex space-x-3">
+                <Button
+                  onClick={handleDeleteCancel}
+                  variant="outline"
+                  className="flex-1"
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleDeleteConfirm}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <div className="flex items-center justify-center">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Deleting...
+                    </div>
+                  ) : (
+                    'Delete Entry'
+                  )}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

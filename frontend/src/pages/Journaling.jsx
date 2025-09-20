@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
 import Navbar from '../components/Navbar'
@@ -14,11 +14,13 @@ import {
 const Journaling = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   
   // Core journal state
   const [entries, setEntries] = useState([])
   const [currentEntry, setCurrentEntry] = useState('')
   const [selectedTags, setSelectedTags] = useState([])
+  const [editingEntry, setEditingEntry] = useState(null)
   const [isRecording, setIsRecording] = useState(false)
   const recognitionRef = useRef(null)
   const interimRef = useRef("")
@@ -149,6 +151,29 @@ const Journaling = () => {
     fetchEntries()
   }, [fetchEntries])
 
+  // Handle edit mode when navigating from detail page
+  useEffect(() => {
+    if (location.state?.editEntry) {
+      const { editEntry } = location.state
+      setEditingEntry(editEntry)
+      setCurrentEntry(editEntry.content)
+      setSelectedTags(editEntry.tags || [])
+      setView('write')
+      
+      // Clear the state to prevent re-triggering
+      navigate(location.pathname, { replace: true, state: {} })
+      
+      // Scroll to editor
+      setTimeout(() => {
+        const editorElement = document.querySelector('textarea')
+        if (editorElement) {
+          editorElement.focus()
+          editorElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 100)
+    }
+  }, [location.state, navigate, location.pathname])
+
   const handleSaveEntry = async () => {
     if (!currentEntry.trim()) return
 
@@ -156,8 +181,17 @@ const Journaling = () => {
     
     try {
       const idToken = await user.getIdToken()
-      const response = await fetch('http://localhost:8000/api/journal/entries', {
-        method: 'POST',
+      
+      // Determine if we're creating or updating
+      const isUpdate = editingEntry !== null
+      const url = isUpdate 
+        ? `http://localhost:8000/api/journal/entries/${editingEntry.id}`
+        : 'http://localhost:8000/api/journal/entries'
+      
+      const method = isUpdate ? 'PUT' : 'POST'
+      
+      const response = await fetch(url, {
+        method: method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${idToken}`
@@ -165,7 +199,8 @@ const Journaling = () => {
         body: JSON.stringify({
           content: currentEntry,
           tags: selectedTags,
-          isVoice: false
+          isVoice: false,
+          ...(isUpdate && { mood: editingEntry.mood }) // Preserve mood for updates
         })
       })
       
@@ -178,23 +213,38 @@ const Journaling = () => {
       
       const data = await response.json()
       if (data.success) {
-        const newEntry = {
-          _id: data.entryId,
-          content: currentEntry,
-          tags: selectedTags,
-          mood: 'neutral',
-          isVoice: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+        if (isUpdate) {
+          // Update existing entry in the list
+          setEntries(prev => prev.map(entry => 
+            entry._id === editingEntry.id 
+              ? { ...entry, content: currentEntry, tags: selectedTags, updatedAt: new Date().toISOString() }
+              : entry
+          ))
+          setEditingEntry(null)
+        } else {
+          // Add new entry
+          const newEntry = {
+            _id: data.entryId,
+            content: currentEntry,
+            tags: selectedTags,
+            mood: data.detectedMood || 'neutral',
+            isVoice: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+          setEntries(prev => [newEntry, ...prev])
         }
-        setEntries(prev => [newEntry, ...prev])
+        
         setCurrentEntry('')
         setSelectedTags([])
+        await fetchEntries() // Refresh entries to get updated data
       } else {
-        console.error('Failed to save entry:', data.error)
+        console.error(`Failed to ${isUpdate ? 'update' : 'save'} entry:`, data.error)
+        alert(`Failed to ${isUpdate ? 'update' : 'save'} entry. Please try again.`)
       }
     } catch (error) {
-      console.error('Error saving entry:', error.message)
+      console.error(`Error ${editingEntry ? 'updating' : 'saving'} entry:`, error.message)
+      alert(`Failed to ${editingEntry ? 'update' : 'save'} entry. Please try again.`)
     } finally {
       setIsSaving(false)
     }
@@ -967,12 +1017,12 @@ const Journaling = () => {
                   {isSaving ? (
                           <div className="flex items-center space-x-3">
                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Saving...</span>
+                      <span>{editingEntry ? 'Updating...' : 'Saving...'}</span>
                     </div>
                   ) : (
                           <div className="flex items-center space-x-3">
                             <Save className="w-5 h-5" />
-                      <span>Save Entry</span>
+                      <span>{editingEntry ? 'Update Entry' : 'Save Entry'}</span>
                     </div>
                   )}
                 </Button>
