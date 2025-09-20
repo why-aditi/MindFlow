@@ -39,127 +39,6 @@ const Profile = () => {
     { id: 'settings', label: 'Settings', icon: Settings }
   ]
 
-  // Calculate wellness scores
-  const calculateWellnessScores = useCallback(() => {
-    const today = new Date()
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-    
-    // Calculate day streak
-    const calculateStreak = () => {
-      if (journalEntries.length === 0) return 0
-      
-      const sortedEntries = journalEntries
-        .map(entry => new Date(entry.createdAt || entry.date))
-        .sort((a, b) => b - a)
-      
-      let streak = 0
-      let currentDate = new Date(todayStart)
-      
-      for (const entryDate of sortedEntries) {
-        const entryDateOnly = new Date(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate())
-        const expectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate())
-        
-        if (entryDateOnly.getTime() === expectedDate.getTime()) {
-          streak++
-          currentDate.setDate(currentDate.getDate() - 1)
-        } else if (entryDateOnly.getTime() < expectedDate.getTime()) {
-          break
-        }
-      }
-      
-      return streak
-    }
-    
-    // Calculate minutes today
-    const calculateMinutesToday = () => {
-      const todayEntries = journalEntries.filter(entry => {
-        const entryDate = new Date(entry.createdAt || entry.date)
-        return entryDate >= todayStart
-      })
-      
-      const journalMinutes = todayEntries.length * 5 // Assume 5 minutes per journal entry
-      return journalMinutes
-    }
-    
-    // Calculate goals completed
-    const calculateGoalsCompleted = () => {
-      const completedGoals = []
-      
-      // Journal goal (daily)
-      const hasJournalToday = journalEntries.some(entry => {
-        const entryDate = new Date(entry.createdAt || entry.date)
-        return entryDate >= todayStart
-      })
-      if (hasJournalToday) completedGoals.push('journal')
-      
-      // AI interaction goal
-      const hasAiToday = aiConversations.some(conv => {
-        const convDate = new Date(conv.createdAt || conv.date)
-        return convDate >= todayStart
-      })
-      if (hasAiToday) completedGoals.push('ai_interaction')
-      
-      return completedGoals.length
-    }
-    
-    // Calculate mental wellness score
-    const calculateMentalWellnessScore = () => {
-      const streak = calculateStreak()
-      const minutesToday = calculateMinutesToday()
-      const goalsCompleted = calculateGoalsCompleted()
-      
-      // Base score from streak (max 40 points)
-      const streakScore = Math.min(streak * 5, 40)
-      
-      // Activity score from minutes today (max 30 points)
-      const activityScore = Math.min(minutesToday * 0.5, 30)
-      
-      // Goals score (max 30 points)
-      const goalsScore = goalsCompleted * 10
-      
-      const totalScore = streakScore + activityScore + goalsScore
-      return Math.min(Math.round(totalScore), 100)
-    }
-    
-    // Calculate physical wellness score based on exercise sessions
-    const calculatePhysicalWellnessScore = () => {
-      const today = new Date()
-      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-      
-      // Count exercises done today
-      const exercisesToday = exerciseSessions.filter(session => {
-        const sessionDate = new Date(session.createdAt || session.date)
-        return sessionDate >= todayStart
-      }).length
-      
-      // Count total exercises this week
-      const weekStart = new Date(today)
-      weekStart.setDate(today.getDate() - today.getDay())
-      weekStart.setHours(0, 0, 0, 0)
-      
-      const exercisesThisWeek = exerciseSessions.filter(session => {
-        const sessionDate = new Date(session.createdAt || session.date)
-        return sessionDate >= weekStart
-      }).length
-      
-      // Calculate score based on exercises (max 100 points)
-      // Daily exercises: 20 points each (max 40 points)
-      // Weekly exercises: 10 points each (max 60 points)
-      const dailyScore = Math.min(exercisesToday * 20, 40)
-      const weeklyScore = Math.min(exercisesThisWeek * 10, 60)
-      
-      return Math.min(dailyScore + weeklyScore, 100)
-    }
-    
-    return {
-      streak: calculateStreak(),
-      minutesToday: calculateMinutesToday(),
-      goalsCompleted: calculateGoalsCompleted(),
-      mentalWellnessScore: calculateMentalWellnessScore(),
-      physicalWellnessScore: calculatePhysicalWellnessScore()
-    }
-  }, [journalEntries, aiConversations, exerciseSessions])
-
   const fetchProfileData = useCallback(async () => {
     try {
       if (!user) {
@@ -201,32 +80,8 @@ const Profile = () => {
         }
       })
       
-      // Fetch recent activity
-      console.log('Fetching recent activity...')
-      const activityResponse = await fetch('http://localhost:8000/api/profile/recent-activity', {
-        headers: {
-          'Authorization': `Bearer ${idToken}`
-        }
-      })
-      console.log('Activity response status:', activityResponse.status)
       
-      // Fetch mood trend
-      console.log('Fetching mood trend...')
-      const moodTrendResponse = await fetch('http://localhost:8000/api/profile/mood-trend', {
-        headers: {
-          'Authorization': `Bearer ${idToken}`
-        }
-      })
-      console.log('Mood trend response status:', moodTrendResponse.status)
       
-      // Fetch activity distribution
-      console.log('Fetching activity distribution...')
-      const activityDistResponse = await fetch('http://localhost:8000/api/profile/activity-distribution', {
-        headers: {
-          'Authorization': `Bearer ${idToken}`
-        }
-      })
-      console.log('Activity distribution response status:', activityDistResponse.status)
       
       // Fetch journal entries for wellness calculation
       const journalResponse = await fetch('http://localhost:8000/api/journal/entries', {
@@ -251,15 +106,11 @@ const Profile = () => {
       
       // Check if any response failed
       if (!goalsResponse.ok || !achievementsResponse.ok || !statsResponse.ok || !preferencesResponse.ok || 
-          !activityResponse.ok || !moodTrendResponse.ok || !activityDistResponse.ok || 
           !journalResponse.ok || !aiResponse.ok || !exerciseResponse.ok) {
         console.warn('Backend server not running')
         setWellnessGoals([])
         setAchievements([])
         setStats([])
-        setRecentActivity([])
-        setMoodTrend([])
-        setActivityDistribution({})
         setJournalEntries([])
         setAiConversations([])
         setExerciseSessions([])
@@ -284,12 +135,6 @@ const Profile = () => {
       const achievementsData = await achievementsResponse.json()
       const statsData = await statsResponse.json()
       const preferencesData = await preferencesResponse.json()
-      const activityData = await activityResponse.json()
-      console.log('Activity data:', activityData)
-      const moodTrendData = await moodTrendResponse.json()
-      console.log('Mood trend data:', moodTrendData)
-      const activityDistData = await activityDistResponse.json()
-      console.log('Activity distribution data:', activityDistData)
       const journalData = await journalResponse.json()
       const aiData = await aiResponse.json()
       const exerciseData = await exerciseResponse.json()
@@ -365,21 +210,6 @@ const Profile = () => {
         console.error('Failed to fetch preferences:', preferencesData.error)
       }
       
-      if (activityData.success) {
-        setRecentActivity(activityData.activities || [])
-      } else {
-        console.error('Failed to fetch recent activity:', activityData.error)
-        setRecentActivity([])
-      }
-      
-      if (moodTrendData.success) {
-        console.log('Mood trend data received:', moodTrendData.moodTrend)
-        setMoodTrend(moodTrendData.moodTrend || [])
-      } else {
-        console.error('Failed to fetch mood trend:', moodTrendData.error)
-        setMoodTrend([])
-      }
-      
       if (activityDistData.success) {
         setActivityDistribution(activityDistData.distribution || {})
       } else {
@@ -405,28 +235,182 @@ const Profile = () => {
 
   // Update stats when wellness scores change
   useEffect(() => {
-    const wellnessScores = calculateWellnessScores()
-    setStats(prevStats => {
-      const baseStats = prevStats.filter(stat => 
-        stat.label !== 'Mental Wellness' && stat.label !== 'Physical Wellness'
-      )
-      return [
-        ...baseStats,
-        {
-          label: 'Mental Wellness',
-          value: `${exerciseSessions.length} exercises`,
-          icon: <Brain className="w-6 h-6 text-white" />,
-          color: 'from-indigo-500 to-purple-600'
-        },
-        {
-          label: 'Physical Wellness',
-          value: `${exerciseSessions.length} exercises`,
-          icon: <Heart className="w-6 h-6 text-white" />,
-          color: 'from-rose-500 to-pink-600'
-        }
-      ]
+    setStats([
+      {
+        label: 'Journal Entries',
+        value: journalEntries.length.toString(),
+        icon: <Calendar className="w-6 h-6 text-white" />,
+        color: 'from-blue-500 to-blue-600'
+      },
+      {
+        label: 'AI Conversations',
+        value: aiConversations.length.toString(),
+        icon: <User className="w-6 h-6 text-white" />,
+        color: 'from-green-500 to-green-600'
+      },
+      {
+        label: 'Mental Wellness',
+        value: `${exerciseSessions.length} exercises`,
+        icon: <Brain className="w-6 h-6 text-white" />,
+        color: 'from-indigo-500 to-purple-600'
+      },
+      {
+        label: 'Physical Wellness',
+        value: `${exerciseSessions.length} exercises`,
+        icon: <Heart className="w-6 h-6 text-white" />,
+        color: 'from-rose-500 to-pink-600'
+      }
+    ])
+  }, [journalEntries, aiConversations, exerciseSessions])
+
+  // Create dynamic recent activity from all sources
+  const createRecentActivity = useCallback(() => {
+    const activities = []
+    
+    // Add journal entries
+    journalEntries.forEach(entry => {
+      activities.push({
+        id: `journal_${entry._id || entry.id}`,
+        type: 'journal',
+        activity: 'Journal Entry',
+        description: entry.content ? entry.content.substring(0, 100) + '...' : 'Reflected on your day',
+        time: new Date(entry.createdAt || entry.date).toLocaleDateString(),
+        timestamp: new Date(entry.createdAt || entry.date),
+        points: 10,
+        icon: '📝'
+      })
     })
-  }, [calculateWellnessScores, exerciseSessions])
+    
+    // Add AI conversations
+    aiConversations.forEach(conv => {
+      activities.push({
+        id: `ai_${conv._id || conv.id}`,
+        type: 'ai',
+        activity: 'AI Conversation',
+        description: conv.lastMessage ? conv.lastMessage.substring(0, 100) + '...' : 'Chatted with AI companion',
+        time: new Date(conv.createdAt || conv.date).toLocaleDateString(),
+        timestamp: new Date(conv.createdAt || conv.date),
+        points: 5,
+        icon: '🤖'
+      })
+    })
+    
+    // Add exercise sessions
+    exerciseSessions.forEach(session => {
+      activities.push({
+        id: `exercise_${session._id || session.id}`,
+        type: 'exercise',
+        activity: 'Exercise Session',
+        description: `${session.exerciseName || 'Exercise'} - ${session.actualDuration || session.plannedDuration || 0} minutes`,
+        time: new Date(session.createdAt || session.date).toLocaleDateString(),
+        timestamp: new Date(session.createdAt || session.date),
+        points: 15,
+        icon: '💪'
+      })
+    })
+    
+    // Sort by timestamp (most recent first) and limit to 10
+    return activities
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 10)
+  }, [journalEntries, aiConversations, exerciseSessions])
+
+  // Update recent activity when data changes
+  useEffect(() => {
+    const dynamicActivity = createRecentActivity()
+    setRecentActivity(dynamicActivity)
+  }, [createRecentActivity])
+
+  // Calculate dynamic activity distribution
+  const calculateActivityDistribution = useCallback(() => {
+    const today = new Date()
+    const weekStart = new Date(today)
+    weekStart.setDate(today.getDate() - today.getDay())
+    weekStart.setHours(0, 0, 0, 0)
+    
+    // Count activities this week
+    const journalCount = journalEntries.filter(entry => {
+      const entryDate = new Date(entry.createdAt || entry.date)
+      return entryDate >= weekStart
+    }).length
+    
+    const aiCount = aiConversations.filter(conv => {
+      const convDate = new Date(conv.createdAt || conv.date)
+      return convDate >= weekStart
+    }).length
+    
+    const exerciseCount = exerciseSessions.filter(session => {
+      const sessionDate = new Date(session.createdAt || session.date)
+      return sessionDate >= weekStart
+    }).length
+    
+    const total = journalCount + aiCount + exerciseCount
+    
+    if (total === 0) {
+      return {
+        meditation: 0,
+        journaling: 0,
+        exercise: 0
+      }
+    }
+    
+    return {
+      meditation: Math.round((aiCount / total) * 100), // AI conversations as meditation
+      journaling: Math.round((journalCount / total) * 100),
+      exercise: Math.round((exerciseCount / total) * 100)
+    }
+  }, [journalEntries, aiConversations, exerciseSessions])
+
+  // Update activity distribution when data changes
+  useEffect(() => {
+    const dynamicDistribution = calculateActivityDistribution()
+    setActivityDistribution(dynamicDistribution)
+  }, [calculateActivityDistribution])
+
+  // Calculate dynamic mood trend from journal entries
+  const calculateMoodTrend = useCallback(() => {
+    const today = new Date()
+    const weekStart = new Date(today)
+    weekStart.setDate(today.getDate() - today.getDay())
+    weekStart.setHours(0, 0, 0, 0)
+    
+    // Get mood scores for the last 7 days
+    const moodTrend = []
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(weekStart)
+      date.setDate(weekStart.getDate() + i)
+      date.setHours(0, 0, 0, 0)
+      
+      const nextDate = new Date(date)
+      nextDate.setDate(date.getDate() + 1)
+      
+      // Find journal entries for this day
+      const dayEntries = journalEntries.filter(entry => {
+        const entryDate = new Date(entry.createdAt || entry.date)
+        return entryDate >= date && entryDate < nextDate
+      })
+      
+      if (dayEntries.length > 0) {
+        // Calculate average mood for the day
+        const avgMood = dayEntries.reduce((sum, entry) => {
+          return sum + (entry.mood || 5) // Default to 5 if no mood
+        }, 0) / dayEntries.length
+        
+        moodTrend.push(Math.round(avgMood))
+      } else {
+        // No entries for this day, use neutral mood
+        moodTrend.push(5)
+      }
+    }
+    
+    return moodTrend
+  }, [journalEntries])
+
+  // Update mood trend when data changes
+  useEffect(() => {
+    const dynamicMoodTrend = calculateMoodTrend()
+    setMoodTrend(dynamicMoodTrend)
+  }, [calculateMoodTrend])
 
   const updateGoal = async (goalId, newValue) => {
     try {
@@ -703,14 +687,17 @@ const Profile = () => {
                     {recentActivity.length > 0 ? (
                       recentActivity.map((item) => (
                         <div key={item.id} className="flex items-center justify-between p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-100">
-                          <div>
-                            <p className="font-medium text-slate-700">{item.activity}</p>
-                            <p className="text-sm text-slate-500">{item.time}</p>
-                            {item.description && (
-                              <p className="text-xs text-slate-400 mt-1">{item.description}</p>
-                            )}
+                          <div className="flex items-center space-x-3">
+                            <div className="text-2xl">{item.icon}</div>
+                            <div>
+                              <p className="font-medium text-slate-700">{item.activity}</p>
+                              <p className="text-sm text-slate-500">{item.time}</p>
+                              {item.description && (
+                                <p className="text-xs text-slate-400 mt-1">{item.description}</p>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-sm font-semibold text-emerald-600">{item.points}</div>
+                          <div className="text-sm font-semibold text-emerald-600">+{item.points}</div>
                         </div>
                       ))
                     ) : (
@@ -805,6 +792,13 @@ const Profile = () => {
                             <div className="bg-teal-500 h-2 rounded-full" style={{ width: `${activityDistribution.journaling || 0}%` }}></div>
                           </div>
                           
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-slate-600">Exercise</span>
+                            <span className="text-sm font-medium">{activityDistribution.exercise || 0}%</span>
+                          </div>
+                          <div className="w-full bg-slate-200 rounded-full h-2">
+                            <div className="bg-rose-500 h-2 rounded-full" style={{ width: `${activityDistribution.exercise || 0}%` }}></div>
+                          </div>
                         </div>
                       </div>
                     </div>
