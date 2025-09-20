@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import Navbar from '../components/Navbar';
@@ -35,9 +35,9 @@ const JournalEntryDetail = () => {
     if (entryId && user) {
       fetchEntryDetails();
     }
-  }, [entryId, user]);
+  }, [entryId, user, fetchEntryDetails]);
 
-  const fetchEntryDetails = async () => {
+  const fetchEntryDetails = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -67,9 +67,9 @@ const JournalEntryDetail = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [entryId, user, fetchAnalysis]);
 
-  const fetchAnalysis = async (entryData) => {
+  const fetchAnalysis = useCallback(async (entryData) => {
     try {
       setIsAnalyzing(true);
       const idToken = await user.getIdToken();
@@ -96,7 +96,7 @@ const JournalEntryDetail = () => {
     } finally {
       setIsAnalyzing(false);
     }
-  };
+  }, [user]);
 
   const getMoodColor = (mood) => {
     const colors = {
