@@ -17,12 +17,13 @@ export const exercises = {
       hoverColor: 'from-blue-600 to-cyan-600'
     },
     {
-      id: 'mindfulness',
-      name: 'Mindfulness Practice',
-      description: 'Present moment awareness and mindful observation',
-      icon: '🌱',
-      color: 'from-green-500 to-emerald-500',
-      hoverColor: 'from-green-600 to-emerald-600'
+      id: 'coming_soon_mental',
+      name: 'Coming Soon',
+      description: 'New mindfulness practices coming soon!',
+      icon: '🚀',
+      color: 'from-emerald-500 to-teal-500',
+      hoverColor: 'from-emerald-600 to-teal-600',
+      isComingSoon: true
     }
   ],
   physical: [
@@ -43,12 +44,13 @@ export const exercises = {
       hoverColor: 'from-purple-600 to-pink-600'
     },
     {
-      id: 'push_ups',
-      name: 'Push-ups',
-      description: 'Full body strength and core exercise',
-      icon: '🏋️',
-      color: 'from-indigo-500 to-blue-500',
-      hoverColor: 'from-indigo-600 to-blue-600'
+      id: 'coming_soon',
+      name: 'Coming Soon',
+      description: 'New exercises coming soon!',
+      icon: '🚀',
+      color: 'from-emerald-500 to-teal-500',
+      hoverColor: 'from-emerald-600 to-teal-600',
+      isComingSoon: true
     }
   ]
 }

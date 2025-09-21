@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 // import { useAuth } from '../hooks/useAuth' // Unused for now
 import { Button } from '../components/ui/Button'
+import ComingSoonPopup from '../components/ui/ComingSoonPopup'
 import { motion, AnimatePresence } from 'framer-motion'
 import poseTrackingService from '../services/mediapipePoseService'
 import { 
@@ -59,11 +60,19 @@ const MindfulMovement = () => {
   const [success, setSuccess] = useState(null)
   const [isMuted, setIsMuted] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false) // Prevent multiple completions
+  const [showComingSoonPopup, setShowComingSoonPopup] = useState(false)
+  
+  // Breathing exercise specific state
+  const [breathingPhase, setBreathingPhase] = useState('inhale') // 'inhale', 'exhale', 'hold'
+  const [breathingCycle, setBreathingCycle] = useState(0)
+  const [breathingProgress, setBreathingProgress] = useState(0) // 0-100 for visual indicator
 
   const intervalRef = useRef(null)
   const isCompletingRef = useRef(false) // Ref to prevent multiple completions
   const errorTimeoutRef = useRef(null)
   const successTimeoutRef = useRef(null)
+  const breathingIntervalRef = useRef(null)
+  const breathingProgressRef = useRef(null)
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -180,13 +189,14 @@ const MindfulMovement = () => {
       borderColor: 'border-sky-200'
     },
     {
-      id: 'mindfulness',
-      name: 'Mindfulness',
-      description: 'Present moment awareness practice',
-      icon: '🌱',
-      color: 'from-emerald-400 to-green-500',
-      bgColor: 'from-emerald-50 to-green-50',
-      borderColor: 'border-emerald-200'
+      id: 'coming_soon_mental',
+      name: 'Coming Soon',
+      description: 'New mindfulness practices coming soon!',
+      icon: '🚀',
+      color: 'from-emerald-400 to-teal-500',
+      bgColor: 'from-emerald-50 to-teal-50',
+      borderColor: 'border-emerald-200',
+      isComingSoon: true
     }
   ]
 
@@ -213,14 +223,15 @@ const MindfulMovement = () => {
       type: 'rep'
     },
     {
-      id: 'pushup',
-      name: 'Push-ups',
-      description: 'Upper body and core strength',
-      icon: '🏋️',
-      color: 'from-indigo-400 to-blue-500',
-      bgColor: 'from-indigo-50 to-blue-50',
-      borderColor: 'border-indigo-200',
-      type: 'rep'
+      id: 'coming_soon',
+      name: 'Coming Soon',
+      description: 'New exercises coming soon!',
+      icon: '🚀',
+      color: 'from-emerald-400 to-teal-500',
+      bgColor: 'from-emerald-50 to-teal-50',
+      borderColor: 'border-emerald-200',
+      type: 'coming_soon',
+      isComingSoon: true
     }
   ]
 
@@ -352,21 +363,17 @@ const MindfulMovement = () => {
           'Engage your core throughout the movement'
         ]
       },
-      pushup: {
-        title: 'Push-up Position',
-        icon: '🏋️',
+      coming_soon: {
+        title: 'Coming Soon',
+        icon: '🚀',
         steps: [
-          'Start in plank position on hands and toes',
-          'Hands slightly wider than shoulder-width',
-          'Keep your body in a straight line',
-          'Lower your chest toward the ground',
-          'Keep elbows close to your body',
-          'Push back up to starting position'
+          'This exercise is coming soon',
+          'Stay tuned for updates',
+          'Check back later for new content'
         ],
         tips: [
-          'Keep your core tight',
-          'Don\'t let your hips sag or pike up',
-          'Breathe out as you push up'
+          'More exercises are being developed',
+          'Follow our updates for new releases'
         ]
       }
     }
@@ -380,9 +387,9 @@ const MindfulMovement = () => {
     // Different instructions based on activity
     let instruction = "Please sit comfortably with your back straight, hands resting on your knees, and close your eyes gently."
     if (selectedActivity?.id === 'breathing') {
-      instruction = "Please sit or stand comfortably with your back straight. Place one hand on your chest and the other on your belly. Focus on your breathing rhythm."
-    } else if (selectedActivity?.id === 'mindfulness') {
-      instruction = "Please find a comfortable seated position with your back straight. Keep your eyes gently closed or softly focused. Bring your attention to the present moment."
+      instruction = "Find a comfortable seated or standing position. Relax your shoulders and close your eyes gently. We'll guide you through a calming breathing exercise."
+    } else if (selectedActivity?.id === 'coming_soon_mental') {
+      instruction = "This mindfulness practice is coming soon. Stay tuned for updates!"
     }
     
     speak(instruction)
@@ -437,50 +444,15 @@ const MindfulMovement = () => {
       setIsTracking(true)
       setIsCompleting(false)
       isCompletingRef.current = false // Reset completion flag
-      isCompletingRef.current = false // Reset completion ref
       
-      // Start camera
-      const cameraStarted = await startCamera()
-      if (!cameraStarted) {
-        setErrorMessage('Camera access required for pose tracking')
-        return
+      // Check if this is a breathing exercise
+      if (selectedActivity?.id === 'breathing') {
+        // Start breathing exercise with enhanced guidance
+        startBreathingExercise()
+      } else {
+        // Start regular meditation
+        startRegularMeditation()
       }
-      
-      // Initialize MediaPipe pose tracking service
-      console.log('Initializing MediaPipe pose tracking service for mental wellness...')
-      const initialized = await poseTrackingService.initialize()
-      if (!initialized) {
-        setErrorMessage('Failed to initialize pose tracking service')
-        return
-      }
-      
-      // Initialize pose tracking
-      setTimeout(() => {
-        if (videoRef.current) {
-          const poseStarted = poseTrackingService.startTracking(
-            videoRef.current,
-            selectedActivity?.id || 'meditation',
-            (results) => {
-              setSessionData(prev => ({
-                ...prev,
-                accuracy: results.accuracy || 0,
-                poseCorrect: results.poseDetected && results.accuracy >= 100
-              }))
-            },
-            (error) => {
-              console.error('Pose tracking error:', error)
-            }
-          )
-          
-          if (poseStarted) {
-            setPoseTrackingActive(true)
-          }
-        }
-      }, 1000)
-      
-      // Start timer
-      startTimer()
-      setSuccessMessage(`${selectedActivity?.name} session started!`)
       
     } catch (error) {
       console.error('Error starting mental wellness session:', error)
@@ -488,7 +460,69 @@ const MindfulMovement = () => {
     }
   }
 
-  // Timer function
+  // Start regular meditation session
+  const startRegularMeditation = async () => {
+    // Start camera
+    const cameraStarted = await startCamera()
+    if (!cameraStarted) {
+      setErrorMessage('Camera access required for pose tracking')
+      return
+    }
+    
+    // Initialize MediaPipe pose tracking service
+    console.log('Initializing MediaPipe pose tracking service for mental wellness...')
+    const initialized = await poseTrackingService.initialize()
+    if (!initialized) {
+      setErrorMessage('Failed to initialize pose tracking service')
+      return
+    }
+    
+    // Initialize pose tracking
+    setTimeout(() => {
+      if (videoRef.current) {
+        const poseStarted = poseTrackingService.startTracking(
+          videoRef.current,
+          selectedActivity?.id || 'meditation',
+          (results) => {
+            setSessionData(prev => ({
+              ...prev,
+              accuracy: results.accuracy || 0,
+              poseCorrect: results.poseDetected && results.accuracy >= 100
+            }))
+          },
+          (error) => {
+            console.error('Pose tracking error:', error)
+          }
+        )
+        
+        if (poseStarted) {
+          setPoseTrackingActive(true)
+        }
+      }
+    }, 1000)
+    
+    // Start timer
+    startTimer()
+    setSuccessMessage(`${selectedActivity?.name} session started!`)
+  }
+
+  // Start enhanced breathing exercise
+  const startBreathingExercise = async () => {
+    // Reset breathing state
+    setBreathingPhase('inhale')
+    setBreathingCycle(0)
+    setBreathingProgress(0)
+    
+    // Start simplified timer for breathing (no pose tracking needed)
+    startBreathingTimer()
+    
+    // Start breathing guidance
+    startBreathingGuidance()
+    
+    setSuccessMessage('Breathing exercise started! Follow the voice guidance.')
+  }
+
+  // Timer function for regular meditation
   const startTimer = () => {
     // Clear any existing timer first
     if (intervalRef.current) {
@@ -532,6 +566,110 @@ const MindfulMovement = () => {
         }
       })
     }, 1000)
+  }
+
+  // Simplified timer for breathing exercise
+  const startBreathingTimer = () => {
+    // Clear any existing timer first
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+    }
+    
+    const totalSeconds = activitySettings.duration * 60
+    setSessionData(prev => ({ 
+      ...prev, 
+      remainingTime: totalSeconds,
+      actualPoseTime: 0 // Reset for breathing
+    }))
+    
+    intervalRef.current = setInterval(() => {
+      setSessionData(prev => {
+        const newElapsed = prev.elapsedTime + 1
+        const newRemaining = Math.max(0, totalSeconds - newElapsed)
+        const newActualPoseTime = newElapsed // For breathing, all time counts
+        
+        // Check if we've reached the target duration
+        if (newElapsed >= totalSeconds && !isCompletingRef.current) {
+          isCompletingRef.current = true
+          setIsCompleting(true)
+          setTimeout(() => {
+            stopBreathingExercise()
+          }, 1000)
+        }
+        
+        return {
+          ...prev,
+          elapsedTime: newElapsed,
+          actualPoseTime: newActualPoseTime,
+          remainingTime: newRemaining,
+          accuracy: 100, // Always 100% for breathing exercise
+          poseCorrect: true
+        }
+      })
+    }, 1000)
+  }
+
+  // Breathing guidance function
+  const startBreathingGuidance = () => {
+    // Clear any existing breathing timers
+    if (breathingIntervalRef.current) {
+      clearInterval(breathingIntervalRef.current)
+    }
+    if (breathingProgressRef.current) {
+      clearInterval(breathingProgressRef.current)
+    }
+
+    const cycleDuration = 14000 // 14 seconds total cycle (7 inhale + 7 exhale)
+    const phaseDuration = 7000 // 7 seconds per phase
+    
+    let currentPhase = 'inhale'
+    let cycleCount = 0
+    
+    // Initial guidance
+    speak('Breathe in slowly')
+    setBreathingPhase('inhale')
+    
+    // Progress indicator updates every 100ms for smooth animation
+    breathingProgressRef.current = setInterval(() => {
+      setBreathingProgress(prev => {
+        if (currentPhase === 'inhale') {
+          return Math.min(prev + (100 / (phaseDuration / 100)), 100)
+        } else {
+          return Math.max(prev - (100 / (phaseDuration / 100)), 0)
+        }
+      })
+    }, 100)
+    
+    // Main breathing cycle timer
+    breathingIntervalRef.current = setInterval(() => {
+      if (currentPhase === 'inhale') {
+        currentPhase = 'exhale'
+        setBreathingPhase('exhale')
+        setBreathingProgress(100) // Start from full for exhale
+        speak('Breathe out slowly')
+      } else {
+        currentPhase = 'inhale'
+        cycleCount++
+        setBreathingPhase('inhale')
+        setBreathingCycle(cycleCount)
+        setBreathingProgress(0) // Start from empty for inhale
+        speak('Breathe in slowly')
+      }
+    }, phaseDuration)
+  }
+
+  // Stop breathing exercise
+  const stopBreathingExercise = () => {
+    // Clear breathing timers
+    if (breathingIntervalRef.current) {
+      clearInterval(breathingIntervalRef.current)
+    }
+    if (breathingProgressRef.current) {
+      clearInterval(breathingProgressRef.current)
+    }
+    
+    // Complete the session
+    stopSession(true)
   }
 
   // Stop session (works for both meditation and physical exercises)
@@ -588,6 +726,12 @@ const MindfulMovement = () => {
 
   // Handle activity selection
   const handleActivitySelect = (activity) => {
+    // Check if this is a coming soon item
+    if (activity.isComingSoon) {
+      setShowComingSoonPopup(true)
+      return
+    }
+    
     setSelectedActivity(activity)
     setShowSettingsPopup(true)
   }
@@ -740,6 +884,12 @@ const MindfulMovement = () => {
       }
       if (poseDefinitionRef.current) {
         clearTimeout(poseDefinitionRef.current)
+      }
+      if (breathingIntervalRef.current) {
+        clearInterval(breathingIntervalRef.current)
+      }
+      if (breathingProgressRef.current) {
+        clearInterval(breathingProgressRef.current)
       }
       stopCamera()
       poseTrackingService.stopTracking()
@@ -1061,8 +1211,8 @@ const MindfulMovement = () => {
               </div>
             </div>
 
-            {/* Camera Feed */}
-            {isTracking && (
+            {/* Camera Feed - Hide for breathing exercises */}
+            {isTracking && selectedActivity?.id !== 'breathing' && (
               <div className="mb-12">
                 {/* Camera Video Feed */}
                 <div className="relative bg-gradient-to-br from-emerald-50 to-teal-50 rounded-3xl overflow-hidden mx-auto max-w-lg border border-emerald-200 shadow-wellness mb-8">
@@ -1148,35 +1298,139 @@ const MindfulMovement = () => {
               </div>
             )}
 
+            {/* Breathing Visualization - Only for breathing exercise */}
+            {selectedActivity?.id === 'breathing' && sessionState === 'active' && (
+              <div className="mb-12 max-w-md mx-auto">
+                <div className="bg-gradient-to-br from-sky-50 to-cyan-50 rounded-3xl p-8 border border-sky-200 text-center">
+                  {/* Breathing Circle */}
+                  <div className="relative mb-6">
+                    <div className="w-32 h-32 mx-auto relative">
+                      {/* Outer ring */}
+                      <div className="absolute inset-0 rounded-full border-4 border-sky-200"></div>
+                      
+                      {/* Animated breathing circle */}
+                      <motion.div
+                        animate={{
+                          scale: breathingPhase === 'inhale' ? 1.2 : 0.8,
+                          opacity: breathingPhase === 'inhale' ? 0.8 : 0.4
+                        }}
+                        transition={{
+                          duration: 7,
+                          ease: "easeInOut"
+                        }}
+                        className="absolute inset-2 rounded-full bg-gradient-to-br from-sky-300 to-cyan-400 flex items-center justify-center"
+                      >
+                        <div className="text-white font-medium text-lg">
+                          {breathingPhase === 'inhale' ? '↑' : '↓'}
+                        </div>
+                      </motion.div>
+                      
+                      {/* Progress ring */}
+                      <div className="absolute inset-0">
+                        <svg className="w-full h-full transform -rotate-90">
+                          <circle
+                            cx="64"
+                            cy="64"
+                            r="60"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            fill="none"
+                            className="text-sky-200"
+                          />
+                          <circle
+                            cx="64"
+                            cy="64"
+                            r="60"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            fill="none"
+                            strokeDasharray={`${2 * Math.PI * 60}`}
+                            strokeDashoffset={`${2 * Math.PI * 60 * (1 - breathingProgress / 100)}`}
+                            className="text-sky-500 transition-all duration-100 ease-linear"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Breathing Instructions */}
+                  <div className="space-y-2">
+                    <div className="text-2xl font-light text-sky-700 capitalize">
+                      {breathingPhase}
+                    </div>
+                    <div className="text-sm text-sky-600">
+                      Cycle {breathingCycle + 1}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      Follow the circle and voice guidance
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Session Stats */}
             {(sessionState === 'active' || sessionState === 'completed') && (
               <div className="grid md:grid-cols-4 gap-6 mb-12">
                 {selectedCategory === 'mental' ? (
                   <>
-                    <div className="text-center bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-100">
-                      <div className="text-3xl font-light text-emerald-600 mb-2">
-                        {formatTime(sessionData.actualPoseTime)}
-                      </div>
-                      <div className="text-sm text-slate-600 font-medium">Correct Pose Time</div>
-                    </div>
-                    <div className="text-center bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl p-6 border border-teal-100">
-                      <div className="text-3xl font-light text-teal-600 mb-2">
-                        {formatTime(Math.max(0, (activitySettings.duration * 60) - sessionData.actualPoseTime))}
-                      </div>
-                      <div className="text-sm text-slate-600 font-medium">Remaining</div>
-                    </div>
-                    <div className="text-center bg-gradient-to-br from-sky-50 to-blue-50 rounded-2xl p-6 border border-sky-100">
-                      <div className="text-3xl font-light text-sky-600 mb-2">
-                        {sessionData.accuracy}%
-                      </div>
-                      <div className="text-sm text-slate-600 font-medium">Pose Accuracy</div>
-                    </div>
-                    <div className="text-center bg-gradient-to-br from-violet-50 to-purple-50 rounded-2xl p-6 border border-violet-100">
-                      <div className="text-3xl font-light text-violet-600 mb-2">
-                        {sessionData.poseCorrect ? '✓' : '✗'}
-                      </div>
-                      <div className="text-sm text-slate-600 font-medium">Pose Status</div>
-                    </div>
+                    {selectedActivity?.id === 'breathing' ? (
+                      // Breathing exercise stats
+                      <>
+                        <div className="text-center bg-gradient-to-br from-sky-50 to-cyan-50 rounded-2xl p-6 border border-sky-100">
+                          <div className="text-3xl font-light text-sky-600 mb-2">
+                            {formatTime(sessionData.elapsedTime)}
+                          </div>
+                          <div className="text-sm text-slate-600 font-medium">Session Time</div>
+                        </div>
+                        <div className="text-center bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl p-6 border border-cyan-100">
+                          <div className="text-3xl font-light text-cyan-600 mb-2">
+                            {formatTime(sessionData.remainingTime)}
+                          </div>
+                          <div className="text-sm text-slate-600 font-medium">Remaining</div>
+                        </div>
+                        <div className="text-center bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
+                          <div className="text-3xl font-light text-blue-600 mb-2">
+                            {breathingCycle}
+                          </div>
+                          <div className="text-sm text-slate-600 font-medium">Breathing Cycles</div>
+                        </div>
+                        <div className="text-center bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-100">
+                          <div className="text-3xl font-light text-indigo-600 mb-2 capitalize">
+                            {breathingPhase}
+                          </div>
+                          <div className="text-sm text-slate-600 font-medium">Current Phase</div>
+                        </div>
+                      </>
+                    ) : (
+                      // Regular meditation stats
+                      <>
+                        <div className="text-center bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-100">
+                          <div className="text-3xl font-light text-emerald-600 mb-2">
+                            {formatTime(sessionData.actualPoseTime)}
+                          </div>
+                          <div className="text-sm text-slate-600 font-medium">Correct Pose Time</div>
+                        </div>
+                        <div className="text-center bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl p-6 border border-teal-100">
+                          <div className="text-3xl font-light text-teal-600 mb-2">
+                            {formatTime(Math.max(0, (activitySettings.duration * 60) - sessionData.actualPoseTime))}
+                          </div>
+                          <div className="text-sm text-slate-600 font-medium">Remaining</div>
+                        </div>
+                        <div className="text-center bg-gradient-to-br from-sky-50 to-blue-50 rounded-2xl p-6 border border-sky-100">
+                          <div className="text-3xl font-light text-sky-600 mb-2">
+                            {sessionData.accuracy}%
+                          </div>
+                          <div className="text-sm text-slate-600 font-medium">Pose Accuracy</div>
+                        </div>
+                        <div className="text-center bg-gradient-to-br from-violet-50 to-purple-50 rounded-2xl p-6 border border-violet-100">
+                          <div className="text-3xl font-light text-violet-600 mb-2">
+                            {sessionData.poseCorrect ? '✓' : '✗'}
+                          </div>
+                          <div className="text-sm text-slate-600 font-medium">Pose Status</div>
+                        </div>
+                      </>
+                    )}
                   </>
                 ) : (
                   <>
@@ -1235,15 +1489,27 @@ const MindfulMovement = () => {
                     <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-2xl p-8 border border-violet-100 max-w-2xl mx-auto">
                       <p className="text-lg text-slate-600 leading-relaxed mb-4">
                         {selectedActivity?.id === 'meditation' && "Sit comfortably with your back straight, hands resting on your knees, and close your eyes gently. Take a few deep breaths and relax."}
-                        {selectedActivity?.id === 'breathing' && "Sit or stand comfortably with your back straight. Place one hand on your chest and the other on your belly. Focus on your breathing rhythm."}
-                        {selectedActivity?.id === 'mindfulness' && "Find a comfortable seated position with your back straight. Keep your eyes gently closed or softly focused. Bring your attention to the present moment."}
+                        {selectedActivity?.id === 'breathing' && "Find a comfortable seated or standing position. Relax your shoulders and close your eyes gently. Breathe naturally and follow the voice guidance for a calming breathing rhythm."}
+                        {selectedActivity?.id === 'coming_soon_mental' && "This mindfulness practice is coming soon. Stay tuned for updates!"}
                       </p>
                       <div className="text-sm text-slate-500 space-y-2">
-                        <p>✓ Sit with hips lower than shoulders</p>
-                        <p>✓ Keep your back straight and aligned</p>
-                        <p>✓ Bend your knees in seated position</p>
-                        <p>✓ Keep your head centered between shoulders</p>
-                        <p className="font-medium text-violet-600 mt-3">Timer only runs when the pose accuracy is at least 80% </p>
+                        {selectedActivity?.id === 'breathing' ? (
+                          <>
+                            <p>✓ Find a comfortable position (sitting or standing)</p>
+                            <p>✓ Relax your shoulders and neck</p>
+                            <p>✓ Close your eyes gently or soften your gaze</p>
+                            <p>✓ Breathe naturally through your nose</p>
+                            <p className="font-medium text-sky-600 mt-3">Follow the voice guidance and visual breathing circle</p>
+                          </>
+                        ) : (
+                          <>
+                            <p>✓ Sit with hips lower than shoulders</p>
+                            <p>✓ Keep your back straight and aligned</p>
+                            <p>✓ Bend your knees in seated position</p>
+                            <p>✓ Keep your head centered between shoulders</p>
+                            <p className="font-medium text-violet-600 mt-3">Timer only runs when the pose accuracy is at least 80% </p>
+                          </>
+                        )}
                       </div>
                     </div>
                   </>
@@ -1452,6 +1718,12 @@ const MindfulMovement = () => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Coming Soon Popup */}
+        <ComingSoonPopup 
+          isOpen={showComingSoonPopup} 
+          onClose={() => setShowComingSoonPopup(false)} 
+        />
       </main>
     </div>
   )

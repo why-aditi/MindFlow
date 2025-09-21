@@ -26,17 +26,26 @@ export const getExerciseInstructions = (exerciseId) => {
         'Go as low as comfortable'
       ]
     },
-    push_ups: {
+    coming_soon: {
       steps: [
-        'Start in plank position',
-        'Lower your chest toward the ground',
-        'Keep your body in a straight line',
-        'Push back up to starting position'
+        'This exercise is coming soon',
+        'Stay tuned for updates',
+        'Check back later for new content'
       ],
       tips: [
-        'Keep your core tight',
-        'Don\'t let your hips sag or pike up',
-        'Breathe out as you push up'
+        'More exercises are being developed',
+        'Follow our updates for new releases'
+      ]
+    },
+    coming_soon_mental: {
+      steps: [
+        'This mindfulness practice is coming soon',
+        'Stay tuned for updates',
+        'Check back later for new content'
+      ],
+      tips: [
+        'More mindfulness practices are being developed',
+        'Follow our updates for new releases'
       ]
     }
   }
