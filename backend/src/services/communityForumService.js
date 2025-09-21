@@ -142,17 +142,8 @@ class CommunityForumService {
    */
   async createPost(postData, authorId) {
     try {
-      // Perform AI moderation analysis
+      // Perform AI moderation analysis only
       const moderationResult = await this.moderateContent(postData.content);
-
-      // Check for crisis indicators
-      const crisisCheck = await this.checkCrisisIndicators(postData.content);
-
-      // Generate AI suggestions
-      const aiSuggestions = await this.generatePostSuggestions(
-        postData.content,
-        postData.type
-      );
 
       const post = new ForumPost({
         ...postData,
@@ -163,27 +154,31 @@ class CommunityForumService {
           reason: moderationResult.reason,
         },
         crisisSupport: {
-          isCrisis: crisisCheck.isCrisis,
-          resources: crisisCheck.isCrisis ? this.crisisResources : [],
+          isCrisis: false,
+          resources: [],
         },
-        aiSuggestions,
+        aiSuggestions: {
+          replySuggestions: [],
+          resourceSuggestions: [],
+          peerMatches: [],
+        },
       });
 
       await post.save();
 
-      // Update forum stats
-      await this.updateForumStats(postData.forumId);
-
-      // If crisis detected, escalate immediately
-      if (crisisCheck.isCrisis) {
-        await this.escalateCrisisPost(post._id, crisisCheck);
-      }
+      // Update forum stats (defer to improve response time)
+      setImmediate(async () => {
+        try {
+          await this.updateForumStats(postData.forumId);
+        } catch (error) {
+          console.error("Error updating forum stats:", error);
+        }
+      });
 
       return {
         success: true,
         post,
         moderationResult,
-        crisisCheck,
       };
     } catch (error) {
       console.error("Error creating post:", error);
@@ -199,17 +194,8 @@ class CommunityForumService {
    */
   async createReply(replyData, authorId, postId) {
     try {
-      // Perform AI moderation analysis
+      // Perform AI moderation analysis only
       const moderationResult = await this.moderateContent(replyData.content);
-
-      // Check for crisis indicators
-      const crisisCheck = await this.checkCrisisIndicators(replyData.content);
-
-      // Generate AI suggestions
-      const aiSuggestions = await this.generateReplySuggestions(
-        replyData.content,
-        postId
-      );
 
       const reply = new ForumReply({
         ...replyData,
@@ -221,28 +207,31 @@ class CommunityForumService {
           reason: moderationResult.reason,
         },
         crisisSupport: {
-          isCrisis: crisisCheck.isCrisis,
+          isCrisis: false,
         },
-        aiSuggestions,
+        aiSuggestions: {
+          replySuggestions: [],
+          resourceSuggestions: [],
+        },
       });
 
       await reply.save();
 
-      // Update post reply count
-      await ForumPost.findByIdAndUpdate(postId, {
-        $inc: { "engagement.replies": 1 },
+      // Update post reply count (defer to improve response time)
+      setImmediate(async () => {
+        try {
+          await ForumPost.findByIdAndUpdate(postId, {
+            $inc: { "engagement.replies": 1 },
+          });
+        } catch (error) {
+          console.error("Error updating post reply count:", error);
+        }
       });
-
-      // If crisis detected, escalate immediately
-      if (crisisCheck.isCrisis) {
-        await this.escalateCrisisReply(reply._id, crisisCheck);
-      }
 
       return {
         success: true,
         reply,
         moderationResult,
-        crisisCheck,
       };
     } catch (error) {
       console.error("Error creating reply:", error);
@@ -555,6 +544,30 @@ Respond in JSON format with keys: replySuggestions, resourceSuggestions`;
   async getForumPosts(forumId, options = {}) {
     try {
       const posts = await ForumPost.getByForum(forumId, options);
+
+      // Populate user information for each post
+      const postsWithUsers = await Promise.all(
+        posts.map(async (post) => {
+          const postObj = post.toObject();
+          if (!postObj.isAnonymous && postObj.authorId) {
+            try {
+              const User = (await import("../models/User.js")).default;
+              const user = await User.findOne({ uid: postObj.authorId });
+              if (user) {
+                postObj.userId = {
+                  username: user.name,
+                  email: user.email,
+                  picture: user.picture,
+                };
+              }
+            } catch (userError) {
+              console.error("Error fetching user for post:", userError);
+            }
+          }
+          return postObj;
+        })
+      );
+
       const total = await ForumPost.countDocuments({
         forumId,
         status: "active",
@@ -563,7 +576,7 @@ Respond in JSON format with keys: replySuggestions, resourceSuggestions`;
 
       return {
         success: true,
-        posts,
+        posts: postsWithUsers,
         pagination: {
           page: options.page || 1,
           limit: options.limit || 20,
@@ -586,6 +599,30 @@ Respond in JSON format with keys: replySuggestions, resourceSuggestions`;
   async getPostReplies(postId, options = {}) {
     try {
       const replies = await ForumReply.getByPost(postId, options);
+
+      // Populate user information for each reply
+      const repliesWithUsers = await Promise.all(
+        replies.map(async (reply) => {
+          const replyObj = reply.toObject();
+          if (!replyObj.isAnonymous && replyObj.authorId) {
+            try {
+              const User = (await import("../models/User.js")).default;
+              const user = await User.findOne({ uid: replyObj.authorId });
+              if (user) {
+                replyObj.userId = {
+                  username: user.name,
+                  email: user.email,
+                  picture: user.picture,
+                };
+              }
+            } catch (userError) {
+              console.error("Error fetching user for reply:", userError);
+            }
+          }
+          return replyObj;
+        })
+      );
+
       const total = await ForumReply.countDocuments({
         postId,
         status: "active",
@@ -594,7 +631,7 @@ Respond in JSON format with keys: replySuggestions, resourceSuggestions`;
 
       return {
         success: true,
-        replies,
+        replies: repliesWithUsers,
         pagination: {
           page: options.page || 1,
           limit: options.limit || 20,
