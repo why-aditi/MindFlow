@@ -32,6 +32,7 @@ const Profile = () => {
   const [journalEntries, setJournalEntries] = useState([])
   const [aiConversations, setAiConversations] = useState([])
   const [exerciseSessions, setExerciseSessions] = useState([])
+  const [selectedPeriod, setSelectedPeriod] = useState('week')
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: User },
@@ -80,9 +81,26 @@ const Profile = () => {
           'Authorization': `Bearer ${idToken}`
         }
       })
+      // Fetch mood trend from backend
+      const moodTrendResponse = await fetch(`${getApiBaseUrl()}/profile/mood-trend?period=${selectedPeriod}`, {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
       
+      // Fetch activity distribution from backend
+      const activityDistributionResponse = await fetch(`${getApiBaseUrl()}/profile/activity-distribution?period=${selectedPeriod}`, {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
       
-      
+      // Fetch recent activity from backend
+      const recentActivityResponse = await fetch(`${getApiBaseUrl()}/profile/recent-activity?limit=10`, {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      })
       
       // Fetch journal entries for wellness calculation
       const journalResponse = await fetch(`${getApiBaseUrl()}/journal/entries`, {
@@ -99,7 +117,7 @@ const Profile = () => {
       })
       
       // Fetch exercise sessions for wellness calculation
-      const exerciseResponse = await fetch(`${getApiBaseUrl()}/vr/sessions`, {
+      const exerciseResponse = await fetch(`${getApiBaseUrl()}/profile/exercise-sessions`, {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
@@ -107,7 +125,7 @@ const Profile = () => {
       
       // Check if any response failed
       if (!goalsResponse.ok || !achievementsResponse.ok || !statsResponse.ok || !preferencesResponse.ok || 
-          !journalResponse.ok || !aiResponse.ok || !exerciseResponse.ok) {
+          !moodTrendResponse.ok || !activityDistributionResponse.ok || !recentActivityResponse.ok || !journalResponse.ok || !aiResponse.ok || !exerciseResponse.ok) {
         console.warn('Backend server not running')
         setWellnessGoals([])
         setAchievements([])
@@ -136,6 +154,9 @@ const Profile = () => {
       const achievementsData = await achievementsResponse.json()
       const statsData = await statsResponse.json()
       const preferencesData = await preferencesResponse.json()
+      const moodTrendData = await moodTrendResponse.json()
+      const activityDistributionData = await activityDistributionResponse.json()
+      const recentActivityData = await recentActivityResponse.json()
       const journalData = await journalResponse.json()
       const aiData = await aiResponse.json()
       const exerciseData = await exerciseResponse.json()
@@ -211,8 +232,29 @@ const Profile = () => {
         console.error('Failed to fetch preferences:', preferencesData.error)
       }
       
-      // Set default activity distribution since we're not fetching it from backend
-      setActivityDistribution({})
+      // Process mood trend data from backend
+      if (moodTrendData.success) {
+        setMoodTrend(moodTrendData.moodTrend || [])
+      } else {
+        console.error('Failed to fetch mood trend:', moodTrendData.error)
+        setMoodTrend([])
+      }
+      
+      // Process activity distribution data from backend
+      if (activityDistributionData.success) {
+        setActivityDistribution(activityDistributionData.distribution || {})
+      } else {
+        console.error('Failed to fetch activity distribution:', activityDistributionData.error)
+        setActivityDistribution({})
+      }
+      
+      // Process recent activity data from backend
+      if (recentActivityData.success) {
+        setRecentActivity(recentActivityData.activities || [])
+      } else {
+        console.error('Failed to fetch recent activity:', recentActivityData.error)
+        setRecentActivity([])
+      }
     } catch (error) {
       console.error('Error fetching profile data:', error.message)
       setWellnessGoals([])
@@ -224,7 +266,7 @@ const Profile = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [user])
+  }, [user, selectedPeriod])
 
   useEffect(() => {
     fetchProfileData()
@@ -246,168 +288,15 @@ const Profile = () => {
         color: 'from-green-500 to-green-600'
       },
       {
-        label: 'Mental Wellness',
+        label: 'Exercise Sessions',
         value: `${exerciseSessions.length} exercises`,
-        icon: <Brain className="w-6 h-6 text-white" />,
-        color: 'from-indigo-500 to-purple-600'
-      },
-      {
-        label: 'Physical Wellness',
-        value: `${exerciseSessions.length} exercises`,
-        icon: <Heart className="w-6 h-6 text-white" />,
-        color: 'from-rose-500 to-pink-600'
+        icon: <Target className="w-6 h-6 text-white" />,
+        color: 'from-orange-500 to-red-600'
       }
     ])
   }, [journalEntries, aiConversations, exerciseSessions])
 
-  // Create dynamic recent activity from all sources
-  const createRecentActivity = useCallback(() => {
-    const activities = []
-    
-    // Add journal entries
-    journalEntries.forEach(entry => {
-      activities.push({
-        id: `journal_${entry._id || entry.id}`,
-        type: 'journal',
-        activity: 'Journal Entry',
-        description: entry.content ? entry.content.substring(0, 100) + '...' : 'Reflected on your day',
-        time: new Date(entry.createdAt || entry.date).toLocaleDateString(),
-        timestamp: new Date(entry.createdAt || entry.date),
-        points: 10,
-        icon: '📝'
-      })
-    })
-    
-    // Add AI conversations
-    aiConversations.forEach(conv => {
-      activities.push({
-        id: `ai_${conv._id || conv.id}`,
-        type: 'ai',
-        activity: 'AI Conversation',
-        description: conv.lastMessage ? conv.lastMessage.substring(0, 100) + '...' : 'Chatted with AI companion',
-        time: new Date(conv.createdAt || conv.date).toLocaleDateString(),
-        timestamp: new Date(conv.createdAt || conv.date),
-        points: 5,
-        icon: '🤖'
-      })
-    })
-    
-    // Add exercise sessions
-    exerciseSessions.forEach(session => {
-      activities.push({
-        id: `exercise_${session._id || session.id}`,
-        type: 'exercise',
-        activity: 'Exercise Session',
-        description: `${session.exerciseName || 'Exercise'} - ${session.actualDuration || session.plannedDuration || 0} minutes`,
-        time: new Date(session.createdAt || session.date).toLocaleDateString(),
-        timestamp: new Date(session.createdAt || session.date),
-        points: 15,
-        icon: '💪'
-      })
-    })
-    
-    // Sort by timestamp (most recent first) and limit to 10
-    return activities
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, 10)
-  }, [journalEntries, aiConversations, exerciseSessions])
 
-  // Update recent activity when data changes
-  useEffect(() => {
-    const dynamicActivity = createRecentActivity()
-    setRecentActivity(dynamicActivity)
-  }, [createRecentActivity])
-
-  // Calculate dynamic activity distribution
-  const calculateActivityDistribution = useCallback(() => {
-    const today = new Date()
-    const weekStart = new Date(today)
-    weekStart.setDate(today.getDate() - today.getDay())
-    weekStart.setHours(0, 0, 0, 0)
-    
-    // Count activities this week
-    const journalCount = journalEntries.filter(entry => {
-      const entryDate = new Date(entry.createdAt || entry.date)
-      return entryDate >= weekStart
-    }).length
-    
-    const aiCount = aiConversations.filter(conv => {
-      const convDate = new Date(conv.createdAt || conv.date)
-      return convDate >= weekStart
-    }).length
-    
-    const exerciseCount = exerciseSessions.filter(session => {
-      const sessionDate = new Date(session.createdAt || session.date)
-      return sessionDate >= weekStart
-    }).length
-    
-    const total = journalCount + aiCount + exerciseCount
-    
-    if (total === 0) {
-      return {
-        meditation: 0,
-        journaling: 0,
-        exercise: 0
-      }
-    }
-    
-    return {
-      meditation: Math.round((aiCount / total) * 100), // AI conversations as meditation
-      journaling: Math.round((journalCount / total) * 100),
-      exercise: Math.round((exerciseCount / total) * 100)
-    }
-  }, [journalEntries, aiConversations, exerciseSessions])
-
-  // Update activity distribution when data changes
-  useEffect(() => {
-    const dynamicDistribution = calculateActivityDistribution()
-    setActivityDistribution(dynamicDistribution)
-  }, [calculateActivityDistribution])
-
-  // Calculate dynamic mood trend from journal entries
-  const calculateMoodTrend = useCallback(() => {
-    const today = new Date()
-    const weekStart = new Date(today)
-    weekStart.setDate(today.getDate() - today.getDay())
-    weekStart.setHours(0, 0, 0, 0)
-    
-    // Get mood scores for the last 7 days
-    const moodTrend = []
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(weekStart)
-      date.setDate(weekStart.getDate() + i)
-      date.setHours(0, 0, 0, 0)
-      
-      const nextDate = new Date(date)
-      nextDate.setDate(date.getDate() + 1)
-      
-      // Find journal entries for this day
-      const dayEntries = journalEntries.filter(entry => {
-        const entryDate = new Date(entry.createdAt || entry.date)
-        return entryDate >= date && entryDate < nextDate
-      })
-      
-      if (dayEntries.length > 0) {
-        // Calculate average mood for the day
-        const avgMood = dayEntries.reduce((sum, entry) => {
-          return sum + (entry.mood || 5) // Default to 5 if no mood
-        }, 0) / dayEntries.length
-        
-        moodTrend.push(Math.round(avgMood))
-      } else {
-        // No entries for this day, use neutral mood
-        moodTrend.push(5)
-      }
-    }
-    
-    return moodTrend
-  }, [journalEntries])
-
-  // Update mood trend when data changes
-  useEffect(() => {
-    const dynamicMoodTrend = calculateMoodTrend()
-    setMoodTrend(dynamicMoodTrend)
-  }, [calculateMoodTrend])
 
   const updateGoal = async (goalId, newValue) => {
     try {
@@ -679,19 +568,32 @@ const Profile = () => {
                 className="space-y-8"
               >
                                 <div>
-                  <h3 className="text-xl font-light text-slate-700 mb-6">Weekly Progress</h3>
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-light text-slate-700">Weekly Progress</h3>
+                    <div className="flex items-center space-x-2">
+                      <select
+                        value={selectedPeriod}
+                        onChange={(e) => setSelectedPeriod(e.target.value)}
+                        className="text-sm border border-emerald-200 rounded-lg px-3 py-1 bg-white/50 focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+                      >
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                        <option value="year">This Year</option>
+                      </select>
+                      <button
+                        onClick={() => fetchProfileData()}
+                        className="text-sm text-emerald-600 hover:text-emerald-800 underline"
+                        disabled={isLoading}
+                      >
+                        Refresh
+                      </button>
+                    </div>
+                  </div>
                   <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-100">
                     <div className="grid md:grid-cols-2 gap-6">
                       <div>
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="mb-3">
                           <h4 className="font-semibold text-slate-700">Mood Trend</h4>
-                          <button
-                            onClick={() => fetchProfileData()}
-                            className="text-xs text-emerald-600 hover:text-emerald-800 underline"
-                            disabled={isLoading}
-                          >
-                            Refresh
-                          </button>
                         </div>
                         {isLoading ? (
                           <div className="flex items-center justify-center h-20">
@@ -746,11 +648,11 @@ const Profile = () => {
                         <h4 className="font-semibold text-slate-700 mb-3">Activity Distribution</h4>
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-slate-600">Meditation</span>
-                            <span className="text-sm font-medium">{activityDistribution.meditation || 0}%</span>
+                            <span className="text-sm text-slate-600">AI Conversations</span>
+                            <span className="text-sm font-medium">{activityDistribution.aiConversations || 0}%</span>
                           </div>
                           <div className="w-full bg-slate-200 rounded-full h-2">
-                            <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${activityDistribution.meditation || 0}%` }}></div>
+                            <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${activityDistribution.aiConversations || 0}%` }}></div>
                           </div>
                           
                           <div className="flex items-center justify-between">
@@ -762,11 +664,11 @@ const Profile = () => {
                           </div>
                           
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-slate-600">Exercise</span>
-                            <span className="text-sm font-medium">{activityDistribution.exercise || 0}%</span>
+                            <span className="text-sm text-slate-600">Exercise Sessions</span>
+                            <span className="text-sm font-medium">{activityDistribution.exerciseSessions || 0}%</span>
                           </div>
                           <div className="w-full bg-slate-200 rounded-full h-2">
-                            <div className="bg-rose-500 h-2 rounded-full" style={{ width: `${activityDistribution.exercise || 0}%` }}></div>
+                            <div className="bg-rose-500 h-2 rounded-full" style={{ width: `${activityDistribution.exerciseSessions || 0}%` }}></div>
                           </div>
                         </div>
                       </div>
@@ -776,22 +678,39 @@ const Profile = () => {
                 <div>
                   <h3 className="text-xl font-light text-slate-700 mb-6">Recent Activity</h3>
                   <div className="space-y-4">
-                    {recentActivity.length > 0 ? (
-                      recentActivity.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-100">
-                          <div className="flex items-center space-x-3">
-                            <div className="text-2xl">{item.icon}</div>
-                            <div>
-                              <p className="font-medium text-slate-700">{item.activity}</p>
-                              <p className="text-sm text-slate-500">{item.time}</p>
-                              {item.description && (
-                                <p className="text-xs text-slate-400 mt-1">{item.description}</p>
-                              )}
+                    {isLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-600"></div>
+                        <span className="ml-2 text-slate-600">Loading recent activity...</span>
+                      </div>
+                    ) : recentActivity.length > 0 ? (
+                      recentActivity.map((item) => {
+                        // Get appropriate icon based on activity type
+                        const getActivityIcon = (type) => {
+                          switch (type) {
+                            case 'journal': return '📝'
+                            case 'ai': return '🤖'
+                            case 'exercise': return '💪'
+                            default: return '📊'
+                          }
+                        }
+                        
+                        return (
+                          <div key={item.id} className="flex items-center justify-between p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-100">
+                            <div className="flex items-center space-x-3">
+                              <div className="text-2xl">{getActivityIcon(item.type)}</div>
+                              <div>
+                                <p className="font-medium text-slate-700">{item.activity}</p>
+                                <p className="text-sm text-slate-500">{item.time}</p>
+                                {item.description && (
+                                  <p className="text-xs text-slate-400 mt-1">{item.description}</p>
+                                )}
+                              </div>
                             </div>
+                            <div className="text-sm font-semibold text-emerald-600">{item.points}</div>
                           </div>
-                          <div className="text-sm font-semibold text-emerald-600">+{item.points}</div>
-                        </div>
-                      ))
+                        )
+                      })
                     ) : (
                       <div className="text-center py-8 text-slate-500">
                         <p>No recent activity found</p>

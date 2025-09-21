@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-// import { useAuth } from '../hooks/useAuth' // Unused for now
+import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
 import ComingSoonPopup from '../components/ui/ComingSoonPopup'
 import { motion, AnimatePresence } from 'framer-motion'
 import poseTrackingService from '../services/mediapipePoseService'
+import { getApiBaseUrl } from '../utils/config'
 import { 
   Brain, 
   Heart, 
@@ -30,7 +31,7 @@ import {
 } from 'lucide-react'
 
 const MindfulMovement = () => {
-  // const { user } = useAuth() // Unused for now
+  const { user } = useAuth()
   const [selectedCategory, setSelectedCategory] = useState(null) // 'mental' or 'physical'
   const [selectedActivity, setSelectedActivity] = useState(null)
   const [showSettingsPopup, setShowSettingsPopup] = useState(false)
@@ -59,7 +60,6 @@ const MindfulMovement = () => {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
   const [isMuted, setIsMuted] = useState(false)
-  const [isCompleting, setIsCompleting] = useState(false) // Prevent multiple completions
   const [showComingSoonPopup, setShowComingSoonPopup] = useState(false)
   
   // Breathing exercise specific state
@@ -143,7 +143,6 @@ const MindfulMovement = () => {
         clearTimeout(successTimeoutRef.current)
         successTimeoutRef.current = null
       }
-      setIsCompleting(false)
       isCompletingRef.current = false
     } else if (selectedCategory) {
       // If we're in activity selection, go back to category selection
@@ -432,17 +431,11 @@ const MindfulMovement = () => {
         }
       }
     
-  // Countdown function (kept for backward compatibility)
-  const startCountdown = () => {
-    startExerciseManually()
-  }
-
   // Start mental wellness session
   const startMeditation = async () => {
     try {
       setSessionState('active')
       setIsTracking(true)
-      setIsCompleting(false)
       isCompletingRef.current = false // Reset completion flag
       
       // Check if this is a breathing exercise
@@ -544,7 +537,7 @@ const MindfulMovement = () => {
           // Check if we've reached the target duration (exact match to prevent going over)
           if (newActualPoseTime >= totalSeconds && !isCompletingRef.current) {
             isCompletingRef.current = true // Prevent multiple completions
-            setIsCompleting(true) // Update state for UI
+ // Update state for UI
             // Complete the session only if we've spent enough time in correct pose
             setTimeout(() => {
               stopSession(true) // Force complete since we've reached the target
@@ -591,7 +584,6 @@ const MindfulMovement = () => {
         // Check if we've reached the target duration
         if (newElapsed >= totalSeconds && !isCompletingRef.current) {
           isCompletingRef.current = true
-          setIsCompleting(true)
           setTimeout(() => {
             stopBreathingExercise()
           }, 1000)
@@ -619,7 +611,6 @@ const MindfulMovement = () => {
       clearInterval(breathingProgressRef.current)
     }
 
-    const cycleDuration = 14000 // 14 seconds total cycle (7 inhale + 7 exhale)
     const phaseDuration = 7000 // 7 seconds per phase
     
     let currentPhase = 'inhale'
@@ -672,6 +663,55 @@ const MindfulMovement = () => {
     stopSession(true)
   }
 
+  // Save exercise session to backend
+  const saveExerciseSession = async (sessionData, activity, activitySettings) => {
+    try {
+      if (!user) {
+        console.error('User not authenticated, cannot save exercise session')
+        return false
+      }
+      
+      const idToken = await user.getIdToken()
+      
+      const sessionPayload = {
+        exerciseId: activity.id,
+        exerciseName: activity.name,
+        sessionType: activity.category === 'mental' ? 'breathing' : 'rep',
+        plannedDuration: activitySettings.duration * 60, // Convert minutes to seconds
+        actualDuration: sessionData.actualPoseTime || sessionData.elapsedTime,
+        status: 'completed',
+        results: {
+          repCount: sessionData.repCount || 0,
+          holdTime: sessionData.holdTime || 0,
+          accuracy: sessionData.accuracy || 100,
+          qualityScore: sessionData.qualityScore || 100
+        },
+        completedAt: new Date().toISOString()
+      }
+      
+      const response = await fetch(`${getApiBaseUrl()}/profile/exercise-sessions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify(sessionPayload)
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Exercise session saved successfully:', data)
+        return true
+      } else {
+        console.error('Failed to save exercise session:', response.statusText)
+        return false
+      }
+    } catch (error) {
+      console.error('Error saving exercise session:', error)
+      return false
+    }
+  }
+
   // Stop session (works for both meditation and physical exercises)
   const stopSession = (forceComplete = false) => {
     // Check if session was actually completed for mental wellness BEFORE setting state
@@ -709,6 +749,9 @@ const MindfulMovement = () => {
     
     // Only show congratulations if session was actually completed (forceComplete = true)
     if (forceComplete) {
+      // Save the exercise session to backend
+      saveExerciseSession(sessionData, selectedActivity, activitySettings)
+      
       // Provide specific completion message based on activity type
       if (selectedCategory === 'mental') {
         const durationText = formatDurationForSpeech(activitySettings.duration)
@@ -753,7 +796,6 @@ const MindfulMovement = () => {
     try {
       setSessionState('active')
       setIsTracking(true)
-      setIsCompleting(false)
       isCompletingRef.current = false // Reset completion flag
       setError(null)
       
@@ -793,7 +835,7 @@ const MindfulMovement = () => {
                 // Check if target reps reached
                 if (newRepCount >= activitySettings.targetReps && !isCompletingRef.current) {
                   isCompletingRef.current = true // Prevent multiple completions
-                  setIsCompleting(true) // Update state for UI
+ // Update state for UI
                   setTimeout(() => {
                     stopSession(true) // Force complete since we've reached the target
                   }, 1000)
@@ -875,21 +917,27 @@ const MindfulMovement = () => {
 
   // Cleanup on unmount
   useEffect(() => {
+    const countdownInterval = countdownRef.current
+    const intervalInterval = intervalRef.current
+    const poseDefinitionTimeout = poseDefinitionRef.current
+    const breathingInterval = breathingIntervalRef.current
+    const breathingProgress = breathingProgressRef.current
+    
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
+      if (intervalInterval) {
+        clearInterval(intervalInterval)
       }
-      if (countdownRef.current) {
-        clearInterval(countdownRef.current)
+      if (countdownInterval) {
+        clearInterval(countdownInterval)
       }
-      if (poseDefinitionRef.current) {
-        clearTimeout(poseDefinitionRef.current)
+      if (poseDefinitionTimeout) {
+        clearTimeout(poseDefinitionTimeout)
       }
-      if (breathingIntervalRef.current) {
-        clearInterval(breathingIntervalRef.current)
+      if (breathingInterval) {
+        clearInterval(breathingInterval)
       }
-      if (breathingProgressRef.current) {
-        clearInterval(breathingProgressRef.current)
+      if (breathingProgress) {
+        clearInterval(breathingProgress)
       }
       stopCamera()
       poseTrackingService.stopTracking()
@@ -1161,7 +1209,6 @@ const MindfulMovement = () => {
                   })
                   setError(null)
                   setSuccess(null)
-                  setIsCompleting(false)
       isCompletingRef.current = false
                 }}
                 className="hover:bg-emerald-50 text-slate-600 hover:text-emerald-600"
@@ -1609,7 +1656,6 @@ const MindfulMovement = () => {
                     })
                     setError(null)
                     setSuccess(null)
-                    setIsCompleting(false)
       isCompletingRef.current = false
                   }}
                   className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white px-12 py-4 text-xl rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"

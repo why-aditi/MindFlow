@@ -357,7 +357,10 @@ export const userController = {
         .limit(parseInt(limit))
         .select("sessionType plannedDuration createdAt");
 
-      console.log("Recent exercise sessions found:", recentExerciseSessions.length);
+      console.log(
+        "Recent exercise sessions found:",
+        recentExerciseSessions.length
+      );
 
       // Get recent AI conversations
       const recentAIConversations = await AISession.find({ userId: uid })
@@ -606,6 +609,119 @@ export const userController = {
       console.error("Submit feedback error:", error);
       res.status(500).json({
         error: "Failed to submit feedback",
+        message: error.message,
+      });
+    }
+  },
+
+  // Get exercise sessions
+  async getExerciseSessions(req, res) {
+    try {
+      const { uid } = req.user;
+      const { limit = 50, page = 1 } = req.query;
+
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+
+      const sessions = await ExerciseSession.find({ userId: uid })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .select(
+          "exerciseName sessionType plannedDuration actualDuration status createdAt completedAt results"
+        );
+
+      const totalSessions = await ExerciseSession.countDocuments({
+        userId: uid,
+      });
+
+      res.json({
+        success: true,
+        sessions,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: totalSessions,
+          pages: Math.ceil(totalSessions / parseInt(limit)),
+        },
+      });
+    } catch (error) {
+      console.error("Get exercise sessions error:", error);
+      res.status(500).json({
+        error: "Failed to get exercise sessions",
+        message: error.message,
+      });
+    }
+  },
+
+  // Create exercise session
+  async createExerciseSession(req, res) {
+    try {
+      const { uid } = req.user;
+      const {
+        exerciseId,
+        exerciseName,
+        sessionType,
+        plannedDuration,
+        actualDuration,
+        status = "completed",
+        results = {},
+        completedAt,
+      } = req.body;
+
+      // Validate required fields
+      if (!exerciseId || !exerciseName || !sessionType || !plannedDuration) {
+        return res.status(400).json({
+          error:
+            "Missing required fields: exerciseId, exerciseName, sessionType, plannedDuration",
+        });
+      }
+
+      // Import Exercise model
+      const Exercise = (await import("../models/Exercise.js")).default;
+
+      // Find the exercise by name to get the ObjectId
+      let exerciseObjectId = exerciseId;
+
+      // If exerciseId is a string (not a valid ObjectId), look up by name
+      if (
+        typeof exerciseId === "string" &&
+        !exerciseId.match(/^[0-9a-fA-F]{24}$/)
+      ) {
+        const exercise = await Exercise.findOne({ name: exerciseId });
+        if (!exercise) {
+          return res.status(400).json({
+            error: `Exercise not found: ${exerciseId}`,
+          });
+        }
+        exerciseObjectId = exercise._id;
+      }
+
+      const session = new ExerciseSession({
+        userId: uid,
+        exerciseId: exerciseObjectId,
+        exerciseName,
+        sessionType,
+        plannedDuration,
+        actualDuration: actualDuration || plannedDuration,
+        status,
+        results,
+        completedAt: completedAt ? new Date(completedAt) : new Date(),
+        createdAt: new Date(),
+        startedAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await session.save();
+
+      res.json({
+        success: true,
+        sessionId: session._id,
+        message: "Exercise session created successfully",
+      });
+    } catch (error) {
+      console.error("Create exercise session error:", error);
+      res.status(500).json({
+        error: "Failed to create exercise session",
         message: error.message,
       });
     }

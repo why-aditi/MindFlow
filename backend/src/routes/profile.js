@@ -87,5 +87,7 @@ router.post(
 router.get("/recent-activity", userController.getRecentActivity);
 router.get("/mood-trend", userController.getMoodTrend);
 router.get("/activity-distribution", userController.getActivityDistribution);
+router.get("/exercise-sessions", userController.getExerciseSessions);
+router.post("/exercise-sessions", userController.createExerciseSession);
 
 export default router;
