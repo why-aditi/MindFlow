@@ -25,13 +25,14 @@ To make mental wellness accessible, engaging, and effective for the next generat
 
 ### 🚀 Key Features
 
-- **🤖 AI Companion**: Intelligent conversational AI powered by Google's Gemini AI
-- **📝 Smart Journaling**: Browser-based voice-to-text journaling with mood tracking and analytics
+- **🤖 AI Companion**: Intelligent conversational AI powered by Google's Gemini AI with voice input
+- **📝 Smart Journaling**: Advanced voice-to-text journaling using Google Cloud Speech-to-Text with mood tracking and analytics
 - **🏃‍♀️ Mindful Movement**: Real-time pose tracking and guided movement exercises using MediaPipe
-- **👥 Community Forums**: Safe spaces for peer support with AI moderation and crisis detection
+- **👥 Community Forums**: Safe spaces for peer support with AI-powered content moderation and crisis detection
 - **📊 Wellness Analytics**: Comprehensive insights and progress tracking
 - **🎮 Gamification**: Points, achievements, and rewards system
 - **🔒 Privacy-First**: End-to-end encryption and secure data handling
+- **🎤 Voice Features**: Professional audio recording with multi-language support and real-time transcription
 
 ## 🏗️ Architecture
 
@@ -69,7 +70,8 @@ MindFlow/
 #### AI & ML Services
 
 - **Google Gemini AI** - Advanced AI capabilities for conversational AI
-- **Google Cloud Natural Language** - Sentiment analysis for content moderation (backend only)
+- **Google Cloud Speech-to-Text** - Professional voice-to-text transcription with 40+ languages
+- **Google Cloud Natural Language API** - Advanced sentiment analysis and content moderation
 - **MediaPipe** - Pose detection and tracking
 - **OpenCV** - Computer vision processing
 
@@ -81,7 +83,8 @@ MindFlow/
 - **Firebase project** with Authentication and Firestore enabled
 - **Google Cloud Platform** account with required APIs enabled:
   - **Gemini AI API** - For conversational AI
-  - **Cloud Natural Language API** - For content moderation (backend only)
+  - **Cloud Speech-to-Text API** - For voice transcription
+  - **Cloud Natural Language API** - For content moderation and sentiment analysis
 - **Webcam** for pose tracking features
 
 ### Installation
@@ -124,26 +127,32 @@ MindFlow/
 Our AI companion provides 24/7 emotional support through natural conversations:
 
 - **Gemini AI Integration**: Powered by Google's Gemini 2.5 Flash and 2.0 Flash models
+- **Voice Input**: Professional audio recording with Google Cloud Speech-to-Text integration
+- **Multi-language Support**: 10+ supported languages for voice and text interactions
 - **Context Awareness**: Remembers conversation history and maintains session state
 - **Crisis Detection**: Identifies mental health crises and provides appropriate resources
-- **Multilingual Support**: Responds in multiple languages
 - **Mood Analysis**: Analyzes emotional patterns and provides insights
 - **Personalized Responses**: Tailored responses based on user context and history
+- **Real-time Transcription**: Live voice-to-text conversion with confidence scoring
 
-**Tech Stack**: Google Gemini AI, Firebase Firestore, MongoDB
+**Tech Stack**: Google Gemini AI, Google Cloud Speech-to-Text, Firebase Firestore, MongoDB
 
 ### 📝 Smart Journaling
 
 Transform thoughts into insights with our intelligent journaling system:
 
-- **Voice-to-Text**: Browser-based speech recognition for easy journaling
-- **Mood Tracking**: Visual mood trends and analytics
-- **Smart Tags**: Automatic categorization of entries
+- **Advanced Voice-to-Text**: Google Cloud Speech-to-Text with professional audio recording
+- **Multi-language Support**: 10+ supported languages for voice journaling
+- **Real-time Transcription**: Live audio-to-text conversion with confidence scoring
+- **Mood Tracking**: Automatic mood detection from voice and text analysis
+- **Smart Tags**: Automatic categorization of entries using AI
 - **Calendar View**: Easy browsing of past entries
 - **AI Analysis**: Gemini AI-powered insights and emotion analysis
 - **Privacy Protection**: End-to-end encryption for sensitive data
+- **Audio Recording**: Professional recording interface with waveform visualization
+- **Auto-punctuation**: Intelligent text formatting and punctuation
 
-**Tech Stack**: Web Speech Recognition API, Google Gemini AI, Firebase Firestore, Crypto-JS
+**Tech Stack**: Google Cloud Speech-to-Text, Google Cloud Natural Language API, Google Gemini AI, Firebase Firestore, Crypto-JS
 
 ### 🏃‍♀️ Mindful Movement
 
@@ -161,13 +170,15 @@ Safe spaces for peer support and discussion:
 
 - **Topic-based Forums**: Organized by wellness topics (anxiety, depression, relationships, academic, family, self-care, crisis-support)
 - **Anonymous Posting**: Privacy-focused discussions with optional anonymity
-- **AI Moderation**: Automated content moderation using Google Cloud Natural Language API (backend)
+- **AI-Powered Moderation**: Advanced content moderation using Google Cloud Natural Language API
+- **Real-time Content Analysis**: Pre-posting content analysis with sentiment scoring
 - **Crisis Detection**: AI-powered crisis identification and resource suggestions
+- **Detailed Moderation Reports**: Comprehensive analysis with confidence scores
 - **Peer Support**: Connect with others on similar wellness journeys
 - **Regional Support**: Location-based forum organization
 - **Age-appropriate Content**: Forums tailored for youth (13-25 age range)
 
-**Tech Stack**: Google Cloud Natural Language API (backend), Firebase Firestore, MongoDB, Google Gemini AI
+**Tech Stack**: Google Cloud Natural Language API, Firebase Firestore, MongoDB, Google Gemini AI
 
 ## 🔧 Configuration
 
@@ -197,6 +208,10 @@ MONGODB_URI=mongodb://localhost:27017/mindflow
 GOOGLE_CLOUD_PROJECT_ID=your-project-id
 GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account-key.json
 GEMINI_API_KEY=your-gemini-api-key
+
+# Speech-to-Text Configuration
+SPEECH_LANGUAGE_CODE=en-US
+NLP_LANGUAGE_CODE=en
 ```
 
 #### Frontend (firebase.js)
@@ -224,13 +239,14 @@ const firebaseConfig = {
 
 ### Journaling Endpoints
 
-| Method | Endpoint                   | Description                |
-| ------ | -------------------------- | -------------------------- |
-| POST   | `/api/journal/entries`     | Create journal entry       |
-| GET    | `/api/journal/entries`     | Get user's journal entries |
-| GET    | `/api/journal/entries/:id` | Get specific entry         |
-| PUT    | `/api/journal/entries/:id` | Update entry               |
-| DELETE | `/api/journal/entries/:id` | Delete entry               |
+| Method | Endpoint                      | Description                      |
+| ------ | ----------------------------- | -------------------------------- |
+| POST   | `/api/journal/entries`        | Create journal entry             |
+| POST   | `/api/journal/entries/speech` | Create journal entry from speech |
+| GET    | `/api/journal/entries`        | Get user's journal entries       |
+| GET    | `/api/journal/entries/:id`    | Get specific entry               |
+| PUT    | `/api/journal/entries/:id`    | Update entry                     |
+| DELETE | `/api/journal/entries/:id`    | Delete entry                     |
 
 ### AI Companion Endpoints
 
@@ -239,6 +255,27 @@ const firebaseConfig = {
 | POST   | `/api/ai/chat`          | Send message to AI       |
 | GET    | `/api/ai/conversations` | Get conversation history |
 | POST   | `/api/ai/feedback`      | Submit AI feedback       |
+
+### Speech-to-Text Endpoints
+
+| Method | Endpoint                      | Description                |
+| ------ | ----------------------------- | -------------------------- |
+| POST   | `/api/speech/transcribe`      | Transcribe audio to text   |
+| POST   | `/api/speech/detect-language` | Detect language from audio |
+| GET    | `/api/speech/languages`       | Get supported languages    |
+| POST   | `/api/speech/validate-format` | Validate audio format      |
+
+### Natural Language Processing Endpoints
+
+| Method | Endpoint                    | Description                 |
+| ------ | --------------------------- | --------------------------- |
+| POST   | `/api/language/sentiment`   | Analyze text sentiment      |
+| POST   | `/api/language/entities`    | Extract entities from text  |
+| POST   | `/api/language/classify`    | Classify text content       |
+| POST   | `/api/language/analyze`     | Comprehensive text analysis |
+| POST   | `/api/language/moderate`    | Moderate content for safety |
+| POST   | `/api/language/key-phrases` | Extract key phrases         |
+| POST   | `/api/language/detect`      | Detect text language        |
 
 ### Community Forum Endpoints
 
@@ -253,6 +290,37 @@ const firebaseConfig = {
 | DELETE | `/api/posts/:id`         | Delete post       |
 | POST   | `/api/posts/:id/like`    | Like/unlike post  |
 | POST   | `/api/posts/:id/report`  | Report post       |
+
+## 🎤 Google Cloud AI Features
+
+### Speech-to-Text Integration
+
+MindFlow leverages Google Cloud Speech-to-Text for professional-grade voice transcription:
+
+- **40+ Languages**: Support for major world languages with regional variants
+- **Real-time Transcription**: Live audio-to-text conversion with confidence scoring
+- **Professional Audio Recording**: High-quality recording interface with waveform visualization
+- **Auto-punctuation**: Intelligent text formatting and punctuation
+- **Language Detection**: Automatic language identification from audio
+- **Format Validation**: Support for WebM, MP4, WAV, FLAC, and OGG formats
+
+### Natural Language Processing
+
+Advanced text analysis powered by Google Cloud Natural Language API:
+
+- **Sentiment Analysis**: Comprehensive emotional state detection with confidence scores
+- **Entity Recognition**: Automatic identification of people, places, organizations, and events
+- **Content Classification**: Intelligent categorization of text content
+- **Content Moderation**: Real-time inappropriate content detection and crisis intervention
+- **Key Phrase Extraction**: Automatic identification of important topics and themes
+- **Language Detection**: Automatic text language identification
+
+### AI-Powered Features
+
+- **Mood Detection**: Automatic emotion analysis from voice and text
+- **Crisis Detection**: Mental health crisis identification with appropriate resource suggestions
+- **Content Moderation**: Pre-posting analysis for community forums
+- **Personalized Insights**: AI-generated wellness recommendations based on user patterns
 
 ## 🔒 Security & Privacy
 

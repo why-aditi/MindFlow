@@ -32,11 +32,34 @@ const JournalEntryDetail = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    if (entryId && user) {
-      fetchEntryDetails();
+  const fetchAnalysis = useCallback(async (entryData) => {
+    try {
+      setIsAnalyzing(true);
+      const idToken = await user.getIdToken();
+      const response = await fetch(`${getApiBaseUrl()}/ai/analyze-journal`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ 
+          text: entryData.content, 
+          tags: entryData.tags || [] 
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setAnalysis(data.insights);
+        }
+      }
+    } catch (error) {
+      console.error('Error analyzing entry:', error);
+    } finally {
+      setIsAnalyzing(false);
     }
-  }, [entryId, user, fetchEntryDetails]);
+  }, [user]);
 
   const fetchEntryDetails = useCallback(async () => {
     try {
@@ -70,34 +93,11 @@ const JournalEntryDetail = () => {
     }
   }, [entryId, user, fetchAnalysis]);
 
-  const fetchAnalysis = useCallback(async (entryData) => {
-    try {
-      setIsAnalyzing(true);
-      const idToken = await user.getIdToken();
-      const response = await fetch(`${getApiBaseUrl()}/ai/analyze-journal`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify({ 
-          text: entryData.content, 
-          tags: entryData.tags || [] 
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setAnalysis(data.insights);
-        }
-      }
-    } catch (error) {
-      console.error('Error analyzing entry:', error);
-    } finally {
-      setIsAnalyzing(false);
+  useEffect(() => {
+    if (entryId && user) {
+      fetchEntryDetails();
     }
-  }, [user]);
+  }, [entryId, user, fetchEntryDetails]);
 
   const getMoodColor = (mood) => {
     const colors = {

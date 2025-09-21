@@ -1,5 +1,4 @@
-import language from "@google-cloud/language";
-import { SessionsClient } from "@google-cloud/dialogflow-cx";
+import languageService from "./languageService.js";
 import geminiService from "./geminiService.js";
 import Forum from "../models/Forum.js";
 import ForumPost from "../models/ForumPost.js";
@@ -7,32 +6,6 @@ import ForumReply from "../models/ForumReply.js";
 
 class CommunityForumService {
   constructor() {
-    // Initialize Google Cloud services with error handling
-    try {
-      this.languageClient = new language.LanguageServiceClient({
-        projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-        keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-      });
-
-      this.dialogflowClient = new SessionsClient({
-        projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-        keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-      });
-    } catch (error) {
-      console.warn(
-        "Google Cloud services initialization failed:",
-        error.message
-      );
-      this.languageClient = null;
-      this.dialogflowClient = null;
-    }
-
-    // Dialogflow configuration
-    this.projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
-    this.location = "global";
-    this.agentId = process.env.DIALOGFLOW_AGENT_ID || "mindflow-forum-agent";
-    this.sessionId = "forum-session";
-
     // Crisis keywords for detection
     this.crisisKeywords = [
       "suicide",
@@ -285,75 +258,14 @@ class CommunityForumService {
    */
   async moderateContent(content) {
     try {
-      if (!this.languageClient) {
-        // Return basic moderation without AI if service is not available
-        return {
-          isToxic: false,
-          isCrisis: false,
-          toxicityScore: 0,
-          crisisScore: 0,
-          feedback: "AI moderation not available. Manual review recommended.",
-          entities: [],
-          categories: [],
-        };
-      }
-
-      const document = {
-        content: content,
-        type: "PLAIN_TEXT",
-      };
-
-      // Analyze sentiment
-      const [sentimentResult] = await this.languageClient.analyzeSentiment({
-        document,
-      });
-
-      // Analyze entities
-      const [entityResult] = await this.languageClient.analyzeEntities({
-        document,
-        encodingType: "UTF8",
-      });
-
-      // Classify text
-      const [classificationResult] = await this.languageClient.classifyText({
-        document,
-      });
-
-      // Calculate toxicity score (simplified)
-      const toxicityScore = this.calculateToxicityScore(
-        content,
-        sentimentResult,
-        entityResult
-      );
-
-      // Determine if content should be approved
-      const approved =
-        toxicityScore < 0.7 && sentimentResult.documentSentiment.score > -0.8;
+      // Use the new LanguageService for moderation
+      const moderationResult = await languageService.moderateContent(content);
 
       return {
-        approved,
-        analysis: {
-          toxicityScore,
-          sentiment: {
-            score: sentimentResult.documentSentiment.score,
-            magnitude: sentimentResult.documentSentiment.magnitude,
-          },
-          entities: entityResult.entities.map((entity) => ({
-            name: entity.name,
-            type: entity.type,
-            salience: entity.salience,
-          })),
-          categories: classificationResult.categories.map((category) => ({
-            name: category.name,
-            confidence: category.confidence,
-          })),
-          confidence: Math.max(
-            ...classificationResult.categories.map((c) => c.confidence)
-          ),
-        },
-        reason: approved
-          ? "Content approved by AI moderation"
-          : "Content flagged for review",
+        approved: moderationResult.approved,
+        analysis: moderationResult.analysis,
+        reason: moderationResult.reason,
+        confidence: moderationResult.confidence,
       };
     } catch (error) {
       console.error("Error moderating content:", error);

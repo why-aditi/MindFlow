@@ -21,6 +21,8 @@ import aiRoutes from "./src/routes/ai.js";
 import userRoutes from "./src/routes/user.js";
 import profileRoutes from "./src/routes/profile.js";
 import communityForumRoutes from "./src/routes/communityForum.js";
+import speechRoutes from "./src/routes/speech.js";
+import languageRoutes from "./src/routes/language.js";
 
 // Import middleware
 import { errorHandler } from "./src/middleware/errorHandler.js";
@@ -89,6 +91,8 @@ app.use("/api/community-forums", authMiddleware, communityForumRoutes);
 app.use("/api/ai", authMiddleware, aiRoutes);
 app.use("/api/user", authMiddleware, userRoutes);
 app.use("/api/profile", authMiddleware, profileRoutes);
+app.use("/api/speech", speechRoutes);
+app.use("/api/language", languageRoutes);
 
 // 404 handler
 app.use("*", (req, res) => {

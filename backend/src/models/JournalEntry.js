@@ -30,6 +30,34 @@ const journalEntrySchema = new mongoose.Schema({
       type: String,
     },
   ],
+  source: {
+    type: String,
+    enum: ["text", "speech", "import"],
+    default: "text",
+  },
+  metadata: {
+    audioFile: {
+      originalName: String,
+      size: Number,
+      mimeType: String,
+    },
+    transcription: {
+      confidence: Number,
+      languageCode: String,
+      wordCount: Number,
+    },
+    aiAnalysis: {
+      emotions: [
+        {
+          name: String,
+          intensity: Number,
+        },
+      ],
+      themes: [String],
+      summary: String,
+      insights: String,
+    },
+  },
   createdAt: {
     type: Date,
     default: Date.now,

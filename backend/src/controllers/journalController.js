@@ -1,5 +1,7 @@
 import JournalEntry from "../models/JournalEntry.js";
 import geminiService from "../services/geminiService.js";
+import speechService from "../services/speechService.js";
+import languageService from "../services/languageService.js";
 
 export const journalController = {
   // Create new journal entry
@@ -263,6 +265,140 @@ Mood:`;
       console.error("Get analytics error:", error);
       res.status(500).json({
         error: "Failed to get journal analytics",
+        message: error.message,
+      });
+    }
+  },
+
+  // Create journal entry from speech-to-text
+  async createEntryFromSpeech(req, res) {
+    try {
+      const { uid } = req.user;
+      const { languageCode, mood, tags } = req.body;
+
+      if (!req.file) {
+        return res.status(400).json({
+          error: "No audio file provided",
+        });
+      }
+
+      // Validate audio format
+      const formatValidation = speechService.validateAudioFormat(
+        req.file.mimetype
+      );
+      if (!formatValidation.supported) {
+        return res.status(400).json({
+          error: "Unsupported audio format",
+          message: formatValidation.message,
+          suggestedFormats: formatValidation.suggestedFormats,
+        });
+      }
+
+      // Transcribe audio to text
+      const transcriptionResult = await speechService.transcribeAudio(
+        req.file.buffer,
+        {
+          config: {
+            languageCode:
+              languageCode || process.env.SPEECH_LANGUAGE_CODE || "en-US",
+            enableAutomaticPunctuation: true,
+            encoding: formatValidation.encoding,
+            sampleRateHertz: formatValidation.sampleRate,
+          },
+        }
+      );
+
+      if (!transcriptionResult.success) {
+        return res.status(500).json({
+          error: "Speech-to-text conversion failed",
+          message: transcriptionResult.error,
+        });
+      }
+
+      const content = transcriptionResult.text;
+
+      // Analyze sentiment using LanguageService for better accuracy
+      let detectedMood = mood;
+      if (!mood && content) {
+        try {
+          const sentimentResult = await languageService.analyzeSentiment(
+            content
+          );
+          if (sentimentResult.success) {
+            // Convert sentiment score to mood
+            const sentiment = sentimentResult.sentiment;
+            if (sentiment.score >= 0.3) {
+              detectedMood = "happy";
+            } else if (sentiment.score <= -0.3) {
+              detectedMood = "sad";
+            } else {
+              detectedMood = "neutral";
+            }
+          }
+        } catch (error) {
+          console.error("Sentiment analysis error:", error);
+          detectedMood = "neutral";
+        }
+      }
+
+      // Create journal entry
+      const entry = new JournalEntry({
+        userId: uid,
+        content: content,
+        mood: detectedMood,
+        tags: tags || [],
+        source: "speech",
+        metadata: {
+          audioFile: {
+            originalName: req.file.originalname,
+            size: req.file.size,
+            mimeType: req.file.mimetype,
+          },
+          transcription: {
+            confidence: transcriptionResult.confidence,
+            languageCode: transcriptionResult.languageCode,
+            wordCount: content.split(/\s+/).length,
+          },
+        },
+      });
+
+      await entry.save();
+
+      // Generate AI insights
+      let aiInsights = null;
+      try {
+        aiInsights = await geminiService.analyzeJournalEntry(
+          content,
+          uid,
+          tags || []
+        );
+      } catch (error) {
+        console.error("AI insights generation error:", error);
+      }
+
+      res.json({
+        success: true,
+        entry: {
+          id: entry._id,
+          content: entry.content,
+          mood: entry.mood,
+          tags: entry.tags,
+          createdAt: entry.createdAt,
+          source: entry.source,
+          metadata: entry.metadata,
+        },
+        transcription: {
+          text: content,
+          confidence: transcriptionResult.confidence,
+          languageCode: transcriptionResult.languageCode,
+        },
+        aiInsights: aiInsights,
+        message: "Journal entry created successfully from speech",
+      });
+    } catch (error) {
+      console.error("Create entry from speech error:", error);
+      res.status(500).json({
+        error: "Failed to create journal entry from speech",
         message: error.message,
       });
     }
