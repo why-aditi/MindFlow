@@ -6,7 +6,7 @@ export const journalController = {
   async createEntry(req, res) {
     try {
       const { uid } = req.user;
-      const { content, mood, tags, isVoice } = req.body;
+      const { content, mood, tags } = req.body;
 
       // If no mood is provided, analyze the content to determine mood using Gemini
       let detectedMood = mood;
@@ -74,7 +74,6 @@ Mood:`;
         content: content,
         mood: detectedMood || "neutral",
         tags: tags || [],
-        isVoice: isVoice || false,
       });
 
       const savedEntry = await newEntry.save();

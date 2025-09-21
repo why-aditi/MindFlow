@@ -20,7 +20,6 @@ import journalRoutes from "./src/routes/journal.js";
 import aiRoutes from "./src/routes/ai.js";
 import userRoutes from "./src/routes/user.js";
 import profileRoutes from "./src/routes/profile.js";
-import voiceJournalRoutes from "./src/routes/voiceJournal.js";
 import communityForumRoutes from "./src/routes/communityForum.js";
 
 // Import middleware
@@ -86,7 +85,6 @@ app.get("/health", (req, res) => {
 // API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/journal", authMiddleware, journalRoutes);
-app.use("/api/voice-journal", authMiddleware, voiceJournalRoutes);
 app.use("/api/community-forums", authMiddleware, communityForumRoutes);
 app.use("/api/ai", authMiddleware, aiRoutes);
 app.use("/api/user", authMiddleware, userRoutes);

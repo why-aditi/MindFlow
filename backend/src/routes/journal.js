@@ -22,10 +22,6 @@ const createEntryValidation = [
     ])
     .withMessage("Invalid mood value"),
   body("tags").optional().isArray().withMessage("Tags must be an array"),
-  body("isVoice")
-    .optional()
-    .isBoolean()
-    .withMessage("isVoice must be a boolean"),
 ];
 
 const updateEntryValidation = [

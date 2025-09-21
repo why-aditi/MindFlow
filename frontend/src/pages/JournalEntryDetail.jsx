@@ -261,11 +261,6 @@ const JournalEntryDetail = () => {
                   <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getMoodColor(entry.mood)}`}>
                     {getMoodIcon(entry.mood)} {entry.mood}
                   </span>
-                  {entry.isVoice && (
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                      Voice Entry
-                    </span>
-                  )}
                 </div>
                 <div className="flex items-center text-sm text-gray-500">
                   <Clock className="w-4 h-4 mr-1" />
@@ -436,13 +431,6 @@ const JournalEntryDetail = () => {
                   <Heart className="w-4 h-4 text-gray-400 mr-2" />
                   <span className="text-gray-600 capitalize">{entry.mood}</span>
                 </div>
-
-                {entry.isVoice && (
-                  <div className="flex items-center text-sm">
-                    <Tag className="w-4 h-4 text-gray-400 mr-2" />
-                    <span className="text-gray-600">Voice Entry</span>
-                  </div>
-                )}
               </div>
             </motion.div>
 

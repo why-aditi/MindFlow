@@ -153,7 +153,7 @@ const Features = () => {
                 title: "Smart Journaling",
                 description: "Express your thoughts safely with AI-powered insights that help you understand your mental patterns",
                 image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=90",
-                features: ["Voice transcription", "Mood graphs", "Privacy protection", "Gentle insights"]
+                features: ["Browser speech recognition", "Mood graphs", "Privacy protection", "Gentle insights"]
               },
               {
                 title: "Community Forums",

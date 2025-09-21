@@ -200,7 +200,6 @@ const Journaling = () => {
         body: JSON.stringify({
           content: currentEntry,
           tags: selectedTags,
-          isVoice: false,
           ...(isUpdate && { mood: editingEntry.mood }) // Preserve mood for updates
         })
       })
@@ -229,7 +228,6 @@ const Journaling = () => {
             content: currentEntry,
             tags: selectedTags,
             mood: data.detectedMood || 'neutral',
-            isVoice: false,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           }
@@ -1471,11 +1469,6 @@ const Journaling = () => {
                           }`}>
                             {entry.mood}
                           </span>
-                          {entry.isVoice && (
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                              Voice
-                            </span>
-                          )}
                         </div>
                         <span className="text-xs text-slate-500">
                           {new Date(entry.createdAt).toLocaleTimeString([], { 

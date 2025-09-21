@@ -25,8 +25,8 @@ To make mental wellness accessible, engaging, and effective for the next generat
 
 ### 🚀 Key Features
 
-- **🤖 AI Companion**: Intelligent conversational AI powered by Google's Dialogflow CX and Gemini AI
-- **📝 Smart Journaling**: Voice-to-text journaling with mood tracking and analytics
+- **🤖 AI Companion**: Intelligent conversational AI powered by Google's Gemini AI
+- **📝 Smart Journaling**: Browser-based voice-to-text journaling with mood tracking and analytics
 - **🏃‍♀️ Mindful Movement**: Real-time pose tracking and guided movement exercises using MediaPipe
 - **👥 Community Forums**: Safe spaces for peer support with AI moderation and crisis detection
 - **📊 Wellness Analytics**: Comprehensive insights and progress tracking
@@ -69,9 +69,7 @@ MindFlow/
 #### AI & ML Services
 
 - **Google Gemini AI** - Advanced AI capabilities for conversational AI
-- **Google Cloud Speech-to-Text** - Voice processing for journaling
-- **Google Cloud Natural Language** - Sentiment analysis for content moderation
-- **Google Cloud Storage** - File storage for voice recordings
+- **Google Cloud Natural Language** - Sentiment analysis for content moderation (backend only)
 - **MediaPipe** - Pose detection and tracking
 - **OpenCV** - Computer vision processing
 
@@ -83,9 +81,7 @@ MindFlow/
 - **Firebase project** with Authentication and Firestore enabled
 - **Google Cloud Platform** account with required APIs enabled:
   - **Gemini AI API** - For conversational AI
-  - **Cloud Speech-to-Text API** - For voice processing
-  - **Cloud Natural Language API** - For sentiment analysis
-  - **Cloud Storage API** - For file storage
+  - **Cloud Natural Language API** - For content moderation (backend only)
 - **Webcam** for pose tracking features
 
 ### Installation
@@ -140,15 +136,14 @@ Our AI companion provides 24/7 emotional support through natural conversations:
 
 Transform thoughts into insights with our intelligent journaling system:
 
-- **Voice Journaling**: Speak your thoughts, get them transcribed using Google Cloud Speech-to-Text
+- **Voice-to-Text**: Browser-based speech recognition for easy journaling
 - **Mood Tracking**: Visual mood trends and analytics
 - **Smart Tags**: Automatic categorization of entries
 - **Calendar View**: Easy browsing of past entries
 - **AI Analysis**: Gemini AI-powered insights and emotion analysis
 - **Privacy Protection**: End-to-end encryption for sensitive data
-- **File Storage**: Secure storage of voice recordings in Google Cloud Storage
 
-**Tech Stack**: Google Cloud Speech-to-Text, Google Cloud Storage, Google Gemini AI, Firebase Firestore, Crypto-JS
+**Tech Stack**: Web Speech Recognition API, Google Gemini AI, Firebase Firestore, Crypto-JS
 
 ### 🏃‍♀️ Mindful Movement
 
@@ -166,13 +161,13 @@ Safe spaces for peer support and discussion:
 
 - **Topic-based Forums**: Organized by wellness topics (anxiety, depression, relationships, academic, family, self-care, crisis-support)
 - **Anonymous Posting**: Privacy-focused discussions with optional anonymity
-- **AI Moderation**: Automated content moderation using Google Cloud Natural Language API
+- **AI Moderation**: Automated content moderation using Google Cloud Natural Language API (backend)
 - **Crisis Detection**: AI-powered crisis identification and resource suggestions
 - **Peer Support**: Connect with others on similar wellness journeys
 - **Regional Support**: Location-based forum organization
 - **Age-appropriate Content**: Forums tailored for youth (13-25 age range)
 
-**Tech Stack**: Google Cloud Natural Language API, Firebase Firestore, MongoDB, Google Gemini AI
+**Tech Stack**: Google Cloud Natural Language API (backend), Firebase Firestore, MongoDB, Google Gemini AI
 
 ## 🔧 Configuration
 
@@ -202,7 +197,6 @@ MONGODB_URI=mongodb://localhost:27017/mindflow
 GOOGLE_CLOUD_PROJECT_ID=your-project-id
 GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account-key.json
 GEMINI_API_KEY=your-gemini-api-key
-GOOGLE_CLOUD_STORAGE_BUCKET=your-storage-bucket-name
 ```
 
 #### Frontend (firebase.js)
