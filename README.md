@@ -164,6 +164,8 @@ AI-powered movement and exercise tracking:
 - **Form Analysis**: Feedback on exercise technique and accuracy
 - **Live Camera Integration**: Real-time visual feedback during exercises
 
+**Tech Stack**: MediaPipe Tasks Vision, MediaPipe Pose, MediaPipe Camera Utils, MediaPipe Drawing Utils, WebRTC, Custom Pose Analysis Algorithms
+
 ### 👥 Community Forums
 
 Safe spaces for peer support and discussion:
