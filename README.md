@@ -10,6 +10,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green?style=flat-square&logo=node.js)](https://nodejs.org/)
 [![Firebase](https://img.shields.io/badge/Firebase-12+-orange?style=flat-square&logo=firebase)](https://firebase.google.com/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4+-blue?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
+[![Python](https://img.shields.io/badge/Python-3.8+-green?style=flat-square&logo=python)](https://python.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
 </div>
@@ -24,23 +25,22 @@ To make mental wellness accessible, engaging, and effective for the next generat
 
 ### 🚀 Key Features
 
-- **🤖 AI Companion**: Intelligent conversational AI powered by Google's Dialogflow CX
-- **📝 Smart Journaling**: Voice-to-text journaling with mood tracking and analytics
-- **🥽 VR Meditation**: Immersive virtual reality meditation experiences
-- **🏃‍♀️ Mindful Movement**: Pose tracking and guided movement exercises
-- **👥 Community Forums**: Safe spaces for peer support and discussion
+- **🤖 AI Companion**: Intelligent conversational AI powered by Google's Gemini AI with voice input
+- **📝 Smart Journaling**: Advanced voice-to-text journaling using Google Cloud Speech-to-Text with mood tracking and analytics
+- **🏃‍♀️ Mindful Movement**: Real-time pose tracking and guided movement exercises using MediaPipe
+- **👥 Community Forums**: Safe spaces for peer support with AI-powered content moderation and crisis detection
 - **📊 Wellness Analytics**: Comprehensive insights and progress tracking
 - **🎮 Gamification**: Points, achievements, and rewards system
 - **🔒 Privacy-First**: End-to-end encryption and secure data handling
+- **🎤 Voice Features**: Professional audio recording with multi-language support and real-time transcription
 
 ## 🏗️ Architecture
 
 ```
 MindFlow/
 ├── frontend/          # React 19 + TailwindCSS + Vite
-├── backend/           # Node.js + Express + Firebase
-├── python scripts/    # Computer Vision & Pose Tracking
-└── vrscript.py       # VR Environment Scripts
+├── backend/           # Node.js + Express + Firebase + MongoDB
+└── python scripts/    # Computer Vision & Pose Tracking (MediaPipe + OpenCV)
 ```
 
 ### 🛠️ Tech Stack
@@ -53,8 +53,9 @@ MindFlow/
 - **Framer Motion** - Smooth animations and transitions
 - **React Router** - Client-side routing
 - **Firebase SDK** - Authentication and real-time database
-- **WebXR** - Virtual reality web experiences
-- **Three.js** - 3D graphics for VR environments
+- **MediaPipe** - Real-time pose detection and tracking
+- **Lucide React** - Modern icon library
+- **Radix UI** - Accessible component primitives
 
 #### Backend
 
@@ -68,11 +69,9 @@ MindFlow/
 
 #### AI & ML Services
 
-- **Google Dialogflow CX** - Conversational AI
-- **Google Cloud Speech-to-Text** - Voice processing
-- **Google Cloud Translation** - Multilingual support
-- **Google Cloud Natural Language** - Sentiment analysis
-- **Gemini AI** - Advanced AI capabilities
+- **Google Gemini AI** - Advanced AI capabilities for conversational AI and intelligent content moderation
+- **Google Cloud Speech-to-Text** - Professional voice-to-text transcription with 40+ languages
+- **Google Cloud Natural Language API** - Advanced sentiment analysis and text processing
 - **MediaPipe** - Pose detection and tracking
 - **OpenCV** - Computer vision processing
 
@@ -81,9 +80,12 @@ MindFlow/
 ### Prerequisites
 
 - **Node.js 18+** and npm
-- **Python 3.8+** (for VR and pose tracking)
 - **Firebase project** with Authentication and Firestore enabled
-- **Google Cloud Platform** account with required APIs enabled
+- **Google Cloud Platform** account with required APIs enabled:
+  - **Gemini AI API** - For conversational AI
+  - **Cloud Speech-to-Text API** - For voice transcription
+  - **Cloud Natural Language API** - For content moderation and sentiment analysis
+- **Webcam** for pose tracking features
 
 ### Installation
 
@@ -114,15 +116,8 @@ MindFlow/
    npm run dev
    ```
 
-4. **Set up Python dependencies** (for VR and pose tracking)
-
-   ```bash
-   cd "python scripts"
-   pip install -r requirements.txt
-   ```
-
-5. **Access the application**
-   - Frontend: http://localhost:5173
+4. **Access the application**
+   - Frontend: http://localhost:3000
    - Backend API: http://localhost:8000
 
 ## 📱 Features Deep Dive
@@ -131,63 +126,62 @@ MindFlow/
 
 Our AI companion provides 24/7 emotional support through natural conversations:
 
-- **WhatsApp-style Interface**: Familiar messaging experience
-- **Context Awareness**: Remembers conversation history
-- **Multilingual Support**: Communicates in multiple languages
-- **Voice Input**: Speech-to-text capabilities
-- **Sentiment Analysis**: Understands emotional context
-- **Crisis Detection**: Identifies and responds to mental health crises
+- **Gemini AI Integration**: Powered by Google's Gemini 2.5 Flash and 2.0 Flash models
+- **Voice Input**: Professional audio recording with Google Cloud Speech-to-Text integration
+- **Multi-language Support**: 10+ supported languages for voice and text interactions
+- **Context Awareness**: Remembers conversation history and maintains session state
+- **Crisis Detection**: Identifies mental health crises and provides appropriate resources
+- **Mood Analysis**: Analyzes emotional patterns and provides insights
+- **Personalized Responses**: Tailored responses based on user context and history
+- **Real-time Transcription**: Live voice-to-text conversion with confidence scoring
 
-**Tech Stack**: Dialogflow CX, Google Cloud Speech-to-Text, Firebase Firestore
+**Tech Stack**: Google Gemini AI, Google Cloud Speech-to-Text, Firebase Firestore, MongoDB
 
 ### 📝 Smart Journaling
 
 Transform thoughts into insights with our intelligent journaling system:
 
-- **Voice Journaling**: Speak your thoughts, get them transcribed
-- **Mood Tracking**: Visual mood trends and analytics
-- **Smart Tags**: Automatic categorization of entries
-- **Privacy Protection**: End-to-end encryption
+- **Advanced Voice-to-Text**: Google Cloud Speech-to-Text with professional audio recording
+- **Multi-language Support**: 10+ supported languages for voice journaling
+- **Real-time Transcription**: Live audio-to-text conversion with confidence scoring
+- **Mood Tracking**: Automatic mood detection from voice and text analysis
+- **Smart Tags**: Automatic categorization of entries using AI
 - **Calendar View**: Easy browsing of past entries
-- **Insights Generation**: AI-powered wellness insights
+- **AI Analysis**: Gemini AI-powered insights and emotion analysis
+- **Privacy Protection**: End-to-end encryption for sensitive data
+- **Audio Recording**: Professional recording interface with waveform visualization
+- **Auto-punctuation**: Intelligent text formatting and punctuation
 
-**Tech Stack**: Google Cloud Speech-to-Text, Firebase Firestore, Crypto-JS
-
-### 🥽 VR Meditation
-
-Immersive virtual reality experiences for deep relaxation:
-
-- **Multiple Environments**: Ocean, Forest, Rain, Space scenes
-- **Guided Sessions**: Pre-built meditation programs
-- **Session Tracking**: Duration and feedback storage
-- **WebXR Integration**: Works on VR headsets and mobile
-- **Customizable Settings**: Adjustable environments and audio
-
-**Tech Stack**: WebXR, Three.js, React Three Fiber
+**Tech Stack**: Google Cloud Speech-to-Text, Google Cloud Natural Language API, Google Gemini AI, Firebase Firestore, Crypto-JS
 
 ### 🏃‍♀️ Mindful Movement
 
 AI-powered movement and exercise tracking:
 
-- **Pose Detection**: Real-time body pose tracking
+- **Real-time Pose Detection**: MediaPipe-powered body tracking
 - **Guided Exercises**: Step-by-step movement instructions
-- **Progress Tracking**: Exercise completion and improvement
-- **Form Analysis**: Feedback on exercise technique
-- **Customizable Workouts**: Personalized exercise routines
+- **Progress Tracking**: Exercise completion and improvement metrics
+- **Form Analysis**: Feedback on exercise technique and accuracy
+- **Live Camera Integration**: Real-time visual feedback during exercises
 
-**Tech Stack**: MediaPipe, OpenCV, Python, WebRTC
+**Tech Stack**: MediaPipe Tasks Vision, MediaPipe Pose, MediaPipe Camera Utils, MediaPipe Drawing Utils, WebRTC, Custom Pose Analysis Algorithms
 
 ### 👥 Community Forums
 
 Safe spaces for peer support and discussion:
 
-- **Topic-based Forums**: Organized by wellness topics
-- **Anonymous Posting**: Privacy-focused discussions
-- **Moderation Tools**: Community-driven content moderation
-- **Expert Q&A**: Professional mental health guidance
-- **Peer Support**: Connect with others on similar journeys
+- **Topic-based Forums**: Organized by wellness topics (anxiety, depression, relationships, academic, family, self-care, crisis-support)
+- **Anonymous Posting**: Privacy-focused discussions with optional anonymity
+- **AI-Powered Moderation**: Advanced content moderation using Google Gemini AI for intelligent safety analysis
+- **Real-time Content Analysis**: Pre-posting content analysis with comprehensive safety scoring
+- **Crisis Detection**: AI-powered crisis identification and resource suggestions
+- **Smart Moderation**: Context-aware content filtering that distinguishes between seeking help and harmful intent
+- **Detailed Moderation Reports**: Comprehensive analysis with confidence scores and actionable suggestions
+- **Peer Support**: Connect with others on similar wellness journeys
+- **Regional Support**: Location-based forum organization
+- **Age-appropriate Content**: Forums tailored for youth (13-25 age range)
 
-**Tech Stack**: Firebase Firestore, React, Socket.io
+**Tech Stack**: Google Gemini AI, Google Cloud Natural Language API, Firebase Firestore, MongoDB
 
 ## 🔧 Configuration
 
@@ -217,6 +211,10 @@ MONGODB_URI=mongodb://localhost:27017/mindflow
 GOOGLE_CLOUD_PROJECT_ID=your-project-id
 GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account-key.json
 GEMINI_API_KEY=your-gemini-api-key
+
+# Speech-to-Text Configuration
+SPEECH_LANGUAGE_CODE=en-US
+NLP_LANGUAGE_CODE=en
 ```
 
 #### Frontend (firebase.js)
@@ -232,16 +230,6 @@ const firebaseConfig = {
 };
 ```
 
-### Required Google Cloud APIs
-
-Enable these APIs in your Google Cloud Console:
-
-- **Dialogflow CX API** - For AI conversations
-- **Cloud Speech-to-Text API** - For voice processing
-- **Cloud Translation API** - For multilingual support
-- **Cloud Natural Language API** - For sentiment analysis
-- **Cloud Storage API** - For file storage
-
 ## 📊 API Documentation
 
 ### Authentication Endpoints
@@ -254,13 +242,14 @@ Enable these APIs in your Google Cloud Console:
 
 ### Journaling Endpoints
 
-| Method | Endpoint                   | Description                |
-| ------ | -------------------------- | -------------------------- |
-| POST   | `/api/journal/entries`     | Create journal entry       |
-| GET    | `/api/journal/entries`     | Get user's journal entries |
-| GET    | `/api/journal/entries/:id` | Get specific entry         |
-| PUT    | `/api/journal/entries/:id` | Update entry               |
-| DELETE | `/api/journal/entries/:id` | Delete entry               |
+| Method | Endpoint                      | Description                      |
+| ------ | ----------------------------- | -------------------------------- |
+| POST   | `/api/journal/entries`        | Create journal entry             |
+| POST   | `/api/journal/entries/speech` | Create journal entry from speech |
+| GET    | `/api/journal/entries`        | Get user's journal entries       |
+| GET    | `/api/journal/entries/:id`    | Get specific entry               |
+| PUT    | `/api/journal/entries/:id`    | Update entry                     |
+| DELETE | `/api/journal/entries/:id`    | Delete entry                     |
 
 ### AI Companion Endpoints
 
@@ -270,22 +259,73 @@ Enable these APIs in your Google Cloud Console:
 | GET    | `/api/ai/conversations` | Get conversation history |
 | POST   | `/api/ai/feedback`      | Submit AI feedback       |
 
-### VR Meditation Endpoints
+### Speech-to-Text Endpoints
 
-| Method | Endpoint                        | Description         |
-| ------ | ------------------------------- | ------------------- |
-| POST   | `/api/vr/sessions`              | Create VR session   |
-| PUT    | `/api/vr/sessions/:id/complete` | Complete VR session |
-| GET    | `/api/vr/sessions`              | Get VR sessions     |
+| Method | Endpoint                      | Description                |
+| ------ | ----------------------------- | -------------------------- |
+| POST   | `/api/speech/transcribe`      | Transcribe audio to text   |
+| POST   | `/api/speech/detect-language` | Detect language from audio |
+| GET    | `/api/speech/languages`       | Get supported languages    |
+| POST   | `/api/speech/validate-format` | Validate audio format      |
+
+### Natural Language Processing Endpoints
+
+| Method | Endpoint                       | Description                          |
+| ------ | ------------------------------ | ------------------------------------ |
+| POST   | `/api/language/sentiment`      | Analyze text sentiment               |
+| POST   | `/api/language/entities`       | Extract entities from text           |
+| POST   | `/api/language/classify`       | Classify text content                |
+| POST   | `/api/language/analyze`        | Comprehensive text analysis          |
+| POST   | `/api/language/moderate`       | Moderate content for safety (Gemini) |
+| POST   | `/api/language/moderate/batch` | Batch content moderation             |
+| POST   | `/api/language/moderate/stats` | Get moderation statistics            |
+| POST   | `/api/language/key-phrases`    | Extract key phrases                  |
+| POST   | `/api/language/detect`         | Detect text language                 |
 
 ### Community Forum Endpoints
 
-| Method | Endpoint                 | Description     |
-| ------ | ------------------------ | --------------- |
-| GET    | `/api/forums`            | Get all forums  |
-| GET    | `/api/forums/:id/posts`  | Get forum posts |
-| POST   | `/api/forums/:id/posts`  | Create new post |
-| POST   | `/api/posts/:id/replies` | Reply to post   |
+| Method | Endpoint                 | Description       |
+| ------ | ------------------------ | ----------------- |
+| GET    | `/api/forums`            | Get all forums    |
+| GET    | `/api/forums/:id/posts`  | Get forum posts   |
+| POST   | `/api/forums/:id/posts`  | Create new post   |
+| POST   | `/api/posts/:id/replies` | Reply to post     |
+| GET    | `/api/posts/:id`         | Get specific post |
+| PUT    | `/api/posts/:id`         | Update post       |
+| DELETE | `/api/posts/:id`         | Delete post       |
+| POST   | `/api/posts/:id/like`    | Like/unlike post  |
+| POST   | `/api/posts/:id/report`  | Report post       |
+
+## 🎤 Google Cloud AI Features
+
+### Speech-to-Text Integration
+
+MindFlow leverages Google Cloud Speech-to-Text for professional-grade voice transcription:
+
+- **40+ Languages**: Support for major world languages with regional variants
+- **Real-time Transcription**: Live audio-to-text conversion with confidence scoring
+- **Professional Audio Recording**: High-quality recording interface with waveform visualization
+- **Auto-punctuation**: Intelligent text formatting and punctuation
+- **Language Detection**: Automatic language identification from audio
+- **Format Validation**: Support for WebM, MP4, WAV, FLAC, and OGG formats
+
+### Natural Language Processing
+
+Advanced text analysis powered by Google Cloud Natural Language API and Google Gemini AI:
+
+- **Sentiment Analysis**: Comprehensive emotional state detection with confidence scores
+- **Entity Recognition**: Automatic identification of people, places, organizations, and events
+- **Content Classification**: Intelligent categorization of text content
+- **Content Moderation**: Real-time inappropriate content detection and crisis intervention
+- **Key Phrase Extraction**: Automatic identification of important topics and themes
+- **Language Detection**: Automatic text language identification
+
+### AI-Powered Features
+
+- **Mood Detection**: Automatic emotion analysis from voice and text
+- **Crisis Detection**: Mental health crisis identification with appropriate resource suggestions
+- **Content Moderation**: Pre-posting analysis for community forums
+- **Personalized Insights**: AI-generated wellness recommendations based on user patterns
 
 ## 🔒 Security & Privacy
 
@@ -365,153 +405,6 @@ eb create production
 eb deploy
 ```
 
-## 🧪 Testing
-
-### Frontend Testing
-
-```bash
-cd frontend
-npm run test
-```
-
-### Backend Testing
-
-```bash
-cd backend
-npm test
-```
-
-### API Testing
-
-Use tools like Postman or curl to test endpoints:
-
-```bash
-# Test health endpoint
-curl http://localhost:8000/health
-
-# Test authentication
-curl -X POST http://localhost:8000/api/auth/verify \
-  -H "Content-Type: application/json" \
-  -d '{"token": "your-firebase-token"}'
-```
-
-## 📈 Performance & Monitoring
-
-### Frontend Performance
-
-- **Vite**: Fast build times and HMR
-- **Code Splitting**: Lazy loading for optimal performance
-- **Image Optimization**: WebP format and lazy loading
-- **Bundle Analysis**: Regular bundle size monitoring
-
-### Backend Performance
-
-- **Rate Limiting**: Prevent API abuse
-- **Caching**: Redis for frequently accessed data
-- **Database Indexing**: Optimized Firestore queries
-- **Error Monitoring**: Comprehensive error tracking
-
-### Analytics
-
-- **User Engagement**: Track feature usage
-- **Performance Metrics**: Monitor response times
-- **Error Rates**: Track and resolve issues
-- **Wellness Outcomes**: Measure user progress
-
-## 🤝 Contributing
-
-We welcome contributions from the community! Here's how you can help:
-
-### Development Setup
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes
-4. Add tests if applicable
-5. Commit your changes: `git commit -m 'Add amazing feature'`
-6. Push to the branch: `git push origin feature/amazing-feature`
-7. Open a Pull Request
-
-### Contribution Guidelines
-
-- Follow the existing code style
-- Write clear commit messages
-- Add tests for new features
-- Update documentation as needed
-- Respect privacy and security requirements
-
-### Areas for Contribution
-
-- **UI/UX Improvements**: Better user experience
-- **New Features**: Additional wellness tools
-- **Performance**: Optimization and speed improvements
-- **Accessibility**: Making the platform more inclusive
-- **Documentation**: Improving guides and examples
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Firebase & Google Cloud Platform** - For providing robust backend services
-- **React & TailwindCSS Communities** - For excellent frontend tools
-- **Three.js & WebXR Communities** - For immersive web experiences
-- **Mental Health Professionals** - For guidance on wellness best practices
-- **Youth Advisory Board** - For invaluable user feedback
-
-## 🚨 Troubleshooting
-
-### Common Issues
-
-**CORS Errors**: If you see `Access to fetch at 'http://localhost:8000/api/...' has been blocked by CORS policy`, your frontend and backend are running on different ports. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed solutions.
-
-**AI Companion Errors**: If you see `First content should be with role 'user', got model`, this has been fixed in the latest version. Restart your backend server to apply the fix.
-
-**Quick Fix**: Update the CORS configuration in `backend/server.js` to include your frontend's port (usually 3000, 3001, etc.).
-
-**Backend Not Running**: Make sure to start the backend server:
-
-```bash
-cd backend && npm run dev
-```
-
-**Frontend Not Running**: Start the frontend server:
-
-```bash
-cd frontend && npm run dev
-```
-
-For detailed troubleshooting steps, see our [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide.
-
-## 📞 Support & Contact
-
-### Getting Help
-
-- **Documentation**: Check our comprehensive guides
-- **Troubleshooting**: See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues
-- **Issues**: Report bugs and request features on GitHub
-- **Discussions**: Join our community discussions
-- **Email**: support@mindflow.app
-
-### Professional Support
-
-- **Crisis Resources**: Links to emergency mental health services
-- **Professional Directory**: Connect with licensed therapists
-- **Educational Resources**: Mental health education materials
-
-### Community
-
-- **Discord**: Join our developer and user community
-- **Twitter**: Follow us for updates and tips
-- **LinkedIn**: Connect with our team
-
----
-
-<div align="center">
-
-**Built with ❤️ for the next generation of mental wellness**
-
-[Website](https://mindflow.app) • [Documentation](https://docs.mindflow.app) • [Community](https://discord.gg/mindflow)
-
-</div>

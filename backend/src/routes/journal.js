@@ -2,6 +2,7 @@ import express from "express";
 import { body, query } from "express-validator";
 import { journalController } from "../controllers/journalController.js";
 import { validate } from "../middleware/validation.js";
+import { upload } from "../controllers/speechController.js";
 
 const router = express.Router();
 
@@ -22,10 +23,6 @@ const createEntryValidation = [
     ])
     .withMessage("Invalid mood value"),
   body("tags").optional().isArray().withMessage("Tags must be an array"),
-  body("isVoice")
-    .optional()
-    .isBoolean()
-    .withMessage("isVoice must be a boolean"),
 ];
 
 const updateEntryValidation = [
@@ -100,5 +97,12 @@ router.put(
 );
 router.delete("/entries/:id", journalController.deleteEntry);
 router.get("/analytics", journalController.getAnalytics);
+
+// Speech-to-text route for journal entries
+router.post(
+  "/entries/speech",
+  upload.single("audio"),
+  journalController.createEntryFromSpeech
+);
 
 export default router;

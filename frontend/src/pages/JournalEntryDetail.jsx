@@ -32,11 +32,34 @@ const JournalEntryDetail = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    if (entryId && user) {
-      fetchEntryDetails();
+  const fetchAnalysis = useCallback(async (entryData) => {
+    try {
+      setIsAnalyzing(true);
+      const idToken = await user.getIdToken();
+      const response = await fetch(`${getApiBaseUrl()}/ai/analyze-journal`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ 
+          text: entryData.content, 
+          tags: entryData.tags || [] 
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setAnalysis(data.insights);
+        }
+      }
+    } catch (error) {
+      console.error('Error analyzing entry:', error);
+    } finally {
+      setIsAnalyzing(false);
     }
-  }, [entryId, user, fetchEntryDetails]);
+  }, [user]);
 
   const fetchEntryDetails = useCallback(async () => {
     try {
@@ -70,34 +93,11 @@ const JournalEntryDetail = () => {
     }
   }, [entryId, user, fetchAnalysis]);
 
-  const fetchAnalysis = useCallback(async (entryData) => {
-    try {
-      setIsAnalyzing(true);
-      const idToken = await user.getIdToken();
-      const response = await fetch(`${getApiBaseUrl()}/ai/analyze-journal`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify({ 
-          text: entryData.content, 
-          tags: entryData.tags || [] 
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setAnalysis(data.insights);
-        }
-      }
-    } catch (error) {
-      console.error('Error analyzing entry:', error);
-    } finally {
-      setIsAnalyzing(false);
+  useEffect(() => {
+    if (entryId && user) {
+      fetchEntryDetails();
     }
-  }, [user]);
+  }, [entryId, user, fetchEntryDetails]);
 
   const getMoodColor = (mood) => {
     const colors = {
@@ -261,11 +261,6 @@ const JournalEntryDetail = () => {
                   <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getMoodColor(entry.mood)}`}>
                     {getMoodIcon(entry.mood)} {entry.mood}
                   </span>
-                  {entry.isVoice && (
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                      Voice Entry
-                    </span>
-                  )}
                 </div>
                 <div className="flex items-center text-sm text-gray-500">
                   <Clock className="w-4 h-4 mr-1" />
@@ -436,13 +431,6 @@ const JournalEntryDetail = () => {
                   <Heart className="w-4 h-4 text-gray-400 mr-2" />
                   <span className="text-gray-600 capitalize">{entry.mood}</span>
                 </div>
-
-                {entry.isVoice && (
-                  <div className="flex items-center text-sm">
-                    <Tag className="w-4 h-4 text-gray-400 mr-2" />
-                    <span className="text-gray-600">Voice Entry</span>
-                  </div>
-                )}
               </div>
             </motion.div>
 

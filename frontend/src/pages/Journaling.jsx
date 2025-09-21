@@ -1,15 +1,18 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
+import AudioRecorder from '../components/ui/AudioRecorder'
 import Navbar from '../components/Navbar'
 import { getApiBaseUrl } from '../utils/config'
+import speechService from '../services/speechService.js'
+import languageService from '../services/languageService.js'
 import { 
   Mic, MicOff, Save, Calendar, BarChart3, PenTool, Cloud, Leaf, Sparkles,
   Brain, Target, BookOpen, TrendingUp, Heart, Eye, EyeOff, Clock, BarChart, PieChart,
   Plus, Minus, ChevronRight, ChevronLeft, Zap, Star, Lightbulb,
-  CheckCircle, AlertCircle
+  CheckCircle, AlertCircle, Volume2, VolumeX, Languages, Settings
 } from 'lucide-react'
 
 const Journaling = () => {
@@ -22,9 +25,6 @@ const Journaling = () => {
   const [currentEntry, setCurrentEntry] = useState('')
   const [selectedTags, setSelectedTags] = useState([])
   const [editingEntry, setEditingEntry] = useState(null)
-  const [isRecording, setIsRecording] = useState(false)
-  const recognitionRef = useRef(null)
-  const interimRef = useRef("")
   const [view, setView] = useState('write')
   const [isSaving, setIsSaving] = useState(false)
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -35,6 +35,14 @@ const Journaling = () => {
 
   // Voice journaling state
   const [recordingStatus, setRecordingStatus] = useState('')
+  const [transcription, setTranscription] = useState('')
+  const [supportedLanguages, setSupportedLanguages] = useState([])
+  const [selectedLanguage, setSelectedLanguage] = useState('en-US')
+  const [speechSettings, setSpeechSettings] = useState({
+    enablePunctuation: true,
+    confidence: 0.8
+  })
+  const [authToken, setAuthToken] = useState(null)
 
   // Theme and UI state
   const [selectedFramework, setSelectedFramework] = useState(null)
@@ -51,9 +59,6 @@ const Journaling = () => {
     insights: []
   })
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false)
-  
-  // Visual highlights state
-  const [showVisualHighlights] = useState(true)
 
   // Constants
   const availableTags = ['happy', 'sad', 'anxious', 'excited', 'tired', 'energetic', 'productive', 'overwhelmed', 'grateful', 'frustrated', 'peaceful', 'motivated']
@@ -152,6 +157,41 @@ const Journaling = () => {
     fetchEntries()
   }, [fetchEntries])
 
+  // Update auth token when user changes
+  useEffect(() => {
+    const updateAuthToken = async () => {
+      if (user) {
+        try {
+          const token = await user.getIdToken();
+          setAuthToken(token);
+        } catch (error) {
+          console.error('Error getting auth token:', error);
+          setAuthToken(null);
+        }
+      } else {
+        setAuthToken(null);
+      }
+    };
+    
+    updateAuthToken();
+  }, [user]);
+
+  // Load supported languages for speech-to-text
+  useEffect(() => {
+    const loadSupportedLanguages = async () => {
+      try {
+        const languages = await speechService.getSupportedLanguages(authToken)
+        setSupportedLanguages(languages)
+      } catch (error) {
+        console.error('Error loading supported languages:', error)
+      }
+    }
+    
+    if (authToken) {
+      loadSupportedLanguages()
+    }
+  }, [authToken])
+
   // Handle edit mode when navigating from detail page
   useEffect(() => {
     if (location.state?.editEntry) {
@@ -200,7 +240,6 @@ const Journaling = () => {
         body: JSON.stringify({
           content: currentEntry,
           tags: selectedTags,
-          isVoice: false,
           ...(isUpdate && { mood: editingEntry.mood }) // Preserve mood for updates
         })
       })
@@ -229,7 +268,6 @@ const Journaling = () => {
             content: currentEntry,
             tags: selectedTags,
             mood: data.detectedMood || 'neutral',
-            isVoice: false,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           }
@@ -259,78 +297,36 @@ const Journaling = () => {
     )
   }
 
-  const toggleRecording = () => {
-    try {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-      if (!SpeechRecognition) {
-        console.warn('Speech Recognition API not supported')
-        setRecordingStatus('Speech Recognition not supported in this browser')
-        return
-      }
+  // Enhanced speech-to-text functions
+  const handleRecordingComplete = async () => {
+    setRecordingStatus('Recording completed. Click transcribe to convert to text.')
+    
+    // Don't automatically transcribe - let user choose when to transcribe
+    // The AudioRecorder will handle transcription when user clicks the transcribe button
+  }
+
+  const handleTranscriptionComplete = async (result) => {
+    if (result.success) {
+      setTranscription(result.text)
+      setRecordingStatus(`Transcribed with ${Math.round(result.confidence * 100)}% confidence`)
       
-      if (!recognitionRef.current) {
-        const recognition = new SpeechRecognition()
-        recognition.lang = 'en-US'
-        recognition.interimResults = true
-        recognition.continuous = true
-        
-        recognition.onresult = (event) => {
-          let interimTranscript = ''
-          let finalTranscript = ''
-          
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const result = event.results[i]
-            const transcript = result[0]?.transcript || ''
-            
-            if (result.isFinal) {
-              finalTranscript += transcript
-            } else {
-              interimTranscript += transcript
-            }
-          }
-          
-          // Update the current entry with final results
-          if (finalTranscript.trim()) {
-            setCurrentEntry(prev => (prev ? prev + ' ' : '') + finalTranscript.trim())
-            // Clear interim results when we have final results
-            interimRef.current = ''
-          }
-          
-          // Show interim results in real-time (only if no final results)
-          if (interimTranscript.trim() && !finalTranscript.trim()) {
-            interimRef.current = interimTranscript
-          }
+      // Auto-analyze mood from transcription
+      if (result.text.trim()) {
+        try {
+          await languageService.analyzeJournalMood(result.text, authToken)
+          // You could update mood tags here if needed
+        } catch (error) {
+          console.error('Mood analysis error:', error)
         }
-        
-        recognition.onerror = (event) => {
-          console.error('Speech recognition error:', event.error)
-          setIsRecording(false)
-          setRecordingStatus(`Error: ${event.error}`)
-        }
-        
-        recognition.onend = () => {
-          interimRef.current = ''
-          setIsRecording(false)
-          setRecordingStatus('')
-        }
-        
-        recognitionRef.current = recognition
       }
-      
-      if (isRecording) {
-        recognitionRef.current.stop()
-        setIsRecording(false)
-        setRecordingStatus('')
-      } else {
-        recognitionRef.current.start()
-        setIsRecording(true)
-        setRecordingStatus('Listening...')
-      }
-    } catch (e) {
-      console.error('Voice recording error:', e)
-      setIsRecording(false)
-      setRecordingStatus('Error starting voice recognition')
+    } else {
+      setRecordingStatus(`Transcription failed: ${result.error}`)
     }
+  }
+
+  const handleRecordingError = (error) => {
+    console.error('Recording error:', error)
+    setRecordingStatus(`Recording error: ${error.message}`)
   }
   
   // AI Analysis Functions
@@ -921,72 +917,109 @@ const Journaling = () => {
                       <label className="block text-lg font-semibold text-slate-800 mb-4">Your Entry</label>
                       <div className="relative">
                 <textarea
-                  value={currentEntry + (interimRef.current ? ' ' + interimRef.current : '')}
+                  value={currentEntry}
                   onChange={(e) => setCurrentEntry(e.target.value)}
                   placeholder="Write about your day, thoughts, feelings, or anything on your mind..."
-                          className={`w-full h-80 px-6 py-4 border-2 rounded-2xl resize-none focus:outline-none focus:ring-4 focus:ring-emerald-200 focus:border-emerald-400 text-slate-900 placeholder-slate-500 text-base leading-relaxed transition-all duration-200 ${
-                            isRecording 
-                              ? 'border-red-300 bg-red-50' 
-                              : 'border-slate-200 bg-slate-50'
-                          }`}
-                        />
-                        {isRecording && (
-                          <div className="absolute top-4 right-4">
-                            <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg flex items-center space-x-2">
-                              <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                              <span>Voice Input Active</span>
-                            </div>
-                          </div>
-                        )}
-                        {showVisualHighlights && !isRecording && (
+                  className="w-full h-80 px-6 py-4 border-2 rounded-2xl resize-none focus:outline-none focus:ring-4 focus:ring-emerald-200 focus:border-emerald-400 text-slate-900 placeholder-slate-500 text-base leading-relaxed transition-all duration-200 border-slate-200 bg-slate-50"
+                />
                           <div className="absolute top-4 right-4">
                             <div className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg">
                               AI Analysis Available
                             </div>
                           </div>
-                        )}
                       </div>
               </div>
 
-              {/* Voice Input */}
-                    <div>
-                      <label className="block text-lg font-semibold text-slate-800 mb-4">Voice to Text</label>
-                      <p className="text-sm text-slate-600 mb-4">Speak naturally and your words will appear in the text area above</p>
-                <div className="flex items-center space-x-4">
-                  <Button
-                    variant="outline"
-                    onClick={toggleRecording}
-                    disabled={false}
-                          className={`flex items-center space-x-3 px-6 py-3 rounded-xl border-2 transition-all duration-200 ${
-                      isRecording 
-                        ? 'bg-red-500 text-white border-red-500 hover:bg-red-600' 
-                              : 'border-slate-300 hover:border-emerald-400 hover:bg-emerald-50 text-slate-700'
-                    }`}
-                  >
-                          {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                          <span className="font-medium">{isRecording ? 'Stop Listening' : 'Start Voice Input'}</span>
-                  </Button>
+              {/* Enhanced Voice Input */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="block text-lg font-semibold text-slate-800 mb-2">Voice to Text</label>
+                    <p className="text-sm text-slate-600">Record your thoughts and they'll be transcribed using Google Cloud Speech-to-Text</p>
+                  </div>
                   
-                  {isRecording && (
-                          <div className="flex items-center space-x-3 text-red-500">
-                            <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                            <span className="text-sm font-medium">Listening...</span>
-                    </div>
-                  )}
-
-                  {recordingStatus && !isRecording && (
-                    <div className={`flex items-center space-x-3 ${
-                      recordingStatus.includes('Error') ? 'text-red-500' : 'text-green-500'
-                    }`}>
-                      {recordingStatus.includes('Error') ? (
-                        <AlertCircle className="w-4 h-4" />
-                      ) : (
-                        <CheckCircle className="w-4 h-4" />
-                      )}
-                      <span className="text-sm font-medium">{recordingStatus}</span>
-                    </div>
-                  )}
+                  {/* Language Selection */}
+                  <div className="flex items-center space-x-2">
+                    <Languages className="w-4 h-4 text-slate-500" />
+                    <select
+                      value={selectedLanguage}
+                      onChange={(e) => setSelectedLanguage(e.target.value)}
+                      className="text-sm border border-slate-300 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {supportedLanguages.map(lang => (
+                        <option key={lang} value={lang}>{lang}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
+
+                {/* Audio Recorder Component */}
+                <AudioRecorder
+                  onRecordingComplete={handleRecordingComplete}
+                  onTranscriptionComplete={handleTranscriptionComplete}
+                  onError={handleRecordingError}
+                  maxDuration={300}
+                  showWaveform={true}
+                  className="bg-white p-4 rounded-lg border border-slate-200"
+                  authToken={authToken}
+                />
+
+                {/* Transcription Display */}
+                {transcription && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium text-blue-800">Transcription</h4>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => setCurrentEntry(prev => prev + (prev ? ' ' : '') + transcription)}
+                          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          Add to Entry
+                        </button>
+                        <button
+                          onClick={() => setTranscription('')}
+                          className="text-sm text-gray-500 hover:text-gray-700"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-blue-700 text-sm">{transcription}</p>
+                  </div>
+                )}
+
+                {/* Speech Settings */}
+                <div className="flex items-center space-x-4 text-sm text-slate-600">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={speechSettings.enablePunctuation}
+                      onChange={(e) => setSpeechSettings(prev => ({ ...prev, enablePunctuation: e.target.checked }))}
+                      className="rounded"
+                    />
+                    <span>Auto-punctuation</span>
+                  </label>
+                </div>
+
+                {/* Status Messages */}
+                {recordingStatus && (
+                  <div className={`flex items-center space-x-2 text-sm ${
+                    recordingStatus.includes('Error') || recordingStatus.includes('failed') 
+                      ? 'text-red-600' 
+                      : recordingStatus.includes('Transcribed') 
+                        ? 'text-green-600' 
+                        : 'text-blue-600'
+                  }`}>
+                    {recordingStatus.includes('Error') || recordingStatus.includes('failed') ? (
+                      <AlertCircle className="w-4 h-4" />
+                    ) : recordingStatus.includes('Transcribed') ? (
+                      <CheckCircle className="w-4 h-4" />
+                    ) : (
+                      <Clock className="w-4 h-4" />
+                    )}
+                    <span>{recordingStatus}</span>
+                  </div>
+                )}
               </div>
 
                     {/* Action Buttons */}
@@ -1471,11 +1504,6 @@ const Journaling = () => {
                           }`}>
                             {entry.mood}
                           </span>
-                          {entry.isVoice && (
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                              Voice
-                            </span>
-                          )}
                         </div>
                         <span className="text-xs text-slate-500">
                           {new Date(entry.createdAt).toLocaleTimeString([], { 

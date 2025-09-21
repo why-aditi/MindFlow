@@ -2,22 +2,31 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
+import AudioRecorder from '../components/ui/AudioRecorder';
 import Navbar from '../components/Navbar';
 import ChatSidebar from '../components/ChatSidebar';
 import { apiClient } from '../utils/apiClient';
-import { Send, Mic, MicOff, Bot, User, Heart, Sparkles, Leaf, Cloud, Waves, ArrowLeft } from 'lucide-react';
+import speechService from '../services/speechService.js';
+import { Send, Mic, MicOff, Bot, User, Heart, Sparkles, Leaf, Cloud, Waves, ArrowLeft, Languages } from 'lucide-react';
 
 const AICompanion = () => {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
+  
+  // Voice input state
+  const [transcription, setTranscription] = useState('');
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [supportedLanguages, setSupportedLanguages] = useState([]);
+  const [selectedLanguage, setSelectedLanguage] = useState('en-US');
+  const [showVoiceInput, setShowVoiceInput] = useState(false);
+  const [authToken, setAuthToken] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -238,9 +247,78 @@ const AICompanion = () => {
     }
   };
 
-  const toggleRecording = () => {
-    setIsRecording(!isRecording);
-    // TODO: Implement speech-to-text functionality
+  // Update auth token when user changes
+  useEffect(() => {
+    const updateAuthToken = async () => {
+      if (user) {
+        try {
+          const token = await user.getIdToken();
+          setAuthToken(token);
+        } catch (error) {
+          console.error('Error getting auth token:', error);
+          setAuthToken(null);
+        }
+      } else {
+        setAuthToken(null);
+      }
+    };
+    
+    updateAuthToken();
+  }, [user]);
+
+  // Load supported languages on component mount
+  useEffect(() => {
+    const loadSupportedLanguages = async () => {
+      try {
+        const languages = await speechService.getSupportedLanguages(authToken);
+        setSupportedLanguages(languages);
+      } catch (error) {
+        console.error('Error loading supported languages:', error);
+      }
+    };
+    
+    if (authToken) {
+      loadSupportedLanguages();
+    }
+  }, [authToken]);
+
+  // Enhanced voice input functions
+  const handleRecordingComplete = async (blob) => {
+    setIsTranscribing(true);
+    
+    try {
+      const result = await speechService.transcribeAudio(blob, {
+        languageCode: selectedLanguage,
+        enablePunctuation: true
+      }, authToken);
+      
+      if (result.success) {
+        setTranscription(result.text);
+        setInputText(result.text);
+        setShowVoiceInput(false);
+      } else {
+        console.error('Transcription failed:', result.error);
+      }
+    } catch (error) {
+      console.error('Transcription error:', error);
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
+  const handleTranscriptionComplete = (result) => {
+    if (result.success) {
+      setTranscription(result.text);
+      setInputText(result.text);
+    }
+  };
+
+  const handleRecordingError = (error) => {
+    console.error('Recording error:', error);
+  };
+
+  const toggleVoiceInput = () => {
+    setShowVoiceInput(!showVoiceInput);
   };
 
   return (
@@ -458,6 +536,78 @@ const AICompanion = () => {
 
           {/* Input Area */}
           <div className="border-t border-emerald-100 p-3 sm:p-6">
+            {/* Voice Input Toggle */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={toggleVoiceInput}
+                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                    showVoiceInput 
+                      ? 'bg-blue-100 text-blue-700' 
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  <Mic className="w-4 h-4" />
+                  <span>Voice Input</span>
+                </button>
+                
+                {showVoiceInput && (
+                  <div className="flex items-center space-x-2">
+                    <Languages className="w-4 h-4 text-gray-500" />
+                    <select
+                      value={selectedLanguage}
+                      onChange={(e) => setSelectedLanguage(e.target.value)}
+                      className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {supportedLanguages.map(lang => (
+                        <option key={lang} value={lang}>{lang}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+              
+              {isTranscribing && (
+                <div className="flex items-center space-x-2 text-blue-600">
+                  <div className="w-3 h-3 bg-blue-600 rounded-full animate-pulse"></div>
+                  <span className="text-sm">Transcribing...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Voice Input Panel */}
+            {showVoiceInput && (
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <AudioRecorder
+                  onRecordingComplete={handleRecordingComplete}
+                  onTranscriptionComplete={handleTranscriptionComplete}
+                  onError={handleRecordingError}
+                  maxDuration={120}
+                  showWaveform={true}
+                  className="bg-white p-3 rounded-lg border border-blue-200"
+                  authToken={authToken}
+                />
+                
+                {transcription && (
+                  <div className="mt-3 p-3 bg-white border border-blue-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium text-blue-800 text-sm">Transcription</h4>
+                      <button
+                        onClick={() => {
+                          setTranscription('');
+                          setInputText('');
+                        }}
+                        className="text-xs text-gray-500 hover:text-gray-700"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    <p className="text-blue-700 text-sm">{transcription}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex items-end space-x-2 sm:space-x-3">
               <div className="flex-1">
                 <textarea
@@ -471,23 +621,6 @@ const AICompanion = () => {
                   style={{ minHeight: '40px', maxHeight: '120px' }}
                 />
               </div>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleRecording}
-                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full ${
-                  isRecording
-                    ? 'bg-red-500 hover:bg-red-600 text-white'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
-                }`}
-              >
-                {isRecording ? (
-                  <MicOff className="w-4 h-4 sm:w-5 sm:h-5" />
-                ) : (
-                  <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
-                )}
-              </Button>
 
               <Button
                 onClick={handleSendMessage}
