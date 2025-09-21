@@ -10,6 +10,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green?style=flat-square&logo=node.js)](https://nodejs.org/)
 [![Firebase](https://img.shields.io/badge/Firebase-12+-orange?style=flat-square&logo=firebase)](https://firebase.google.com/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4+-blue?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
+[![Python](https://img.shields.io/badge/Python-3.8+-green?style=flat-square&logo=python)](https://python.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
 </div>
@@ -24,11 +25,10 @@ To make mental wellness accessible, engaging, and effective for the next generat
 
 ### 🚀 Key Features
 
-- **🤖 AI Companion**: Intelligent conversational AI powered by Google's Dialogflow CX
+- **🤖 AI Companion**: Intelligent conversational AI powered by Google's Dialogflow CX and Gemini AI
 - **📝 Smart Journaling**: Voice-to-text journaling with mood tracking and analytics
-- **🥽 VR Meditation**: Immersive virtual reality meditation experiences
-- **🏃‍♀️ Mindful Movement**: Pose tracking and guided movement exercises
-- **👥 Community Forums**: Safe spaces for peer support and discussion
+- **🏃‍♀️ Mindful Movement**: Real-time pose tracking and guided movement exercises using MediaPipe
+- **👥 Community Forums**: Safe spaces for peer support with AI moderation and crisis detection
 - **📊 Wellness Analytics**: Comprehensive insights and progress tracking
 - **🎮 Gamification**: Points, achievements, and rewards system
 - **🔒 Privacy-First**: End-to-end encryption and secure data handling
@@ -38,9 +38,8 @@ To make mental wellness accessible, engaging, and effective for the next generat
 ```
 MindFlow/
 ├── frontend/          # React 19 + TailwindCSS + Vite
-├── backend/           # Node.js + Express + Firebase
-├── python scripts/    # Computer Vision & Pose Tracking
-└── vrscript.py       # VR Environment Scripts
+├── backend/           # Node.js + Express + Firebase + MongoDB
+└── python scripts/    # Computer Vision & Pose Tracking (MediaPipe + OpenCV)
 ```
 
 ### 🛠️ Tech Stack
@@ -53,8 +52,9 @@ MindFlow/
 - **Framer Motion** - Smooth animations and transitions
 - **React Router** - Client-side routing
 - **Firebase SDK** - Authentication and real-time database
-- **WebXR** - Virtual reality web experiences
-- **Three.js** - 3D graphics for VR environments
+- **MediaPipe** - Real-time pose detection and tracking
+- **Lucide React** - Modern icon library
+- **Radix UI** - Accessible component primitives
 
 #### Backend
 
@@ -68,11 +68,10 @@ MindFlow/
 
 #### AI & ML Services
 
-- **Google Dialogflow CX** - Conversational AI
-- **Google Cloud Speech-to-Text** - Voice processing
-- **Google Cloud Translation** - Multilingual support
-- **Google Cloud Natural Language** - Sentiment analysis
-- **Gemini AI** - Advanced AI capabilities
+- **Google Gemini AI** - Advanced AI capabilities for conversational AI
+- **Google Cloud Speech-to-Text** - Voice processing for journaling
+- **Google Cloud Natural Language** - Sentiment analysis for content moderation
+- **Google Cloud Storage** - File storage for voice recordings
 - **MediaPipe** - Pose detection and tracking
 - **OpenCV** - Computer vision processing
 
@@ -81,9 +80,13 @@ MindFlow/
 ### Prerequisites
 
 - **Node.js 18+** and npm
-- **Python 3.8+** (for VR and pose tracking)
 - **Firebase project** with Authentication and Firestore enabled
-- **Google Cloud Platform** account with required APIs enabled
+- **Google Cloud Platform** account with required APIs enabled:
+  - **Gemini AI API** - For conversational AI
+  - **Cloud Speech-to-Text API** - For voice processing
+  - **Cloud Natural Language API** - For sentiment analysis
+  - **Cloud Storage API** - For file storage
+- **Webcam** for pose tracking features
 
 ### Installation
 
@@ -114,15 +117,8 @@ MindFlow/
    npm run dev
    ```
 
-4. **Set up Python dependencies** (for VR and pose tracking)
-
-   ```bash
-   cd "python scripts"
-   pip install -r requirements.txt
-   ```
-
-5. **Access the application**
-   - Frontend: http://localhost:5173
+4. **Access the application**
+   - Frontend: http://localhost:3000
    - Backend API: http://localhost:8000
 
 ## 📱 Features Deep Dive
@@ -131,63 +127,52 @@ MindFlow/
 
 Our AI companion provides 24/7 emotional support through natural conversations:
 
-- **WhatsApp-style Interface**: Familiar messaging experience
-- **Context Awareness**: Remembers conversation history
-- **Multilingual Support**: Communicates in multiple languages
-- **Voice Input**: Speech-to-text capabilities
-- **Sentiment Analysis**: Understands emotional context
-- **Crisis Detection**: Identifies and responds to mental health crises
+- **Gemini AI Integration**: Powered by Google's Gemini 2.5 Flash and 2.0 Flash models
+- **Context Awareness**: Remembers conversation history and maintains session state
+- **Crisis Detection**: Identifies mental health crises and provides appropriate resources
+- **Multilingual Support**: Responds in multiple languages
+- **Mood Analysis**: Analyzes emotional patterns and provides insights
+- **Personalized Responses**: Tailored responses based on user context and history
 
-**Tech Stack**: Dialogflow CX, Google Cloud Speech-to-Text, Firebase Firestore
+**Tech Stack**: Google Gemini AI, Firebase Firestore, MongoDB
 
 ### 📝 Smart Journaling
 
 Transform thoughts into insights with our intelligent journaling system:
 
-- **Voice Journaling**: Speak your thoughts, get them transcribed
+- **Voice Journaling**: Speak your thoughts, get them transcribed using Google Cloud Speech-to-Text
 - **Mood Tracking**: Visual mood trends and analytics
 - **Smart Tags**: Automatic categorization of entries
-- **Privacy Protection**: End-to-end encryption
 - **Calendar View**: Easy browsing of past entries
-- **Insights Generation**: AI-powered wellness insights
+- **AI Analysis**: Gemini AI-powered insights and emotion analysis
+- **Privacy Protection**: End-to-end encryption for sensitive data
+- **File Storage**: Secure storage of voice recordings in Google Cloud Storage
 
-**Tech Stack**: Google Cloud Speech-to-Text, Firebase Firestore, Crypto-JS
-
-### 🥽 VR Meditation
-
-Immersive virtual reality experiences for deep relaxation:
-
-- **Multiple Environments**: Ocean, Forest, Rain, Space scenes
-- **Guided Sessions**: Pre-built meditation programs
-- **Session Tracking**: Duration and feedback storage
-- **WebXR Integration**: Works on VR headsets and mobile
-- **Customizable Settings**: Adjustable environments and audio
-
-**Tech Stack**: WebXR, Three.js, React Three Fiber
+**Tech Stack**: Google Cloud Speech-to-Text, Google Cloud Storage, Google Gemini AI, Firebase Firestore, Crypto-JS
 
 ### 🏃‍♀️ Mindful Movement
 
 AI-powered movement and exercise tracking:
 
-- **Pose Detection**: Real-time body pose tracking
+- **Real-time Pose Detection**: MediaPipe-powered body tracking
 - **Guided Exercises**: Step-by-step movement instructions
-- **Progress Tracking**: Exercise completion and improvement
-- **Form Analysis**: Feedback on exercise technique
-- **Customizable Workouts**: Personalized exercise routines
-
-**Tech Stack**: MediaPipe, OpenCV, Python, WebRTC
+- **Progress Tracking**: Exercise completion and improvement metrics
+- **Form Analysis**: Feedback on exercise technique and accuracy
+- **Live Camera Integration**: Real-time visual feedback during exercises
 
 ### 👥 Community Forums
 
 Safe spaces for peer support and discussion:
 
-- **Topic-based Forums**: Organized by wellness topics
-- **Anonymous Posting**: Privacy-focused discussions
-- **Moderation Tools**: Community-driven content moderation
-- **Expert Q&A**: Professional mental health guidance
-- **Peer Support**: Connect with others on similar journeys
+- **Topic-based Forums**: Organized by wellness topics (anxiety, depression, relationships, academic, family, self-care, crisis-support)
+- **Anonymous Posting**: Privacy-focused discussions with optional anonymity
+- **AI Moderation**: Automated content moderation using Google Cloud Natural Language API
+- **Crisis Detection**: AI-powered crisis identification and resource suggestions
+- **Peer Support**: Connect with others on similar wellness journeys
+- **Regional Support**: Location-based forum organization
+- **Age-appropriate Content**: Forums tailored for youth (13-25 age range)
 
-**Tech Stack**: Firebase Firestore, React, Socket.io
+**Tech Stack**: Google Cloud Natural Language API, Firebase Firestore, MongoDB, Google Gemini AI
 
 ## 🔧 Configuration
 
@@ -217,6 +202,7 @@ MONGODB_URI=mongodb://localhost:27017/mindflow
 GOOGLE_CLOUD_PROJECT_ID=your-project-id
 GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account-key.json
 GEMINI_API_KEY=your-gemini-api-key
+GOOGLE_CLOUD_STORAGE_BUCKET=your-storage-bucket-name
 ```
 
 #### Frontend (firebase.js)
@@ -231,16 +217,6 @@ const firebaseConfig = {
   appId: "your-app-id",
 };
 ```
-
-### Required Google Cloud APIs
-
-Enable these APIs in your Google Cloud Console:
-
-- **Dialogflow CX API** - For AI conversations
-- **Cloud Speech-to-Text API** - For voice processing
-- **Cloud Translation API** - For multilingual support
-- **Cloud Natural Language API** - For sentiment analysis
-- **Cloud Storage API** - For file storage
 
 ## 📊 API Documentation
 
@@ -270,22 +246,19 @@ Enable these APIs in your Google Cloud Console:
 | GET    | `/api/ai/conversations` | Get conversation history |
 | POST   | `/api/ai/feedback`      | Submit AI feedback       |
 
-### VR Meditation Endpoints
-
-| Method | Endpoint                        | Description         |
-| ------ | ------------------------------- | ------------------- |
-| POST   | `/api/vr/sessions`              | Create VR session   |
-| PUT    | `/api/vr/sessions/:id/complete` | Complete VR session |
-| GET    | `/api/vr/sessions`              | Get VR sessions     |
-
 ### Community Forum Endpoints
 
-| Method | Endpoint                 | Description     |
-| ------ | ------------------------ | --------------- |
-| GET    | `/api/forums`            | Get all forums  |
-| GET    | `/api/forums/:id/posts`  | Get forum posts |
-| POST   | `/api/forums/:id/posts`  | Create new post |
-| POST   | `/api/posts/:id/replies` | Reply to post   |
+| Method | Endpoint                 | Description       |
+| ------ | ------------------------ | ----------------- |
+| GET    | `/api/forums`            | Get all forums    |
+| GET    | `/api/forums/:id/posts`  | Get forum posts   |
+| POST   | `/api/forums/:id/posts`  | Create new post   |
+| POST   | `/api/posts/:id/replies` | Reply to post     |
+| GET    | `/api/posts/:id`         | Get specific post |
+| PUT    | `/api/posts/:id`         | Update post       |
+| DELETE | `/api/posts/:id`         | Delete post       |
+| POST   | `/api/posts/:id/like`    | Like/unlike post  |
+| POST   | `/api/posts/:id/report`  | Report post       |
 
 ## 🔒 Security & Privacy
 
@@ -456,7 +429,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Firebase & Google Cloud Platform** - For providing robust backend services
 - **React & TailwindCSS Communities** - For excellent frontend tools
-- **Three.js & WebXR Communities** - For immersive web experiences
+- **MediaPipe & OpenCV Communities** - For computer vision and pose tracking
+- **Python Community** - For powerful ML and computer vision libraries
 - **Mental Health Professionals** - For guidance on wellness best practices
 - **Youth Advisory Board** - For invaluable user feedback
 
@@ -464,11 +438,27 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### Common Issues
 
-**CORS Errors**: If you see `Access to fetch at 'http://localhost:8000/api/...' has been blocked by CORS policy`, your frontend and backend are running on different ports. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed solutions.
+**CORS Errors**: If you see `Access to fetch at 'http://localhost:8000/api/...' has been blocked by CORS policy`, your frontend and backend are running on different ports. Update the CORS configuration in `backend/server.js` to include your frontend's port (usually 5173 for Vite).
 
-**AI Companion Errors**: If you see `First content should be with role 'user', got model`, this has been fixed in the latest version. Restart your backend server to apply the fix.
+**Camera Access Issues**: For pose tracking features, ensure:
 
-**Quick Fix**: Update the CORS configuration in `backend/server.js` to include your frontend's port (usually 3000, 3001, etc.).
+- Your browser has camera permissions enabled
+- You're using HTTPS in production (required for camera access)
+- Your webcam is not being used by another application
+
+**Python Dependencies**: If pose tracking isn't working:
+
+```bash
+cd "python scripts"
+pip install -r requirements.txt
+# Ensure MediaPipe and OpenCV are properly installed
+```
+
+**Firebase Configuration**: Make sure your Firebase config is properly set up:
+
+- Copy `firebase.example.js` to `firebase.js` in frontend
+- Update backend `.env` with correct Firebase credentials
+- Enable Authentication and Firestore in Firebase console
 
 **Backend Not Running**: Make sure to start the backend server:
 
@@ -482,7 +472,12 @@ cd backend && npm run dev
 cd frontend && npm run dev
 ```
 
-For detailed troubleshooting steps, see our [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide.
+**Pose Tracking Issues**: If MediaPipe isn't working:
+
+- Check browser console for errors
+- Ensure camera permissions are granted
+- Try refreshing the page
+- Check if your browser supports WebRTC
 
 ## 📞 Support & Contact
 

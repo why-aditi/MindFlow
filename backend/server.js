@@ -20,7 +20,6 @@ import journalRoutes from "./src/routes/journal.js";
 import aiRoutes from "./src/routes/ai.js";
 import userRoutes from "./src/routes/user.js";
 import profileRoutes from "./src/routes/profile.js";
-import vrRoutes from "./src/routes/vr.js";
 import voiceJournalRoutes from "./src/routes/voiceJournal.js";
 import communityForumRoutes from "./src/routes/communityForum.js";
 
@@ -90,7 +89,6 @@ app.use("/api/journal", authMiddleware, journalRoutes);
 app.use("/api/voice-journal", authMiddleware, voiceJournalRoutes);
 app.use("/api/community-forums", authMiddleware, communityForumRoutes);
 app.use("/api/ai", authMiddleware, aiRoutes);
-app.use("/api/vr", authMiddleware, vrRoutes);
 app.use("/api/user", authMiddleware, userRoutes);
 app.use("/api/profile", authMiddleware, profileRoutes);
 
@@ -127,7 +125,7 @@ server.listen(PORT, async () => {
     console.log(`📚 API Documentation: http://localhost:${PORT}/api`);
     console.log(`🔥 Firebase: Authentication only`);
     console.log(`🍃 MongoDB: Data storage`);
-    console.log(`🔌 WebSocket: Real-time VR tracking enabled`);
+    console.log(`🔌 WebSocket: Real-time communication enabled`);
     console.log(`🤖 AI Chat: Gemini 2.0 Flash powered chatbot`);
   } catch (error) {
     console.error("❌ Backend initialization failed:", error);
