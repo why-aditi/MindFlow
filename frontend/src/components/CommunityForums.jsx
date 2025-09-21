@@ -64,7 +64,8 @@ const CommunityForums = () => {
     setModerationResult(null);
     
     try {
-      const result = await languageService.moderateContent(text);
+      const authToken = await user.getIdToken();
+      const result = await languageService.moderateContent(text, "en", authToken);
       setModerationResult(result);
       return result;
     } catch (error) {

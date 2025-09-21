@@ -129,14 +129,19 @@ class LanguageService {
   /**
    * Comprehensive text analysis
    */
-  async analyzeText(text, languageCode = "en") {
+  async analyzeText(text, languageCode = "en", authToken) {
     try {
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (authToken) {
+        headers.Authorization = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`${this.apiBaseUrl}/language/analyze`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${await this.getAuthToken()}`,
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({ text, languageCode }),
       });
 
@@ -163,14 +168,19 @@ class LanguageService {
   /**
    * Moderate content for inappropriate content
    */
-  async moderateContent(text, languageCode = "en") {
+  async moderateContent(text, languageCode = "en", authToken) {
     try {
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (authToken) {
+        headers.Authorization = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`${this.apiBaseUrl}/language/moderate`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${await this.getAuthToken()}`,
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({ text, languageCode }),
       });
 
@@ -197,14 +207,19 @@ class LanguageService {
   /**
    * Extract key phrases from text
    */
-  async extractKeyPhrases(text, languageCode = "en") {
+  async extractKeyPhrases(text, languageCode = "en", authToken) {
     try {
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (authToken) {
+        headers.Authorization = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`${this.apiBaseUrl}/language/key-phrases`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${await this.getAuthToken()}`,
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({ text, languageCode }),
       });
 
@@ -232,14 +247,19 @@ class LanguageService {
   /**
    * Detect language of text
    */
-  async detectLanguage(text) {
+  async detectLanguage(text, authToken) {
     try {
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (authToken) {
+        headers.Authorization = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`${this.apiBaseUrl}/language/detect`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${await this.getAuthToken()}`,
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({ text }),
       });
 
