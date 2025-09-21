@@ -1215,20 +1215,20 @@ const MindfulMovement = () => {
             {isTracking && selectedActivity?.id !== 'breathing' && (
               <div className="mb-12">
                 {/* Camera Video Feed */}
-                <div className="relative bg-gradient-to-br from-emerald-50 to-teal-50 rounded-3xl overflow-hidden mx-auto max-w-lg border border-emerald-200 shadow-wellness mb-8">
+                <div className="relative bg-gradient-to-br from-emerald-50 to-teal-50 rounded-3xl overflow-hidden mx-auto max-w-3xl border border-emerald-200 shadow-wellness mb-8">
                   {cameraStream ? (
                     <video
                       ref={setVideoRef}
                       autoPlay
                       playsInline
                       muted
-                      className="w-full h-80 object-cover"
+                      className="w-full h-96 object-cover"
                       onLoadedMetadata={() => console.log('Video metadata loaded')}
                       onCanPlay={() => console.log('Video can play')}
                       onError={(e) => console.error('Video error:', e)}
                     />
                   ) : (
-                    <div className="w-full h-80 flex items-center justify-center bg-gradient-to-br from-emerald-100 to-teal-100">
+                    <div className="w-full h-96 flex items-center justify-center bg-gradient-to-br from-emerald-100 to-teal-100">
                       <div className="text-center">
                         <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-4">
                           <Camera className="w-8 h-8 text-white" />
