@@ -830,6 +830,253 @@ Respond with only the title, no additional text.`;
       };
     }
   }
+
+  /**
+   * Moderate content using Gemini API for comprehensive safety analysis
+   * @param {string} text - Text to moderate
+   * @param {string} contentType - Type of content (chat, journal, forum, etc.)
+   * @param {Object} context - Additional context (user age, previous violations, etc.)
+   * @returns {Promise<Object>} Moderation result
+   */
+  async moderateContent(text, contentType = "general", context = {}) {
+    try {
+      const prompt = `
+        You are a content moderation system for MindFlow, a mental wellness platform for young people (ages 13-25). Analyze the following content for safety and appropriateness.
+
+        Content Type: ${contentType}
+        Content: "${text}"
+        Context: ${JSON.stringify(context)}
+
+        Evaluate the content for:
+        1. Harmful or dangerous content (self-harm, suicide, violence)
+        2. Inappropriate language (profanity, harassment, bullying)
+        3. Privacy violations (personal information, contact details)
+        4. Spam or irrelevant content
+        5. Age-inappropriate material
+        6. Mental health crisis indicators
+
+        Return your analysis as a JSON object with this structure:
+        {
+          "approved": true/false,
+          "confidence": 0.0-1.0,
+          "riskLevel": "low/medium/high/critical",
+          "categories": ["category1", "category2"],
+          "reason": "Detailed explanation of moderation decision",
+          "flaggedContent": ["specific phrases or sections that were flagged"],
+          "suggestions": ["suggestions for improvement if content is flagged"],
+          "crisisDetected": true/false,
+          "requiresHumanReview": true/false,
+          "actionRequired": "none/warning/block/escalate"
+        }
+
+        Guidelines:
+        - Be sensitive to mental health discussions while maintaining safety
+        - Distinguish between seeking help and expressing harmful intent
+        - Consider context and intent, not just keywords
+        - Prioritize user safety while being supportive
+        - Flag content that could harm the user or others
+      `;
+
+      try {
+        const result = await this.model.generateContent(prompt);
+        const response = await result.response;
+        const moderationResult = this.tryParseJson(response.text());
+
+        if (moderationResult) {
+          return {
+            success: true,
+            ...moderationResult,
+            timestamp: new Date(),
+            model: "gemini-2.5-flash",
+          };
+        }
+
+        // Fallback if JSON parsing fails
+        return this.getFallbackModerationResult(text, contentType);
+      } catch (primaryError) {
+        // Try fallback model if primary is overloaded
+        if (
+          primaryError.status === 503 ||
+          primaryError.message.includes("overloaded")
+        ) {
+          console.warn(
+            "Primary model overloaded for content moderation, trying fallback"
+          );
+          try {
+            const result = await this.fallbackModel.generateContent(prompt);
+            const response = await result.response;
+            const moderationResult = this.tryParseJson(response.text());
+
+            if (moderationResult) {
+              return {
+                success: true,
+                ...moderationResult,
+                timestamp: new Date(),
+                model: "gemini-2.0-flash",
+              };
+            }
+
+            return this.getFallbackModerationResult(text, contentType);
+          } catch (fallbackError) {
+            console.error(
+              "Fallback model also failed for content moderation:",
+              fallbackError
+            );
+            return this.getFallbackModerationResult(text, contentType);
+          }
+        } else {
+          throw primaryError;
+        }
+      }
+    } catch (error) {
+      console.error("Content moderation error:", error);
+      return this.getFallbackModerationResult(text, contentType);
+    }
+  }
+
+  /**
+   * Get fallback moderation result when API fails
+   */
+  getFallbackModerationResult(text, contentType) {
+    // Basic keyword-based fallback moderation
+    const crisisKeywords = [
+      "suicide",
+      "kill myself",
+      "end it all",
+      "hurt myself",
+      "self harm",
+      "cutting",
+      "overdose",
+      "not worth living",
+      "want to die",
+    ];
+
+    const inappropriateKeywords = [
+      "hate",
+      "kill you",
+      "hurt you",
+      "threat",
+      "violence",
+      "harassment",
+    ];
+
+    const lowerText = text.toLowerCase();
+    const hasCrisisIndicators = crisisKeywords.some((keyword) =>
+      lowerText.includes(keyword)
+    );
+    const hasInappropriateContent = inappropriateKeywords.some((keyword) =>
+      lowerText.includes(keyword)
+    );
+
+    let approved = true;
+    let riskLevel = "low";
+    let actionRequired = "none";
+
+    if (hasCrisisIndicators) {
+      approved = false;
+      riskLevel = "critical";
+      actionRequired = "escalate";
+    } else if (hasInappropriateContent) {
+      approved = false;
+      riskLevel = "high";
+      actionRequired = "block";
+    }
+
+    return {
+      success: false,
+      approved,
+      confidence: 0.6,
+      riskLevel,
+      categories: hasCrisisIndicators
+        ? ["crisis"]
+        : hasInappropriateContent
+        ? ["inappropriate"]
+        : [],
+      reason: hasCrisisIndicators
+        ? "Crisis indicators detected - requires immediate review"
+        : hasInappropriateContent
+        ? "Inappropriate content detected"
+        : "Content appears safe",
+      flaggedContent:
+        hasCrisisIndicators || hasInappropriateContent
+          ? [text.substring(0, 50) + "..."]
+          : [],
+      suggestions: [],
+      crisisDetected: hasCrisisIndicators,
+      requiresHumanReview: hasCrisisIndicators || hasInappropriateContent,
+      actionRequired,
+      timestamp: new Date(),
+      model: "fallback",
+      error: "API unavailable, using fallback moderation",
+    };
+  }
+
+  /**
+   * Moderate multiple pieces of content in batch
+   * @param {Array} contentItems - Array of content objects with text and metadata
+   * @returns {Promise<Array>} Array of moderation results
+   */
+  async moderateContentBatch(contentItems) {
+    try {
+      const moderationPromises = contentItems.map((item) =>
+        this.moderateContent(item.text, item.contentType, item.context)
+      );
+
+      const results = await Promise.all(moderationPromises);
+      return results;
+    } catch (error) {
+      console.error("Batch content moderation error:", error);
+      return contentItems.map((item) =>
+        this.getFallbackModerationResult(item.text, item.contentType)
+      );
+    }
+  }
+
+  /**
+   * Get content moderation statistics
+   * @param {Array} moderationResults - Array of previous moderation results
+   * @returns {Object} Statistics about moderation activity
+   */
+  getModerationStats(moderationResults) {
+    const stats = {
+      totalContent: moderationResults.length,
+      approved: 0,
+      flagged: 0,
+      crisisDetected: 0,
+      riskLevels: { low: 0, medium: 0, high: 0, critical: 0 },
+      categories: {},
+      averageConfidence: 0,
+    };
+
+    moderationResults.forEach((result) => {
+      if (result.approved) {
+        stats.approved++;
+      } else {
+        stats.flagged++;
+      }
+
+      if (result.crisisDetected) {
+        stats.crisisDetected++;
+      }
+
+      if (result.riskLevel) {
+        stats.riskLevels[result.riskLevel]++;
+      }
+
+      if (result.categories) {
+        result.categories.forEach((category) => {
+          stats.categories[category] = (stats.categories[category] || 0) + 1;
+        });
+      }
+
+      stats.averageConfidence += result.confidence || 0;
+    });
+
+    stats.averageConfidence =
+      stats.totalContent > 0 ? stats.averageConfidence / stats.totalContent : 0;
+
+    return stats;
+  }
 }
 
 export default new GeminiService();

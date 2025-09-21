@@ -43,10 +43,24 @@ router.post("/analyze", languageController.analyzeText);
 
 /**
  * @route POST /api/language/moderate
- * @desc Moderate content for inappropriate content
+ * @desc Moderate content for inappropriate content using Gemini API
  * @access Private
  */
 router.post("/moderate", languageController.moderateContent);
+
+/**
+ * @route POST /api/language/moderate/batch
+ * @desc Moderate multiple pieces of content in batch
+ * @access Private
+ */
+router.post("/moderate/batch", languageController.moderateContentBatch);
+
+/**
+ * @route POST /api/language/moderate/stats
+ * @desc Get content moderation statistics
+ * @access Private
+ */
+router.post("/moderate/stats", languageController.getModerationStats);
 
 /**
  * @route POST /api/language/key-phrases

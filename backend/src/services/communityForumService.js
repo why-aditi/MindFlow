@@ -258,27 +258,42 @@ class CommunityForumService {
    */
   async moderateContent(content) {
     try {
-      // Use the new LanguageService for moderation
-      const moderationResult = await languageService.moderateContent(content);
+      // Use Gemini API for comprehensive content moderation
+      const moderationResult = await geminiService.moderateContent(
+        content,
+        "forum",
+        { platform: "community_forum" }
+      );
 
       return {
         approved: moderationResult.approved,
-        analysis: moderationResult.analysis,
+        analysis: {
+          riskLevel: moderationResult.riskLevel,
+          categories: moderationResult.categories,
+          flaggedContent: moderationResult.flaggedContent,
+          crisisDetected: moderationResult.crisisDetected,
+          requiresHumanReview: moderationResult.requiresHumanReview,
+        },
         reason: moderationResult.reason,
         confidence: moderationResult.confidence,
+        actionRequired: moderationResult.actionRequired,
+        suggestions: moderationResult.suggestions,
       };
     } catch (error) {
       console.error("Error moderating content:", error);
       return {
         approved: true, // Default to approved if moderation fails
         analysis: {
-          toxicityScore: 0,
-          sentiment: { score: 0, magnitude: 0 },
-          entities: [],
+          riskLevel: "low",
           categories: [],
-          confidence: 0,
+          flaggedContent: [],
+          crisisDetected: false,
+          requiresHumanReview: false,
         },
         reason: "Moderation unavailable, content approved by default",
+        confidence: 0,
+        actionRequired: "none",
+        suggestions: [],
       };
     }
   }

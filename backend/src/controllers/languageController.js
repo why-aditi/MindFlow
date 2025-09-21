@@ -1,4 +1,5 @@
 import languageService from "../services/languageService.js";
+import geminiService from "../services/geminiService.js";
 
 export const languageController = {
   /**
@@ -187,12 +188,12 @@ export const languageController = {
   },
 
   /**
-   * Moderate content for inappropriate or harmful content
+   * Moderate content for inappropriate or harmful content using Gemini API
    */
   async moderateContent(req, res) {
     try {
       const { uid } = req.user;
-      const { text, languageCode } = req.body;
+      const { text, contentType, context } = req.body;
 
       if (!text || text.trim().length === 0) {
         return res.status(400).json({
@@ -200,21 +201,31 @@ export const languageController = {
         });
       }
 
-      const result = await languageService.moderateContent(
+      // Use Gemini API for content moderation
+      const result = await geminiService.moderateContent(
         text,
-        languageCode || process.env.NLP_LANGUAGE_CODE || "en"
+        contentType || "general",
+        { ...context, userId: uid }
       );
 
       res.json({
-        success: true,
+        success: result.success,
         moderation: {
           approved: result.approved,
-          reason: result.reason,
           confidence: result.confidence,
-          analysis: result.analysis,
+          riskLevel: result.riskLevel,
+          categories: result.categories,
+          reason: result.reason,
+          flaggedContent: result.flaggedContent,
+          suggestions: result.suggestions,
+          crisisDetected: result.crisisDetected,
+          requiresHumanReview: result.requiresHumanReview,
+          actionRequired: result.actionRequired,
         },
         metadata: {
           textLength: text.length,
+          contentType: contentType || "general",
+          model: result.model,
           processingTime: Date.now() - req.startTime,
         },
       });
@@ -222,6 +233,93 @@ export const languageController = {
       console.error("Content moderation error:", error);
       res.status(500).json({
         error: "Failed to moderate content",
+        message: error.message,
+      });
+    }
+  },
+
+  /**
+   * Moderate multiple pieces of content in batch
+   */
+  async moderateContentBatch(req, res) {
+    try {
+      const { uid } = req.user;
+      const { contentItems } = req.body;
+
+      if (
+        !contentItems ||
+        !Array.isArray(contentItems) ||
+        contentItems.length === 0
+      ) {
+        return res.status(400).json({
+          error: "Content items array is required",
+        });
+      }
+
+      // Validate each content item
+      for (const item of contentItems) {
+        if (!item.text || item.text.trim().length === 0) {
+          return res.status(400).json({
+            error: "Each content item must have text",
+          });
+        }
+      }
+
+      // Add user context to each item
+      const itemsWithContext = contentItems.map((item) => ({
+        ...item,
+        context: { ...item.context, userId: uid },
+      }));
+
+      const results = await geminiService.moderateContentBatch(
+        itemsWithContext
+      );
+
+      res.json({
+        success: true,
+        moderationResults: results,
+        metadata: {
+          totalItems: contentItems.length,
+          processingTime: Date.now() - req.startTime,
+        },
+      });
+    } catch (error) {
+      console.error("Batch content moderation error:", error);
+      res.status(500).json({
+        error: "Failed to moderate content batch",
+        message: error.message,
+      });
+    }
+  },
+
+  /**
+   * Get content moderation statistics
+   */
+  async getModerationStats(req, res) {
+    try {
+      const { uid } = req.user;
+      const { moderationResults } = req.body;
+
+      if (!moderationResults || !Array.isArray(moderationResults)) {
+        return res.status(400).json({
+          error: "Moderation results array is required",
+        });
+      }
+
+      const stats = geminiService.getModerationStats(moderationResults);
+
+      res.json({
+        success: true,
+        statistics: stats,
+        metadata: {
+          userId: uid,
+          generatedAt: new Date(),
+        },
+      });
+    } catch (error) {
+      console.error("Moderation stats error:", error);
+      res.status(500).json({
+        error: "Failed to generate moderation statistics",
         message: error.message,
       });
     }
