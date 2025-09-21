@@ -69,9 +69,9 @@ MindFlow/
 
 #### AI & ML Services
 
-- **Google Gemini AI** - Advanced AI capabilities for conversational AI
+- **Google Gemini AI** - Advanced AI capabilities for conversational AI and intelligent content moderation
 - **Google Cloud Speech-to-Text** - Professional voice-to-text transcription with 40+ languages
-- **Google Cloud Natural Language API** - Advanced sentiment analysis and content moderation
+- **Google Cloud Natural Language API** - Advanced sentiment analysis and text processing
 - **MediaPipe** - Pose detection and tracking
 - **OpenCV** - Computer vision processing
 
@@ -172,15 +172,16 @@ Safe spaces for peer support and discussion:
 
 - **Topic-based Forums**: Organized by wellness topics (anxiety, depression, relationships, academic, family, self-care, crisis-support)
 - **Anonymous Posting**: Privacy-focused discussions with optional anonymity
-- **AI-Powered Moderation**: Advanced content moderation using Google Cloud Natural Language API
-- **Real-time Content Analysis**: Pre-posting content analysis with sentiment scoring
+- **AI-Powered Moderation**: Advanced content moderation using Google Gemini AI for intelligent safety analysis
+- **Real-time Content Analysis**: Pre-posting content analysis with comprehensive safety scoring
 - **Crisis Detection**: AI-powered crisis identification and resource suggestions
-- **Detailed Moderation Reports**: Comprehensive analysis with confidence scores
+- **Smart Moderation**: Context-aware content filtering that distinguishes between seeking help and harmful intent
+- **Detailed Moderation Reports**: Comprehensive analysis with confidence scores and actionable suggestions
 - **Peer Support**: Connect with others on similar wellness journeys
 - **Regional Support**: Location-based forum organization
 - **Age-appropriate Content**: Forums tailored for youth (13-25 age range)
 
-**Tech Stack**: Google Cloud Natural Language API, Firebase Firestore, MongoDB, Google Gemini AI
+**Tech Stack**: Google Gemini AI, Google Cloud Natural Language API, Firebase Firestore, MongoDB
 
 ## 🔧 Configuration
 
@@ -269,15 +270,17 @@ const firebaseConfig = {
 
 ### Natural Language Processing Endpoints
 
-| Method | Endpoint                    | Description                 |
-| ------ | --------------------------- | --------------------------- |
-| POST   | `/api/language/sentiment`   | Analyze text sentiment      |
-| POST   | `/api/language/entities`    | Extract entities from text  |
-| POST   | `/api/language/classify`    | Classify text content       |
-| POST   | `/api/language/analyze`     | Comprehensive text analysis |
-| POST   | `/api/language/moderate`    | Moderate content for safety |
-| POST   | `/api/language/key-phrases` | Extract key phrases         |
-| POST   | `/api/language/detect`      | Detect text language        |
+| Method | Endpoint                       | Description                          |
+| ------ | ------------------------------ | ------------------------------------ |
+| POST   | `/api/language/sentiment`      | Analyze text sentiment               |
+| POST   | `/api/language/entities`       | Extract entities from text           |
+| POST   | `/api/language/classify`       | Classify text content                |
+| POST   | `/api/language/analyze`        | Comprehensive text analysis          |
+| POST   | `/api/language/moderate`       | Moderate content for safety (Gemini) |
+| POST   | `/api/language/moderate/batch` | Batch content moderation             |
+| POST   | `/api/language/moderate/stats` | Get moderation statistics            |
+| POST   | `/api/language/key-phrases`    | Extract key phrases                  |
+| POST   | `/api/language/detect`         | Detect text language                 |
 
 ### Community Forum Endpoints
 
@@ -308,7 +311,7 @@ MindFlow leverages Google Cloud Speech-to-Text for professional-grade voice tran
 
 ### Natural Language Processing
 
-Advanced text analysis powered by Google Cloud Natural Language API:
+Advanced text analysis powered by Google Cloud Natural Language API and Google Gemini AI:
 
 - **Sentiment Analysis**: Comprehensive emotional state detection with confidence scores
 - **Entity Recognition**: Automatic identification of people, places, organizations, and events
