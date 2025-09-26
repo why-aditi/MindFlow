@@ -1,8 +1,10 @@
-# 🌊 MindFlow - Youth Mental Wellness Platform
+# MindFlow - Youth Mental Wellness Platform
 
 <div align="center">
 
 ![MindFlow Logo](https://img.shields.io/badge/MindFlow-Youth%20Wellness-purple?style=for-the-badge&logo=heart)
+
+[Deployed Link](https://mind-flow-three.vercel.app/)
 
 **A comprehensive, AI-powered mental wellness platform designed specifically for young people, combining cutting-edge technology with intuitive user experiences.**
 
